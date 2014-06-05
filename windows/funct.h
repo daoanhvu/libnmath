@@ -86,6 +86,14 @@ struct tagStack{
 	char priority;
 };
 
+struct tagToken{
+	int type;
+	char text[20];
+	int testLength;
+	/* This is used for operators & functions */
+	char priority;
+}Token;
+
 struct tagTNode{
 	/* 0:coefficient; 1:variable; 2: functions; 3:Operators; 4: ( or ) */
 	char function;
