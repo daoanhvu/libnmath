@@ -1,13 +1,12 @@
 #include "nlablexer.h"
+#include "constants.h"
 
 int currentIdx = 0;
 
 int setLeadNegativeNumber[] = {};
 int setNumericOperators[] = {};
-Token *tokens;
 	
-	
-void parseTokens(char *inputString, int length){
+void parseTokens(char *inputString, int length, Token **tokens){
 	int k = 0;
 	Token tk = null;
 	currentIdx = 0;
@@ -32,8 +31,8 @@ void parseTokens(char *inputString, int length){
 			}
 			currentIdx = k;
 			
-		}else if(inputString.charAt(currentIdx) == ':' ){
-			if(inputString.charAt(currentIdx+1) == '-' ){
+		}else if(inputString[currentIdx] == ':' ){
+			if(inputString[currentIdx+1] == '-' ){
 				tk = new Token(Token.ELEMENT_OF, ":-");
 				tk.setColumn(currentIdx);
 				tokens.add(tk);
@@ -160,7 +159,7 @@ int parserLogicOperator(int i, char charAtI, int k, char charAtK) {
 	return nextPos;
 }
 
-void checkParenthesePrackets(char c, Token * tk){
+void checkParenthesePrackets(char c, Token *tk){
 	switch(c){
 		case '(':
 			tk = new Token(Token.LPAREN, "(");
