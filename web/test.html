@@ -1,0 +1,24 @@
+<html>
+	<head>
+		<script src="nmath.js"> </script>
+		<script type="text/javascript">
+			function onButtonClick(){
+				var inStr = document.getElementById("txtF").value;
+				if(isFunctionName(0, inStr) >= 0 )
+					alert("Yes, function name");
+				else
+					alert("No");
+					
+				//if(isVariable(0,inStr)==true)
+				//	alert("Yes");
+			}
+		</script>
+		<title>TEST</title>
+	</head>
+	<body>
+		Input: <input type="text" id="txtF" name="txtF" />
+		<input type="button" id="btnF" name="btnF" value="Test" onclick="onButtonClick();" />
+		<span id="spR">
+		</span>
+	</body>
+</html>

@@ -78,7 +78,7 @@ typedef struct tagFunct{
 	TNode **prefix;
 	int prefixLen;
 	int prefixAllocLen;
-} Function;
+} Formula;
 
 struct tagStack{
 	char function;
@@ -136,17 +136,17 @@ typedef struct tagRParam{
 	int error;
 }RParam;
 
-void initFunct(Function *);
-void reset(Function *f, const char *str, int *error);
-void setVariables(Function *f, char variable[], int l);
-int parseFunct(Function *, int *);
+void initFunct(Formula *);
+void reset(Formula *f, const char *str, int *error);
+void setVariables(Formula *f, char variable[], int l);
+int parseFunct(Formula *, int *);
 void clearTree(TNode **prf);
-double calc(Function *f, double *values, int numOfValue, int *);
-int reduce(Function *f, int *);
+double calc(Formula *f, double *values, int numOfValue, int *);
+int reduce(Formula *f, int *);
 unsigned int __stdcall reduce_t(void *);
 unsigned int __stdcall calc_t(void *);
 void nodeToString(TNode *t, char *str, int len, int *newlen);
-void releaseFunct(Function *);
+void releaseFunct(Formula *);
 
 #ifdef __cplusplus
 }
