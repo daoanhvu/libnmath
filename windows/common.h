@@ -1,23 +1,38 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
+#define COMMA 1
+#define SEMI 2
+#define AND 3
+#define OR 4
+#define GT 46 //>
+#define LT 47 //<
+#define GTE 48 //>=
+#define LTE 49 //<=
+#define NE 50 // not equals !=
+#define EQ 22 // equals =
 #define LPAREN 19
-#define RPAREN 20;
+#define RPAREN 20
 #define LPRACKET 44
 #define RPRACKET 45
+#define IMPLY 47
+#define RARROW 48
+#define ELEMENT_OF 77
+#define NUMBER 78
+#define NAME 99
 
 /* FLAGS also ASCII code of ^ operator + - * / PI E */
 #define VAR 0x00
 #define COE 0x11
 #define PLUS 0x2B
 #define MINUS 0x2D
-#define MUL 0x2A
-#define DIV 0x2F
+#define MULTIPLY 0x2A
+#define DIVIDE 0x2F
 #define SIN 0x06
 #define COS 0x07
 #define TAN 0x08
 #define COTAN 0x12
-#define POW 0x5E
+#define POWER 0x5E
 #define SQRT 0x10
 #define LN 0x0A
 #define LOG 0x0B
@@ -72,6 +87,7 @@ extern "C" {
 
 typedef struct tagToken Token;
 typedef struct tagFraction Fraction;
+typedef struct tagTokenList TokenList;
 
 struct tagToken{
 	int type;
@@ -80,6 +96,12 @@ struct tagToken{
 	int testLength;
 	/* This is used for operators & functions */
 	char priority;
+};
+
+struct tagTokenList{
+	int loggedSize;
+	int size;
+	struct tagToken **list;
 };
 
 struct tagFraction{
