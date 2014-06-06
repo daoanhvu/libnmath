@@ -1,50 +1,44 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
-#define COMMA 1
-#define SEMI 2
-#define AND 3
-#define OR 4
-#define GT 46 //>
-#define LT 47 //<
-#define GTE 48 //>=
-#define LTE 49 //<=
-#define NE 50 // not equals !=
-#define EQ 22 // equals =
-#define LPAREN 19
-#define RPAREN 20
-#define LPRACKET 44
-#define RPRACKET 45
-#define IMPLY 47
-#define RARROW 48
-#define ELEMENT_OF 77
-#define NUMBER 78
-#define NAME 99
-
-/* FLAGS also ASCII code of ^ operator + - * / PI E */
-#define VAR 0x00
-#define COE 0x11
-#define PLUS 0x2B
-#define MINUS 0x2D
-#define MULTIPLY 0x2A
-#define DIVIDE 0x2F
-#define SIN 0x06
-#define COS 0x07
-#define TAN 0x08
-#define COTAN 0x12
-#define POWER 0x5E
-#define SQRT 0x10
-#define LN 0x0A
-#define LOG 0x0B
-#define OPN 0x28
-#define CLO 0x29
-#define ASIN 0x13
-#define ACOS 0x14
-#define ATAN 0x15
-#define PI_FLG 0xE3
-#define E_FLG 0x65
-
-#define SEC 0x16
+#define COMMA			1
+#define SEMI			2
+#define AND				3
+#define OR				4
+#define GT				5 //>
+#define LT				6 //<
+#define GTE				7 //>=
+#define LTE				8 //<=
+#define NE				9 // not equals !=
+#define EQ				10 // equals =
+#define LPAREN			11
+#define RPAREN			12
+#define LPRACKET 		13
+#define RPRACKET 		14
+#define IMPLY			15
+#define RARROW			16
+#define ELEMENT_OF 	17
+#define NUMBER			18
+#define NAME			19
+#define VARIABLE 		20
+#define PLUS 			0x2B
+#define MINUS 			0x2D
+#define MULTIPLY 		0x2A
+#define DIVIDE 		0x2F
+#define POWER 			0x5E
+#define SIN 			0x06
+#define COS 			0x07
+#define TAN 			0x08
+#define COTAN 			0x12
+#define ASIN 			0x13
+#define ACOS 			0x14
+#define ATAN 			0x15
+#define SQRT 			0x10
+#define LN 				0x0A
+#define LOG 			0x0B
+#define PI_TYPE 		0xE3
+#define E_TYPE 		0x65
+#define SEC 			0x16
 
 /* Function value */
 #define F_COE 0x00
@@ -78,8 +72,8 @@
 
 #define MAXTEXTLEN 20
 
-#define PI 3.14159265358979323846
-#define E 2.718281828
+#define PI	3.14159265358979323846
+#define E	2.718281828
 
 #ifdef __cplusplus
 extern "C" {
@@ -94,6 +88,7 @@ struct tagToken{
 	char text[MAXTEXTLEN];
 	int column;
 	int testLength;
+	
 	/* This is used for operators & functions */
 	char priority;
 };

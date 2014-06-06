@@ -10,15 +10,13 @@
 #endif
 
 int setLeadNegativeNumber[] = {LPAREN, LPRACKET,SEMI,COMMA,AND,OR,LT,LTE,GT,GTE,EQ,NE,IMPLY,RARROW};
-int LeadNegativeNumberSize = 14;
+const int LeadNegativeNumberSize = 14;
 
 int setNumericOperators[] = {PLUS, MINUS,MULTIPLY,DIVIDE,POWER};
-int NumericOperators = 5;
+const int NumericOperators = 5;
 
-
-TokenList *tokens = NULL;
-int tsize = 0;
-int errorColumn = -1;
+TokenList *gTokens = NULL;
+int gErrorColumn = -1;
 
 Token* createToken(int _type, const char *_text, int txtlen, int _col){
 	int i;
@@ -40,14 +38,39 @@ Token* createTokenIdx(int _type, const char *_text, int frIdx, int toIdx, int _c
 	tk->type = _type;
 	tk->column = _col;
 	
+	switch(_type){
+		case PLUS:
+		case MINUS:
+		case OR:
+			tk->priority = 1;
+		break;
+		
+		case MULTIPLY:
+		case DIVIDE:
+		case AND:
+			tk->priority = 2;
+		break;
+		
+		case POWER:
+			tk->priority = 3;
+		break;
+		
+		case NE:
+			tk->priority = 4;
+		break;
+		
+		default:
+			tk->priority = 0;
+	}
+	
+	
+	
 	//l = (MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen;
 	tk->testLength = 0;
 	for(i=frIdx; i<=toIdx; i++){
 		tk->text[tk->testLength] = _text[i];
 		(tk->testLength)++;
 	}
-	
-	
 	return tk;
 }
 
@@ -78,6 +101,8 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 	int floatingPoint = FALSE;
 	Token *tk = NULL;
 		
+	gTokens = tokens;
+	
 	while( idx < length ){
 		if( isNumericOperatorOREQ(inStr[idx])){
 			tk = checkNumericOperator(inStr, length, &idx);
@@ -170,6 +195,7 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 		}else
 			idx++;
 	}
+	gTokens = NULL;
 }
 	
 int parserLogicOperator(const char *inStr, int length, int i, char charAtI, int k, char charAtK) {
