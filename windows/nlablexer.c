@@ -1,51 +1,88 @@
 #include "nlablexer.h"
-#include "constants.h"
+#include "common.h"
+#include <stdlib.h>
 
-int currentIdx = 0;
+int setLeadNegativeNumber[] = {LPAREN, LPRACKET};
+int setNumericOperators[] = {PLUS, MINUS};
+Token **tokens = NULL;
+int tsize = 0;
+int errorColumn = -1;
 
-int setLeadNegativeNumber[] = {};
-int setNumericOperators[] = {};
+Token* createToken(int _type, char *_text, int txtlen, int _col){
+	int i, l;
+	Token *tk = (Token*)malloc(sizeof(Token));
+	tk->type = _type;
+	tk->column = _col;
 	
-void parseTokens(char *inputString, int length, Token **tokens){
+	l = (MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen;
+	for(i=0; i<l; i++)
+		tk->text[i] = _text[i];
+	
+	return tk;
+}
+
+Token* createTokenIdx(int _type, char *_text, int frIdx, int toIdx, int _col){
+	int i, j=0;
+	Token *tk = (Token*)malloc(sizeof(Token));
+	tk->type = _type;
+	tk->column = _col;
+	
+	//l = (MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen;
+	for(i=frIdx; i<=toIdx; i++){
+		tk->text[j] = _text[i];
+		j++;
+	}
+	
+	return tk;
+}
+
+int contains(const int *aset, int len, int val){
+	int i;
+	for(i =0; i<len; i++)
+		if(aset[i] == val)
+			return TRUE;
+	return FALSE;
+}
+/**********************************************************************/
+	
+void parseTokens(char *inStr, int length, Token **tokens, int *len){
 	int k = 0;
-	Token tk = null;
-	currentIdx = 0;
+	int idx = 0;
+	
+	Token *tk = NULL;
 		
-	while( currentIdx < length ){
-		if( isNumericOperatorOREQ(inputString[currentIdx])){
-			checkNumericOperator();
-		}else if( (tk = checkParenthesePrackets(inputString[currentIdx])) != null ){
+	while( idx < length ){
+		if( isNumericOperatorOREQ(inStr[idx])){
+			tk = checkNumericOperator();
 			tokens.add(tk);
-			tk.setColumn(currentIdx);
-			currentIdx++;
-		}else if( (tk = checkCommaSemi(inputString[currentIdx]))!=null ){
+		}else if( (tk = checkParenthesePrackets(inStr[idx], &idx)) != NULL ){
 			tokens.add(tk);
-			tk.setColumn(currentIdx);
-			currentIdx++;
-		}else if(isLogicOperator(inputString[currentIdx])){
-			k = currentIdx+1;
-			k = parserLogicOperator(currentIdx, inputString[currentIdx], k, inputString[k] );
+		}else if( (tk = checkCommaSemi(inStr[idx], &idx)) != NULL ){
+			tokens.add(tk);
+		}else if(isLogicOperator(inStr[idx])){
+			k = idx+1;
+			k = parserLogicOperator(idx, inStr[idx], k, inStr[k] );
 			if( k<0 ) {
-				errorColumn = currentIdx;
+				errorColumn = idx;
 				return;
 			}
-			currentIdx = k;
+			idx = k;
 			
-		}else if(inputString[currentIdx] == ':' ){
-			if(inputString[currentIdx+1] == '-' ){
+		}else if(inStr[idx] == ':' ){
+			if(inStr[idx+1] == '-' ){
 				tk = new Token(Token.ELEMENT_OF, ":-");
-				tk.setColumn(currentIdx);
+				tk.setColumn(idx);
 				tokens.add(tk);
-				currentIdx += 2;
+				idx += 2;
 			}else{
-				errorColumn = currentIdx;
+				errorColumn = idx;
 				return;
 			}
-		}else if(isDigit(inputString.charAt(currentIdx))){
+		}else if(isDigit(inStr[idx])){
 			boolean gotFloatingPoint = false;
-			for(k = currentIdx+1; k < inputString.length(); k++){
-				if(!isDigit(inputString.charAt(k))) {
-					if(inputString.charAt(k) == '.'){
+			for(k = idx+1; k < length; k++){
+				if(!isDigit(inStr[k])) {
+					if(inStr[k] == '.'){
 						//check if we got a floating point
 						if(gotFloatingPoint){ //<- the second floating point
 							errorColumn = k;
@@ -53,13 +90,13 @@ void parseTokens(char *inputString, int length, Token **tokens){
 						}
 						gotFloatingPoint = true;
 					}else{
-						tk = new Token(Token.NUMBER, inputString.substring(currentIdx, k));
-						tk.setColumn(currentIdx);
+						tk = new Token(Token.NUMBER, inStr.substring(idx, k));
+						tk.setColumn(idx);
 						tokens.add(tk);
-						if(inputString.charAt(k) == ')'||inputString.charAt(k) == ' ' 
-								|| isNumericOperatorOREQ(inputString.charAt(k)) 
-								|| isLogicOperator(inputString.charAt(k))) {
-							currentIdx = k;
+						if(inStr[k] == ')'||inStr[k] == ' ' 
+								|| isNumericOperatorOREQ(inStr[k]) 
+								|| isLogicOperator(inStr[k])) {
+							idx = k;
 							break;
 						}else{
 							//Ex: 126a
@@ -71,49 +108,49 @@ void parseTokens(char *inputString, int length, Token **tokens){
 					}
 				}
 			}
-			if(currentIdx < k){
-				tk = new Token(Token.NUMBER, inputString.substring(currentIdx, k));
-				tk.setColumn(currentIdx);
+			if(idx < k){
+				tk = new Token(Token.NUMBER, inStr.substring(idx, k));
+				tk.setColumn(idx);
 				tokens.add(tk);
-				currentIdx = k;
+				idx = k;
 			}
-		}else if( (k=isFunctionName(currentIdx))>0 ){
-			String fName = inputString.substring(currentIdx, k).toUpperCase();
+		}else if( (k=isFunctionName(idx))>0 ){
+			String fName = inStr.substring(idx, k).toUpperCase();
 			tk = new Token(fName, fName);
-			tk.setColumn(currentIdx);
+			tk.setColumn(idx);
 			tokens.add(tk);
-			currentIdx = k;
-		}else if( isVariable(currentIdx)	){
-			tk = new Token(Token.NAME, inputString.substring(currentIdx, currentIdx + 1));
-			tk.setColumn(currentIdx);
+			idx = k;
+		}else if( isVariable(idx)	){
+			tk = new Token(Token.NAME, inStr.substring(idx, idx + 1));
+			tk.setColumn(idx);
 			tokens.add(tk);
-			currentIdx++;
-		}else if(inputString.charAt(currentIdx)=='o' || inputString.charAt(currentIdx)=='O'){
-			if(inputString.charAt(currentIdx+1)=='r' || inputString.charAt(currentIdx+1)=='R'){
-				tk = new Token(Token.OR, inputString.substring(currentIdx, currentIdx + 2));
-				tk.setColumn(currentIdx);
+			idx++;
+		}else if(inStr.charAt(idx)=='o' || inStr.charAt(idx)=='O'){
+			if(inStr.charAt(idx+1)=='r' || inStr.charAt(idx+1)=='R'){
+				tk = new Token(Token.OR, inStr.substring(idx, idx + 2));
+				tk.setColumn(idx);
 				tokens.add(tk);
-				currentIdx += 2;
+				idx += 2;
 			}else{
 				//TODO: maybe its a NAME
-				currentIdx++;
+				idx++;
 			}
 			
-		}else if(inputString.charAt(currentIdx)=='a' || inputString.charAt(currentIdx)=='A'){
-			if(inputString.charAt(currentIdx+1)=='n' || inputString.charAt(currentIdx+1)=='N'){
-				if(inputString.charAt(currentIdx+2)=='d' || inputString.charAt(currentIdx+2)=='D'){
-					tk = new Token(Token.AND, inputString.substring(currentIdx, currentIdx + 3));
-					tk.setColumn(currentIdx);
+		}else if(inStr.charAt(idx)=='a' || inStr.charAt(idx)=='A'){
+			if(inStr.charAt(idx+1)=='n' || inStr.charAt(idx+1)=='N'){
+				if(inStr.charAt(idx+2)=='d' || inStr.charAt(idx+2)=='D'){
+					tk = new Token(Token.AND, inStr.substring(idx, idx + 3));
+					tk.setColumn(idx);
 					tokens.add(tk);
-					currentIdx += 3;
+					idx += 3;
 				}
 			}else{
 				//TODO: maybe its a NAME
-				currentIdx++;
+				idx++;
 			}
 			
 		}else
-			currentIdx++;
+			idx++;
 	}
 }
 	
@@ -159,35 +196,43 @@ int parserLogicOperator(int i, char charAtI, int k, char charAtK) {
 	return nextPos;
 }
 
-void checkParenthesePrackets(char c, Token *tk){
+Token* checkParenthesePrackets(char c, int *idx){
+	Token *tk = NULL;
 	switch(c){
 		case '(':
-			tk = new Token(Token.LPAREN, "(");
+			tk = createToken(LPAREN, "(", 1, *idx);
+			(*idx)++;
 		break;
 		
 		case ')':
-			tk = new Token(Token.RPAREN, ")");				
+			tk = createToken(RPAREN, ")", 1, *idx);
+			(*idx)++;
 		break;
 			
 		case '[':
-			tk = new Token(Token.LPRACKET, "[");				
+			tk = createToken(LPRACKET, "[", 1, *idx);
+			(*idx)++;
 		break;
 			
 		case ']':
-			tk = new Token(Token.RPRACKET, "]");				
+			tk = createToken(RPRACKET, "]", 1, *idx);
+			(*idx)++;
 		break;
 	}
+	return tk;
 }
 	
-private Token checkCommaSemi(char c){
-	Token tk = null;
+Token* checkCommaSemi(char c, int *idx){
+	Token *tk = NULL;
 	switch(c){
 		case ',':
-			tk = new Token(Token.COMMA, ",");
+			tk = createToken(COMMA, ",", 1, *idx);
+			(*idx)++;
 		break;
 		
 		case ';':
-			tk = new Token(Token.SEMI, ";");				
+			tk = createToken(SEMI, ";", 1, *idx);
+			(*idx)++;
 		break;
 	}
 		
@@ -199,57 +244,50 @@ private Token checkCommaSemi(char c){
  * @see isNumericOperatorOREQ
  * @return errorCode
  */
-int checkNumericOperator(Token *tk){
-	
-	if(currentIdx >= inputString.length())
-		return -1;
+Token* checkNumericOperator(char *inStr, int length, int *idx){
+	Token *tk = NULL;
+	if((*idx) >= length)
+		return NULL;
 		
-	char c = inputString.charAt(currentIdx);
+	char c = inStr[(*idx)];
 	switch(c){
 		case '+':
-			tk = new Token(Token.PLUS, "+");
-			tk.setColumn(currentIdx);
-			tokens.add(tk);
-			currentIdx++;
+			tk = createToken(PLUS, "+", 1, *idx);
+			(*idx)++;
 		break;
 			
 		case '-':
-			parsSubtractSign();
+			parsSubtractSign(inStr, length, idx);
 		break;
 			
 		case '*':
-			tk = new Token(Token.MULTIPLY, "*");
-			tk.setColumn(currentIdx);
+			tk = createToken(MULTIPLY, "*", 1, *idx);
 			tokens.add(tk);
-			currentIdx++;
+			(*idx)++;
 		break;
 			
 		case '/':
-			tk = new Token(Token.DIVIDE, "/");
-			tk.setColumn(currentIdx);
+			tk = createToken(DIVIDE, "/", 1, *idx);
 			tokens.add(tk);
-			currentIdx++;
+			(*idx)++;
 		break;
 			
 		case '^':
-			tk = new Token(Token.POWER, "^");
-			tk.setColumn(currentIdx);
+			tk = createToken(POWER, "^", 1, *idx);
 			tokens.add(tk);
-			currentIdx++;
+			(*idx)++;
 		break;
 			
 		case '=':
-			if(currentIdx==inputString.length()-1 || inputString.charAt(currentIdx+1) != '>'){
-				tk = new Token(Token.EQ, "=");
-				tk.setColumn(currentIdx);
+			if((*idx)==length-1 || inputString[(*idx)+1] != '>'){
+				tk = createToken(EQ, "=", 1, *idx);
 				tokens.add(tk);
-			} else if(inputString.charAt(currentIdx+1) == '>'){
-				tk = new Token(Token.IMPLY, "=>");
-				tk.setColumn(currentIdx);
+			} else if(inputString[(*idx)+1] == '>'){
+				tk = createToken(IMPLY, "=>", 2, *idx);
 				tokens.add(tk);
-				currentIdx++;
+				(*idx)++;
 			}
-			currentIdx++;
+			(*idx)++;
 		break;
 	}
 		
@@ -275,79 +313,73 @@ int isNumericOperatorOREQ(char c){
  * Just call this routine if character at currentPos is a minus sign
  * Example
  */
-void parsSubtractSign(char *inputString, int length){
-	Token tk = null;
-	int k, gotFloatingPoint;
-	if(currentIdx==length-1){
+Token* parsSubtractSign(char *inputString, int length, int *idx){
+	Token *tk = NULL;
+	int k, floatingPoint;
+	if((*idx)==length-1){
 		//the minus sign is placed at the end of the string, it's a error
-		return;
+		return NULL;
 	}
 		
-	if(inputString[currentIdx+1] != '>'){
-			if(((currentIdx == 0) || NLabLexer.setLeadNegativeNumber.contains((tokens.get(tokens.size()-1))))
-					&& (isDigit(inputString[currentIdx+1])) ){
+	if(inputString[(*idx)+1] != '>'){
+		if((((*idx) == 0) || contains(setLeadNegativeNumber, tokens[tsize-1]->type))
+				&& (isDigit(inputString[(*idx)+1])) ){
 				
-				gotFloatingPoint = FALSE;
-				for(k = currentIdx+1; k < inputString.length(); k++){
-					if(!isDigit(inputString[k])) {
-						if(inputString.charAt(k) == '.'){
-							//check if we got a floating point
-							if(gotFloatingPoint){ //<- the second floating point
-								errorColumn = k;
-								return;
-							}
-							gotFloatingPoint = TRUE;
+			floatingPoint = FALSE;
+			for(k = (*idx)+1; k < length; k++){
+				if(!isDigit(inputString[k])) {
+					if(inputString[k] == '.'){
+						//check if we got a floating point
+						if(floatingPoint){ //<- the second floating point
+							errorColumn = k;
+							return;
+						}
+						floatingPoint = TRUE;
+					}else{
+						tk = createTokenIdx(NUMBER, inputString, (*idx), k-1, (*idx));
+						tokens.add(tk);
+						if(inputString[k] == ')'||inputString[k] == ' ' 
+								|| isNumericOperatorOREQ(inputString[k]) 
+								|| isLogicOperator(inputString[k])) {
+							(*idx) = k;
+							break;
 						}else{
-							tk = new Token(Token.NUMBER, inputString.substring(currentIdx, k));
-							tk.setColumn(currentIdx);
-							tokens.add(tk);
-							if(inputString[k] == ')'||inputString[k] == ' ' 
-									|| isNumericOperatorOREQ(inputString[k]) 
-									|| isLogicOperator(inputString[k])) {
-								currentIdx = k;
-								break;
-							}else{
-								//Ex: 126a
-								//At the moment, I don't handle this case
-								//throw Exception
-								errorColumn = k;
-								return;
-							}
+							//Ex: 126a
+							//At the moment, I don't handle this case
+							//throw Exception
+							errorColumn = k;
+							return;
 						}
 					}
 				}
-				
-				if(currentIdx < k){
-					tk = new Token(Token.NUMBER, inputString.substring(currentIdx, k));
-					tk.setColumn(currentIdx);
-					tokens.add(tk);
-					currentIdx = k;
-				}
-				//////////////////////////////////////
-			}else{
-				tk = new Token(Token.SUBTRACT, "-");
-				tk.setColumn(currentIdx);
-				tokens.add(tk);
-				currentIdx++;
 			}
-		}else{ //if(inputString.charAt(index+1)=='>'){
-			tk = new Token(Token.RARROW, "->");
-			tk.setColumn(currentIdx);
+			if((*idx) < k){
+				tk = createTokenIdx(NUMBER, inputString, (*idx), k-1, (*idx));
+				tokens.add(tk);
+				(*idx) = k;
+			}
+			//////////////////////////////////////
+		}else{
+			tk = createToken(SUBTRACT, "-", 1, (*idx));
 			tokens.add(tk);
-			currentIdx += 2;
+			(*idx)++;
 		}
+	}else{ //if(inputString.charAt(index+1)=='>'){
+		tk = createToken(RARROW, "->", 2, (*idx));
+		tokens.add(tk);
+		(*idx) += 2;
 	}
+}
 	
 int isLogicOperator(char c){
-		switch(c){
-			case '>':
-			case '<':
-			case '!':
-				return TRUE;
-		}
-		
-		return FALSE;
+	switch(c){
+		case '>':
+		case '<':
+		case '!':
+			return TRUE;
 	}
+	return FALSE;
+}
 	
 int isDigit(char c){
 	if(c>=48 && c<=57)
