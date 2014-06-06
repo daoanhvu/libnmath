@@ -21,29 +21,32 @@ int tsize = 0;
 int errorColumn = -1;
 
 Token* createToken(int _type, const char *_text, int txtlen, int _col){
-	int i, l;
+	int i;
 	Token *tk = (Token*)malloc(sizeof(Token));
 	tk->type = _type;
 	tk->column = _col;
 	
-	l = (MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen;
-	for(i=0; i<l; i++)
+	tk->testLength = (MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen;
+	for(i=0; i<tk->testLength; i++)
 		tk->text[i] = _text[i];
+	
 	
 	return tk;
 }
 
 Token* createTokenIdx(int _type, const char *_text, int frIdx, int toIdx, int _col){
-	int i, j=0;
+	int i;
 	Token *tk = (Token*)malloc(sizeof(Token));
 	tk->type = _type;
 	tk->column = _col;
 	
 	//l = (MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen;
+	tk->testLength = 0;
 	for(i=frIdx; i<=toIdx; i++){
-		tk->text[j] = _text[i];
-		j++;
+		tk->text[tk->testLength] = _text[i];
+		(tk->testLength)++;
 	}
+	
 	
 	return tk;
 }
