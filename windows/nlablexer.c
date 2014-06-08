@@ -18,6 +18,10 @@ const int NumericOperators = 5;
 TokenList *gTokens = NULL;
 int gErrorColumn = -1;
 
+int getError(){
+	return gErrorColumn;
+}
+
 Token* createToken(int _type, const char *_text, int txtlen, int _col){
 	int i;
 	Token *tk = (Token*)malloc(sizeof(Token));
@@ -63,8 +67,6 @@ Token* createTokenIdx(int _type, const char *_text, int frIdx, int toIdx, int _c
 			tk->priority = 0;
 	}
 	
-	
-	
 	//l = (MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen;
 	tk->testLength = 0;
 	for(i=frIdx; i<=toIdx; i++){
@@ -84,11 +86,18 @@ int contains(const int *aset, int len, int val){
 
 void addToken(TokenList *lst, Token *tk){
 	Token **tmp = NULL;
-	int newLoggedSize;
+	int i, newLoggedSize;
 	if(lst->size >= lst->loggedSize){
 		newLoggedSize = lst->loggedSize + INCLEN;
 		tmp = (Token**)malloc(sizeof(Token*) * newLoggedSize);
 		lst->loggedSize = newLoggedSize;
+
+		for(i = 0; i<lst->size; i++)
+			tmp[i] = lst->list[i];
+
+		//release list
+		free(lst->list);
+		lst->list = tmp;
 	}
 	lst->list[lst->size] = tk;
 	(lst->size)++;
@@ -106,7 +115,7 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 	while( idx < length ){
 		if( isNumericOperatorOREQ(inStr[idx])){
 			tk = checkNumericOperator(inStr, length, &idx);
-			addToken(tokens, tk);
+			//addToken(tokens, tk);
 		}else if( (tk = checkParenthesePrackets(inStr[idx], &idx)) != NULL ){
 			addToken(tokens, tk);
 		}else if( (tk = checkCommaSemi(inStr[idx], &idx)) != NULL ){
@@ -115,7 +124,7 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 			k = idx+1;
 			k = parserLogicOperator(inStr, length, idx, inStr[idx], k, inStr[k] );
 			if( k<0 ) {
-				errorColumn = idx;
+				gErrorColumn = idx;
 				return;
 			}
 			idx = k;
@@ -126,7 +135,7 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 				addToken(tokens, tk);
 				idx += 2;
 			}else{
-				errorColumn = idx;
+				gErrorColumn = idx;
 				return;
 			}
 		}else if(isDigit(inStr[idx])){
@@ -135,7 +144,7 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 					if(inStr[k] == '.'){
 						//check if we got a floating point
 						if(floatingPoint){ //<- the second floating point
-							errorColumn = k;
+							gErrorColumn = k;
 							return;
 						}
 						floatingPoint = TRUE;
@@ -151,7 +160,7 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 							//Ex: 126a
 							//At the moment, I don't handle this case
 							//throw Exception
-							errorColumn = k;
+							gErrorColumn = k;
 							return;
 						}
 					}
@@ -206,29 +215,29 @@ int parserLogicOperator(const char *inStr, int length, int i, char charAtI, int 
 		case '>':
 			if(charAtK == '='){
 				tk = createTokenIdx(GTE, inStr, i, k, i);
-				addToken(tokens, tk);
+				addToken(gTokens, tk);
 				nextPos = k+1;
 			}else{
 				tk = createTokenIdx(GT, inStr, i, i, i);
-				addToken(tokens, tk);
+				addToken(gTokens, tk);
 				nextPos = i+1;
 			}
 			break;
 		case '<':
 			if(charAtK == '='){
 				tk = createTokenIdx(LTE, inStr, i, k, i);
-				addToken(tokens, tk);
+				addToken(gTokens, tk);
 				nextPos = k+1;
 			}else{
 				tk = createTokenIdx(LT, inStr, i, i, i);
-				addToken(tokens, tk);
+				addToken(gTokens, tk);
 				nextPos = i+1;
 			}
 			break;
 		case '!':
 			if(charAtK == '='){
 				tk = createTokenIdx(NE, inStr, i, i+1, i);
-				addToken(tokens, tk);
+				addToken(gTokens, tk);
 				nextPos = i+2;
 			}
 			break;
@@ -295,6 +304,7 @@ Token* checkNumericOperator(const char *inStr, int length, int *idx){
 	switch(c){
 		case '+':
 			tk = createToken(PLUS, "+", 1, *idx);
+			addToken(gTokens, tk);
 			(*idx)++;
 		break;
 			
@@ -304,29 +314,29 @@ Token* checkNumericOperator(const char *inStr, int length, int *idx){
 			
 		case '*':
 			tk = createToken(MULTIPLY, "*", 1, *idx);
-			addToken(tokens, tk);
+			addToken(gTokens, tk);
 			(*idx)++;
 		break;
 			
 		case '/':
 			tk = createToken(DIVIDE, "/", 1, *idx);
-			addToken(tokens, tk);
+			addToken(gTokens, tk);
 			(*idx)++;
 		break;
 			
 		case '^':
 			tk = createToken(POWER, "^", 1, *idx);
-			addToken(tokens, tk);
+			addToken(gTokens, tk);
 			(*idx)++;
 		break;
 			
 		case '=':
 			if((*idx)==length-1 || inStr[(*idx)+1] != '>'){
 				tk = createToken(EQ, "=", 1, *idx);
-				addToken(tokens, tk);
+				addToken(gTokens, tk);
 			} else if(inStr[(*idx)+1] == '>'){
 				tk = createToken(IMPLY, "=>", 2, *idx);
-				addToken(tokens, tk);
+				addToken(gTokens, tk);
 				(*idx)++;
 			}
 			(*idx)++;
@@ -364,7 +374,7 @@ Token* parsSubtractSign(const char *inputString, int length, int *idx){
 	}
 		
 	if(inputString[(*idx)+1] != '>'){
-		if ((((*idx) == 0) || contains(setLeadNegativeNumber, LeadNegativeNumberSize,tokens->list[tokens->size-1]->type))
+		if ((((*idx) == 0) || contains(setLeadNegativeNumber, LeadNegativeNumberSize,gTokens->list[gTokens->size-1]->type))
 				&& (isDigit(inputString[(*idx)+1]))){
 				
 			floatingPoint = FALSE;
@@ -373,13 +383,13 @@ Token* parsSubtractSign(const char *inputString, int length, int *idx){
 					if(inputString[k] == '.'){
 						//check if we got a floating point
 						if(floatingPoint){ //<- the second floating point
-							errorColumn = k;
+							gErrorColumn = k;
 							return NULL;
 						}
 						floatingPoint = TRUE;
 					}else{
 						tk = createTokenIdx(NUMBER, inputString, (*idx), k-1, (*idx));
-						addToken(tokens, tk);
+						addToken(gTokens, tk);
 						if(inputString[k] == ')'||inputString[k] == ' ' 
 								|| isNumericOperatorOREQ(inputString[k]) 
 								|| isLogicOperator(inputString[k])) {
@@ -389,7 +399,7 @@ Token* parsSubtractSign(const char *inputString, int length, int *idx){
 							//Ex: 126a
 							//At the moment, I don't handle this case
 							//throw Exception
-							errorColumn = k;
+							gErrorColumn = k;
 							return NULL;
 						}
 					}
@@ -397,18 +407,18 @@ Token* parsSubtractSign(const char *inputString, int length, int *idx){
 			}
 			if((*idx) < k){
 				tk = createTokenIdx(NUMBER, inputString, (*idx), k-1, (*idx));
-				addToken(tokens, tk);
+				addToken(gTokens, tk);
 				(*idx) = k;
 			}
 			//////////////////////////////////////
 		}else{
 			tk = createToken(MINUS, "-", 1, (*idx));
-			addToken(tokens, tk);
+			addToken(gTokens, tk);
 			(*idx)++;
 		}
 	}else{ //if(inputString.charAt(index+1)=='>'){
 		tk = createToken(RARROW, "->", 2, (*idx));
-		addToken(tokens, tk);
+		addToken(gTokens, tk);
 		(*idx) += 2;
 	}
 	return tk;
