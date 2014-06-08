@@ -4,17 +4,169 @@
 
 #define INCLEN 10
 
-int parseFunct(TokenList *tokens, int *idxE){
+#ifndef _WINDOWS
+	#define TRUE -1
+	#define FALSE 0
+#endif
+
+int setFunctionTypes[] = {SIN, COS, TAN, COTAN, ASIN, ACOS, ATAN, LOG, LN, SQRT};
+const int functionTypesLength = 10;
+int setNumericOperators[] = {PLUS, MINUS,MULTIPLY,DIVIDE,POWER};
+const int NumericOperators = 5;
+
+int contains(int type, int *aset, int len){
+	int i;
+	for(i=0; i<len; i++)
+		if(type == aset[i])
+			return TRUE;
+	return FALSE;
+}
+
+/******************************************************************************************/
+void addItem2Prefix(Function *f, NMAST *item){
+	if(f==NULL)
+		return;
+
+	if( f->prefixLen >= f->prefixAllocLen ){
+		f->prefixAllocLen += INCLEN;
+		f->prefix = (NMAST**)realloc(f->prefix, sizeof(NMAST*) * (f->prefixAllocLen) );
+	}
+
+	f->prefix[f->prefixLen] = item;
+	f->prefixLen++;
+}
+
+void clearTree(NMAST **prf){
+	
+	if((*prf) == NULL)
+		return;
+	
+	if((*prf)->left != NULL)
+		clearTree(&(*prf)->left);
+	if((*prf)->right != NULL)
+		clearTree(&(*prf)->right);
+		
+	free(*prf);
+	(*prf) = NULL;
+}
+
+int clearStack(Token **ls, int len){
+	int i;
+	Token *p;
+
+	if(ls==NULL)
+		return 0;
+
+	for(i=0; i<len; i++){
+		p = ls[i];
+		ls[i] = NULL;
+		free(p);
+	}
+	return i;
+}
+
+void pushItem2Stack(Token ***st, int *top, int *allocLen, Token *item){
+	if( (*top) >= ( (*allocLen)-1)){
+		(*allocLen) += INCLEN;
+		(*st) = (Token**)realloc(*st, sizeof(Token*) * (*allocLen) );
+	}
+	(*top)++;
+	(*st)[(*top)] = item;
+}
+
+Token* popFromStack(Token **st, int *top){
+	Token *p;
+	if(st == NULL || ( (*top) < 0))
+		return NULL;
+	p = st[(*top)];
+	st[(*top)] = NULL;
+	(*top)--;
+	return p;
+
+}
+
+void addFunction2Tree(Function *f, Token * stItm){
+	NMAST *ast = NULL;
+	
+	switch(stItm->type){
+		case PLUS:
+		case MINUS:
+		case MULTIPLY:
+		case DIVIDE:
+		case POWER:
+			ast = (NMAST*)malloc(sizeof(NMAST));
+			ast->valueType = TYPE_FLOATING_POINT;
+			ast->sign = 1;
+			ast->type = stItm->type;
+			//ast->priority = stItm->priority;
+			ast->parent = NULL;
+			ast->left = f->prefix[f->prefixLen-2];
+			ast->right = f->prefix[f->prefixLen-1];
+			if((f->prefix[f->prefixLen-2])!=NULL)
+				(f->prefix[f->prefixLen-2])->parent = ast;
+			if((f->prefix[f->prefixLen-1])!=NULL)
+				(f->prefix[f->prefixLen-1])->parent = ast;
+				
+			f->prefix[f->prefixLen-2] = ast;
+			f->prefix[f->prefixLen-1] = NULL;
+			f->prefixLen--;
+		break;
+
+		case SIN:
+		case COS:
+		case TAN:
+		case COTAN:
+		case ASIN:
+		case ACOS:
+		case ATAN:
+		case SQRT:
+		case LN:
+			ast = (NMAST*)malloc(sizeof(NMAST));
+			ast->valueType = TYPE_FLOATING_POINT;
+			ast->sign = 1;
+			ast->type = stItm->type;
+			//ast->priority = stItm->priority;
+			ast->parent = NULL;
+			ast->left = NULL;
+			ast->right = f->prefix[f->prefixLen-1];
+			if((f->prefix[f->prefixLen-1])!=NULL)
+				(f->prefix[f->prefixLen-1])->parent = ast;
+				
+			f->prefix[f->prefixLen-1] = ast;
+		break;
+										
+		case LOG:
+			ast = (NMAST*)malloc(sizeof(NMAST));
+			ast->valueType = TYPE_FLOATING_POINT;
+			ast->sign = 1;
+			ast->type = stItm->type;
+			//ast->priority = stItm->priority;
+			ast->parent = NULL;
+			ast->left = f->prefix[f->prefixLen-2];
+			ast->right = f->prefix[f->prefixLen-1];
+			if((f->prefix[f->prefixLen-2])!=NULL)
+				(f->prefix[f->prefixLen-2])->parent = ast;
+			if((f->prefix[f->prefixLen-1])!=NULL)
+				(f->prefix[f->prefixLen-1])->parent = ast;
+						
+			f->prefix[f->prefixLen-2] = ast;
+			f->prefix[f->prefixLen-1] = NULL;
+			f->prefixLen--;
+		break;
+	}
+}
+
+/******************************************************************************************/
+
+int parseFunct(TokenList *tokens, Function *f, int *idxE){
 	int i=0, j =0, error, top=-1, allocLen=0;
 	double val;
-	TNode *itm = NULL;
-	StackItem **stack = NULL;
-	StackItem *stItm = NULL;
+	Token *tk = NULL;
+	Token **stack = NULL;
+	Token *stItm = NULL;
+	NMAST *ast = NULL;
 
-	/*test*/
-	/*int step = 1;*/
-
-	if(f == NULL)
+	if(tokens == NULL)
 		return -1;
 
 	/* Clear prefix tree if any*/
@@ -24,25 +176,12 @@ int parseFunct(TokenList *tokens, int *idxE){
 		f->prefixLen = 0;
 	}
 
-	while(i < f->len){
+	while(i < tokens->size){
 		*idxE = i;
-		switch(f->str[i]){
-			case '0':
-			case '1':
-			case '2':
-			case '3':
-			case '4':
-			case '5':
-			case '6':
-			case '7':
-			case '8':
-			case '9':
-			case '.':
-				j = i + 1;
-				while( ( (f->str[j]>=48) && (f->str[j]<=57) ) || (f->str[j]==46) )
-					j++;
-
-				val = parseDouble(f->str, i, j, &error);
+		tk = tokens->list[i];
+		switch(tk->type){
+			case NUMBER:
+				val = parseDouble(tk->text, 0, tk->testLength, &error);
 
 				if(val == 0 && error < 0){
 					/*printf("ERROR 0");*/
@@ -51,78 +190,60 @@ int parseFunct(TokenList *tokens, int *idxE){
 					*idxE = j;
 					return error;
 				}
-				itm = (TNode*)malloc(sizeof(TNode));
-				itm->valueType = TYPE_FLOATING_POINT;
-				itm->sign = 1;
-				itm->left = itm->right = itm->parent = NULL;
-				itm->value = val;
-				itm->chr = COE;
-				itm->function = F_COE; /*this is a coefficient*/
-				addItem2Prefix(f, itm);
-				/*printf("%d Add %lf to Prefix \n\n", step++, itm->value);*/
-				i = j;
-				break;
-
-			case 'e':
-				itm = (TNode*)malloc(sizeof(TNode));
-				itm->left = itm->right = itm->parent = NULL;
-				itm->value = E;
-				itm->chr = 'e';
-				itm->function = F_CONSTAN; /*this is a coefficient*/
-				addItem2Prefix(f, itm);
+				ast = (NMAST*)malloc(sizeof(NMAST));
+				ast->valueType = TYPE_FLOATING_POINT;
+				ast->sign = 1;
+				ast->left = ast->right = ast->parent = NULL;
+				ast->value = val;
+				ast->type = tk->type;
+				addItem2Prefix(f, ast);
 				i++;
 				break;
 
-			case 'p':
-				if(f->len <= i+2){
-					clearStack(stack, top+1);
-					free(stack);
-					return ERROR_SYNTAX;
-				}
-
-				if(f->str[i+1]=='i'){
-					/*printf("6 Stack: %d \n", f->stack);*/
-					itm = (TNode*)malloc(sizeof(TNode));
-					itm->left = itm->right = itm->parent = NULL;
-					itm->value = PI;
-					itm->chr = PI_FLG;
-					itm->function = F_CONSTAN; /*this is a coefficient*/
-					addItem2Prefix(f, itm);
-					/*printf("6 Add PI to Prefix \n");*/
-					i += 2;
-					break;
-				}
-				clearStack(stack, top+1);
-				free(stack);
-				return ERROR_SYNTAX;
+			case E_TYPE:
+				ast = (NMAST*)malloc(sizeof(NMAST));
+				ast->left = ast->right = ast->parent = NULL;
+				ast->valueType = 0;
+				ast->value = E;
+				ast->type = E_TYPE;
+				addItem2Prefix(f, ast);
+				i++;
 				break;
 
-			case '+':
-			case '-':
-			case '*':
-			case '/':
-			case '^':
+			case PI_TYPE:
+				ast = (NMAST*)malloc(sizeof(NMAST));
+				ast->left = ast->right = ast->parent = NULL;
+				ast->value = PI;
+				ast->type = PI_TYPE;
+				ast->valueType = 0;
+				addItem2Prefix(f, ast);
+				i++;
+				break;
+				
+
+			case PLUS:
+			case MINUS:
+			case MULTIPLY:
+			case DIVIDE:
+			case POWER:
 				if(top >= 0){
 					stItm = stack[top];
-					/*while((stItm->function == F_OPT || stItm->function == F_FUNCT ) && (stItm->priority) >= getPriority(f->str[i])){*/
-					while((stItm->function == F_OPT ) && (stItm->priority) >= getPriority(f->str[i])){
-						/*printf("1 Stack %d\n", f->stack);*/
+					while((contains(stItm->type, setNumericOperators, NumericOperators)==TRUE) && (stItm->priority) >= tk->priority){
 						stItm = popFromStack(stack, &top);
-						/*printf("Popped %c from Stack (top: %d )\n", itm->chr, top);*/
-						itm = (TNode*)malloc(sizeof(TNode));
-						itm->left = itm->right = NULL;
-						itm->chr = stItm->chr;
-						itm->function = stItm->function;
-						itm->priority = stItm->priority;
-						itm->left = f->prefix[f->prefixLen-2];
-						itm->right = f->prefix[f->prefixLen-1];
+
+						ast = (NMAST*)malloc(sizeof(NMAST));
+						ast->left = ast->right = NULL;
+						ast->type = stItm->type;
+						//ast->priority = stItm->priority;
+						ast->left = f->prefix[f->prefixLen-2];
+						ast->right = f->prefix[f->prefixLen-1];
 						
-						if((f->prefix[f->prefixLen-2])!=NULL)
-							(f->prefix[f->prefixLen-2])->parent = itm;
-						if((f->prefix[f->prefixLen-1])!=NULL)
-							(f->prefix[f->prefixLen-1])->parent = itm;
+						if((ast->left)!=NULL)
+							(ast->left)->parent = ast;
+						if((ast->right)!=NULL)
+							(ast->right)->parent = ast;
 						
-						f->prefix[f->prefixLen-2] = itm;
+						f->prefix[f->prefixLen-2] = ast;
 						f->prefix[f->prefixLen-1] = NULL;
 						f->prefixLen--;
 						free(stItm);
@@ -132,33 +253,18 @@ int parseFunct(TokenList *tokens, int *idxE){
 						stItm = stack[top];
 					}
 				}
-
-				//push operation o1 into stack
-				stItm = (StackItem*)malloc(sizeof(StackItem));
-				stItm->chr = f->str[i];
-				stItm->priority = getPriority(f->str[i]);
-				stItm->function = F_OPT;
-				
-				/*
-				if( (stItm->chr)=='^' ) // <-- pow is a function, not operator
-					stItm->function = F_FUNCT;
-				*/
-				
-				pushItem2Stack(&stack, &top, &allocLen, stItm);
-				/*printf("Pushed %c (priority: %d) to Stack (top:%d)\n", f->str[i], stItm->priority, top);*/
+				//push operation o1 (tk) into stack
+				pushItem2Stack(&stack, &top, &allocLen, tk);
 				i++;
 				break;
 
-			case '(':/*If it an open parentheses then put it to stack*/
-				/*pushValue(StackItem**, char flag, char chr, char isFunction, char priority, double value)*/
-				push2Stack(&stack, &top, &allocLen, OPN, F_PARENT, PRIORITY_0);
-				/*printf("%d Pushed '(' to Stack \n\n", step++);*/
+			case LPAREN:/*If it an open parentheses then put it to stack*/
+				pushItem2Stack(&stack, &top, &allocLen, tk);
 				i++;
 				break;
 
-			case ')':
+			case RPAREN:
 				stItm = popFromStack(stack, &top);
-				/*printLog(step++, itm, POP);*/
 
 				if(stItm == NULL){
 					clearStack(stack, top+1);
@@ -167,212 +273,64 @@ int parseFunct(TokenList *tokens, int *idxE){
 				}
 
 				/*  */
-				while(stItm!=NULL && stItm->function != F_PARENT && stItm->function != F_FUNCT){
+				while(stItm!=NULL && (stItm->type != RPAREN) && contains(stItm->type,setFunctionTypes,functionTypesLength)  != TRUE){
 					addFunction2Tree(f, stItm);
 					free(stItm);
 					stItm = popFromStack(stack, &top);
-					/*printf("%d Popped %d from Stack \n\n", step++, itm->flag);*/
 				}
 
 				/*check if Open parenthese missing*/
 				if(stItm==NULL){
-					/*printf("%d Stack top = %d to prefix \n\n", step++, top);*/
 					free(stack);
 					return ERROR_PARENTHESE_MISSING;
 				}
 
-				if(stItm->function == F_FUNCT){
+				if(contains(stItm->type,setFunctionTypes,functionTypesLength)  == TRUE){
 					addFunction2Tree(f, stItm);
 				}
 				free(stItm);
 				i++;
 				break;
 
-			case 'a':
-				if(f->len <= i+5){
-					clearStack(stack, top+1);
-					free(stack);
-					return ERROR_SYNTAX;
-				}
+			//functions
+			case SIN:
+			case COS:
+			case TAN:
+			case COTAN:
+			case ASIN:
+			case ACOS:
+			case ATAN:
+			case SQRT:
+			case LN:
+			case LOG:
+				pushItem2Stack(&stack, &top, &allocLen, tk);
+				/**
+					After a function name must be a LPAREN, and we just ignore that LPAREN token
+				*/
+				i += 2;
+				break;
 
-				if(f->str[i+1]=='s' && f->str[i+2]=='i' && f->str[i+3]=='n'
-						&& f->str[i+4]=='(' ){
-					push2Stack(&stack, &top, &allocLen, ASIN, F_FUNCT, FUNCTION_PRIORITY);
-					/*printf("6 Pushed asin to Stack %d\n\n", f->stack);*/
-					i += 5;
-					break;
-				}
-				
-				if(f->str[i+1]=='c' && f->str[i+2]=='o' && f->str[i+3]=='s'
-						&& f->str[i+4]=='(' ){
-					push2Stack(&stack, &top, &allocLen, ACOS, F_FUNCT, FUNCTION_PRIORITY);
-					/*printf("6 Pushed asin to Stack %d\n\n", f->stack);*/
-					i += 5;
-					break;
-				}
-				
-				if(f->str[i+1]=='t' && f->str[i+2]=='a' && f->str[i+3]=='n'
-						&& f->str[i+4]=='(' ){
-					/*printf("6 Stack: %d \n", f->stack);*/
-					push2Stack(&stack, &top, &allocLen, ATAN, F_FUNCT, FUNCTION_PRIORITY);
-					/*printf("6 Pushed asin to Stack %d\n\n", f->stack);*/
-					i += 5;
-					break;
-				}
-				
-				clearStack(stack, top+1);
-				free(stack);
-				return -2;
-
-			case 's':
-				if(f->len <= i+4){
-					clearStack(stack, top+1);
-					free(stack);
-					return ERROR_SIN_SQRT;
-				}
-
-				if(f->str[i+1]=='i' && f->str[i+2]=='n' && f->str[i+3]=='('){
-					push2Stack(&stack, &top, &allocLen, SIN, F_FUNCT, FUNCTION_PRIORITY);
-					/*printf("Pushed sin to Stack\n");*/
-					i += 4;
-					break;
-				}
-				
-				if(f->str[i+1]=='e' && f->str[i+2]=='c' && f->str[i+3]=='('){
-					push2Stack(&stack, &top, &allocLen, SEC, F_FUNCT, FUNCTION_PRIORITY);
-					/*printf("(i:%d)Pushed sin to Stack\n", i);*/
-					i += 4;
-					break;
-				}
-
-				/*sqrt*/
-				if(f->len <= i+5){
-					/*printf("ERROR 2");*/
-					clearStack(stack, top+1);
-					free(stack);
-					return ERROR_SIN_SQRT;
-				}
-
-				if(f->str[i+1]=='q' && f->str[i+2]=='r' && f->str[i+3]=='t' &&
-						f->str[i+4]=='('){
-					push2Stack(&stack, &top, &allocLen, SQRT, F_FUNCT, FUNCTION_PRIORITY);
-					i += 5;
-					break;
-				}
-				/* Syntax error */
-				/*printf("ERROR 3");*/
-				clearStack(stack, top+1);
-				free(stack);
-				return ERROR_SIN_SQRT;
-
-			case 'c':
-				if(f->len <= i+4){
-					clearStack(stack, top+1);
-					free(stack);
-					return -2;
-				}
-
-				if(f->str[i+1]=='o' && f->str[i+2]=='s' && f->str[i+3]=='('){
-					push2Stack(&stack, &top, &allocLen, COS, F_FUNCT, FUNCTION_PRIORITY);
-					i += 4;
-					break;
-				}
-
-				/* cotan*/
-				if(f->len <= i+6){
-					clearStack(stack, top+1);
-					free(stack);
-					return -2;
-				}
-				if(f->str[i+1]=='o' && f->str[i+2]=='t' && f->str[i+3]=='a' &&
-					f->str[i+4]=='n' && f->str[i+4]=='('){
-					push2Stack(&stack, &top, &allocLen, COTAN, F_FUNCT, FUNCTION_PRIORITY);
-					i += 6;
-					break;
-				}
-				clearStack(stack, top+1);
-				free(stack);
-				return -2;
-
-			case 't':
-				if(f->len <= i+4){
-					clearStack(stack, top+1);
-					free(stack);
-					return -2;
-				}
-
-				if(f->str[i+1]=='a' && f->str[i+2]=='n' && f->str[i+3]=='('){
-					push2Stack(&stack, &top, &allocLen, TAN, F_FUNCT, FUNCTION_PRIORITY);
-					i += 4;
-					break;
-				}
-				clearStack(stack, top+1);
-				free(stack);
-				return -2;
-
-			case 'l':
-				if(f->len <= i+3){
-					clearStack(stack, top+1);
-					free(stack);
-					return -2;
-				}
-
-				if(f->str[i+1]=='n' && f->str[i+2]=='('){
-					push2Stack(&stack, &top, &allocLen, LN, F_FUNCT, FUNCTION_PRIORITY);
-					i += 3;
-					break;
-				}
-
-				/* log(
-				 *
-				 * */
-				if(f->len <= i+4){
-					clearStack(stack, top+1);
-					free(stack);
-					return -2;
-				}
-				if(f->str[i+1]=='o' && f->str[i+2]=='g' && f->str[i+3]=='('){
-					push2Stack(&stack, &top, &allocLen, LOG,F_FUNCT, FUNCTION_PRIORITY);
-					/*printf("%d Pushed log to stack(stack top=%d) \n\n", step++, top);*/
-					i += 4;
-					break;
-				}
-				clearStack(stack, top+1);
-				free(stack);
-				return ERROR_LOG;
-
-			case ',':
+			//case NAME:
+			case VARIABLE:
+				ast = (NMAST*)malloc(sizeof(NMAST));
+				ast->parent = ast->left = ast->right = NULL;
+				ast->type = tk->type;
+				ast->variable = tk->text[0];
+				addItem2Prefix(f, ast);
 				i++;
 				break;
 
-			default: //variables
-				if(isVariable(f, f->str[i]) >=0 ){
-					addValue2Prefix(f, f->str[i], F_VAR, PRIORITY_0, 0);
-					i++;
-					/*printf("Variable %c next char %c \n", f->str[i], f->str[i+1]);
-					clearStack(stack, top+1);
-					free(stack);
-					return -2;*/
-					break;
-				}
-				/*printf("ERROR 4: i=%d; char=%c", i, f->str[i]);*/
+			default:
 				clearStack(stack, top+1);
 				free(stack);
 				return -2;
 		}//end switch
-
-		/*
-		printf("Stack: ");
-		printStack(stack, top+1);
-		printf("Result: ");
-		printStack(f->prefix, f->prefixLen);
-		*/
 	}//end while
 
 	while(top >= 0){
 		stItm = popFromStack(stack, &top);
 		/*printLog(step++, itm, POP);*/
-		if(stItm->chr == OPN || (stItm->function==F_FUNCT)){
+		if(stItm->type == LPAREN || contains(stItm->type, setFunctionTypes, functionTypesLength)==TRUE){
 			free(stItm);
 			clearStack(stack, top+1);
 			free(stack);

@@ -105,7 +105,7 @@ void addToken(TokenList *lst, Token *tk){
 /**********************************************************************/
 	
 void parseTokens(const char *inStr, int length, TokenList *tokens){
-	int k = 0;
+	int type, k = 0;
 	int idx = 0;
 	int floatingPoint = FALSE;
 	Token *tk = NULL;
@@ -171,8 +171,8 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 				addToken(tokens, tk);
 				idx = k;
 			}
-		}else if( (k=isFunctionName(idx, inStr, length))>0 ){
-			tk = createTokenIdx(NAME, inStr, idx, k-1, idx);
+		}else if( (k=isFunctionName(idx, inStr, length, &type ))>0 ){
+			tk = createTokenIdx(type, inStr, idx, k-1, idx);
 			addToken(tokens, tk);
 			idx = k;
 		}else if( isVariable(idx, inStr, length) ){
@@ -444,7 +444,7 @@ int isDigit(char c){
 	return the position where a function name is end
 	return -1 if it do not match any function name
 */
-int isFunctionName(int index, const char *inputString, int l){
+int isFunctionName(int index, const char *inputString, int l, int *outType){
 	int k = -1;	
 	char c0, c1, c2;
 		
@@ -457,16 +457,34 @@ int isFunctionName(int index, const char *inputString, int l){
 			
 	if( (index+5 < l) && c0=='c' && c1=='o' && c2 =='t' && 
 				(inputString[index+3]=='a')	&& (inputString[index+4]=='n') ){
+		(*outType) = COTAN;
 		k = index + 5;
-	}else if((index+4 < l) && ((c0=='s' && c1=='q' && c2=='r' && inputString[index+3]=='t' )
-			|| (c0=='a' && c1=='t' && c2=='a' && inputString[index+3]=='n') || (c0=='a' && c1=='s' && c2=='i' && inputString[index+3]=='n') ||
-			(c0=='a' && c1=='c' && c2=='o' && inputString[index+3]=='s')) ) {
+	}else if((index+4 < l) && ((c0=='s' && c1=='q' && c2=='r' && inputString[index+3]=='t' )){
+		(*outType) = SQRT;
 		k = index + 4;
-			
-	} else if((index+3 < l)&& ((c0=='t' && c1=='a' && c2=='n') || (c0=='s' && c1=='i' && c2=='n') ||
-			(c0=='c' && c1=='o' && c2=='s') || (c0=='l' && c1=='o' && c2=='g')))  {
+	}else if((c0=='a' && c1=='t' && c2=='a' && inputString[index+3]=='n')){
+		(*outType) = ATAN;
+		k = index + 4;
+	}else if((c0=='a' && c1=='s' && c2=='i' && inputString[index+3]=='n')){
+		(*outType) = ASIN;
+		k = index + 4;
+	}else if((c0=='a' && c1=='c' && c2=='o' && inputString[index+3]=='s')) ) {
+		(*outType) = ACOS;
+		k = index + 4;
+	} else if((index+3 < l)&& (c0=='t' && c1=='a' && c2=='n')){
+		(*outType) = TAN;
+		k = index + 3;
+	}else if((index+3 < l) && (c0=='s' && c1=='i' && c2=='n')){
+		(*outType) = SIN;
+		k = index + 3;
+	}else if((index+3 < l) &&(c0=='c' && c1=='o' && c2=='s')){
+		(*outType) = COS;
+		k = index + 3;
+	}else if((index+3 < l) && (c0=='l' && c1=='o' && c2=='g')) {
+		(*outType) = LOG;
 		k = index + 3;
 	}else if(c0=='l' && c1=='n'){
+		(*outType) = LN;
 		k = index + 2;
 	}
 		

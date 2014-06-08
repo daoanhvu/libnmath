@@ -82,6 +82,19 @@ extern "C" {
 typedef struct tagToken Token;
 typedef struct tagFraction Fraction;
 typedef struct tagTokenList TokenList;
+typedef struct tagNMAST NMAST;
+
+typedef struct tagFunct{
+	char *str;
+	int len;
+
+	char variable[3];
+	char valLen;
+
+	NMAST **prefix;
+	int prefixLen;
+	int prefixAllocLen;
+} Function;
 
 struct tagToken{
 	int type;
@@ -97,6 +110,29 @@ struct tagTokenList{
 	int loggedSize;
 	int size;
 	struct tagToken **list;
+};
+
+struct tagNMAST{
+	int type;
+
+	/*
+	 TYPE_FLOATING_POINT OR TYPE_FRACTION
+	 0: floating point value
+	 1: Fraction value
+	 * */
+	char valueType;
+	double value;
+	Fraction frValue;
+
+	//if this ast is a VARIABLE
+	char variable;
+	
+	/* this flag is just used for function cause the function cannot express its sign itself */
+	/* MUST = 1 by default */
+	int sign;
+	struct tagNMAST *parent;
+	struct tagNMAST *left;
+	struct tagNMAST *right;
 };
 
 struct tagFraction{
