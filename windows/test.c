@@ -1,29 +1,22 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <conio.h>
-#include "common.h"
-#include "nlablexer.h"
+#include "nmath.h"
 
 int main(int argc, char *agr[]){
-	int i;
-	TokenList tokenList;
-	tokenList.size = 0;
-	tokenList.loggedSize = 0;
-	tokenList.list = NULL;
+	Function f;
+	int error;
+	double vars[] = {4};
+	double ret;
 
-	parseTokens("x^2 + 6 - sin(x)", 16, &tokenList);
+	initFunct(&f);
+	resetFunction(&f, "x+5+2^2", "x", 1, &error);
+	parseFunction(&f, &error);
+	ret = calc(&f, vars, 1, &error);
 
-	if(getError()>=0){
-		for(i = 0; i < tokenList.size; i++)
-			free(tokenList.list[i]);
-		return 1;
-	}
+	printf("Ret = %lf", ret );
 
-	printf("Number of token: %d", tokenList.size );
-
-	//Release tokenList
-	for(i = 0; i < tokenList.size; i++)
-		free(tokenList.list[i]);
+	releaseFunct(&f);
 
 	return 0;
 }

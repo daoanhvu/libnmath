@@ -48,7 +48,7 @@ int clearStack(Token **ls, int len){
 	for(i=0; i<len; i++){
 		p = ls[i];
 		ls[i] = NULL;
-		free(p);
+		//free(p);
 	}
 	return i;
 }
@@ -237,7 +237,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 						f->prefix[f->prefixLen-2] = ast;
 						f->prefix[f->prefixLen-1] = NULL;
 						f->prefixLen--;
-						free(stItm);
+						//free(stItm);
 						if(top < 0)
 							break;
 
@@ -266,7 +266,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 				/*  */
 				while(stItm!=NULL && (stItm->type != RPAREN) && isAFunctionType(stItm->type)  != TRUE){
 					addFunction2Tree(f, stItm);
-					free(stItm);
+					//free(stItm);
 					stItm = popFromStack(stack, &top);
 				}
 
@@ -279,7 +279,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 				if(isAFunctionType(stItm->type)  == TRUE){
 					addFunction2Tree(f, stItm);
 				}
-				free(stItm);
+				//free(stItm);
 				i++;
 				break;
 
@@ -334,7 +334,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 		}
 		
 		addFunction2Tree(f, stItm);
-		free(stItm);
+		//free(stItm);
 	}
 	free(stack);
 

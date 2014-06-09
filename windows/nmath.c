@@ -75,7 +75,7 @@ void releaseFunct(Function *f){
 	}
 }
 
-void reset(Function *f, const char *str, int *error){
+void resetFunction(Function *f, const char *str, const char *vars, int varCount, int *error){
 	int i=0, l=0, flagFirst = 0;
 	char buf[1024];
 	
@@ -115,26 +115,14 @@ void reset(Function *f, const char *str, int *error){
 	}
 	memcpy(f->str, buf, l);
 
-	f->variable[0] = 0;
-	f->variable[1] = 0;
-	f->variable[2] = 0;
-	f->valLen = 0;
+	for(i=0; i<varCount; i++)
+		f->variable[i] = vars[i];
+	f->valLen = varCount;
 
 	for(i=0; i<f->prefixLen; i++)
 		clearTree(&(f->prefix[i]));
 	f->prefixLen = 0;
 	(*error) = 0;
-}
-
-void setVariables(Function *f, char variable[], int l){
-	int i;
-	if(f == NULL)
-		return;
-
-	f->valLen = l;
-	for(i=0;i<l;i++)
-		f->variable[i] = variable[i];
-	f->variable[i] = 0;
 }
 
 unsigned int __stdcall reduce_t(void *param){
@@ -1064,8 +1052,58 @@ NMAST* d_tan(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 	return r;
 }
 
+/* cotan(v)' = -(1 -sqrt(cotan(v))) * dv  */
 NMAST* d_cotan(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
-	return NULL;
+	NMAST *r;
+	
+	r = (NMAST *)malloc(sizeof(NMAST));
+	r->type = MULTIPLY;
+	r->sign = 1;
+	r->parent = NULL;
+
+	r->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->type = PLUS;
+	r->left->value = 1.0;
+	r->left->valueType = TYPE_FLOATING_POINT;
+	r->left->frValue.numerator = 1;
+	r->left->frValue.denomerator = 1;
+	r->left->sign = -1;
+	r->left->parent = r;
+
+	r->left->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->left->type = NUMBER;
+	r->left->left->value = 1.0;
+	r->left->left->valueType = TYPE_FLOATING_POINT;
+	r->left->left->frValue.numerator = 1;
+	r->left->left->frValue.denomerator = 1;
+	r->left->left->sign = 1;
+	r->left->left->parent = r->left;
+
+	r->left->right = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->type = SQRT;
+	r->left->right->value = 1.0;
+	r->left->right->valueType = TYPE_FLOATING_POINT;
+	r->left->right->frValue.numerator = 1;
+	r->left->right->frValue.denomerator = 1;
+	r->left->right->sign = 1;
+	r->left->right->parent = r->left;
+
+	r->left->right->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->left->type = COTAN;
+	r->left->right->left->value = 1.0;
+	r->left->right->left->valueType = TYPE_FLOATING_POINT;
+	r->left->right->left->frValue.numerator = 1;
+	r->left->right->left->frValue.denomerator = 1;
+	r->left->right->left->sign = 1;
+	r->left->right->left->parent = r->left->right;
+
+	r->left->right->left->left = cloneTree(v, r->left->right->left);
+
+	r->right = dv;
+	if(dv != NULL)
+		dv->parent = r;
+
+	return r;
 }
 
 /* arcsin(v)' = (1/sqrt(1-v^2))*dv */

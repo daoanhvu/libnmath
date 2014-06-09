@@ -24,6 +24,31 @@ Token* createToken(int _type, const char *_text, int txtlen, int _col){
 	Token *tk = (Token*)malloc(sizeof(Token));
 	tk->type = _type;
 	tk->column = _col;
+
+	switch(_type){
+		case PLUS:
+		case MINUS:
+		case OR:
+			tk->priority = 1;
+		break;
+		
+		case MULTIPLY:
+		case DIVIDE:
+		case AND:
+			tk->priority = 2;
+		break;
+		
+		case POWER:
+			tk->priority = 3;
+		break;
+		
+		case NE:
+			tk->priority = 4;
+		break;
+		
+		default:
+			tk->priority = 0;
+	}
 	
 	tk->testLength = (MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen;
 	for(i=0; i<tk->testLength; i++)
