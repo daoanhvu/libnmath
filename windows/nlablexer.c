@@ -12,9 +12,6 @@
 int setLeadNegativeNumber[] = {LPAREN, LPRACKET,SEMI,COMMA,AND,OR,LT,LTE,GT,GTE,EQ,NE,IMPLY,RARROW};
 const int LeadNegativeNumberSize = 14;
 
-//const int OPERATORS1[] = {PLUS, MINUS,MULTIPLY,DIVIDE,POWER};
-//const int OPERATOR_COUNT1 = 5;
-
 TokenList *gTokens = NULL;
 int gErrorColumn = -1;
 
@@ -168,7 +165,8 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 			addToken(tokens, tk);
 			idx = k;
 		}else if( isVariable(idx, inStr, length) ){
-			tk = createTokenIdx(NAME, inStr, idx, idx, idx);
+			//tk = createTokenIdx(NAME, inStr, idx, idx, idx);
+			tk = createTokenIdx(VARIABLE, inStr, idx, idx, idx);
 			addToken(tokens, tk);
 			idx++;
 		}else if(inStr[idx]=='o' || inStr[idx]=='O'){

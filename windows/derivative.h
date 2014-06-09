@@ -8,7 +8,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "funct.h"
+#include "common.h"
+#include ".h"
 
 #include <Windows.h>
 #include <process.h>
@@ -19,6 +20,6 @@
  * */
  
 unsigned int __stdcall derivative(void *);
-int isContainVar(TNode *t, char x);
+int isContainVar(NMAST *t, char x);
 
 #endif

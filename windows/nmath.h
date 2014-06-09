@@ -33,6 +33,7 @@ unsigned int __stdcall reduce_t(void *);
 unsigned int __stdcall calc_t(void *);
 void nodeToString(NMAST *t, char *str, int len, int *newlen);
 void releaseFunct(Function *);
+unsigned int __stdcall derivative(void *);
 
 #ifdef __cplusplus
 }

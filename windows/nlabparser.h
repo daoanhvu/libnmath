@@ -4,6 +4,6 @@
 #include "common.h"
 
 void clearTree(NMAST **prf);
-int parseFunct(TokenList *tokens, Function *f, int *idxE);
+int parseFunction(Function *f, int *idxE);
 
 #endif

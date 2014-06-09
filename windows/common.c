@@ -5,6 +5,12 @@
 #define TRUE -1
 #define FALSE 0
 
+const int FUNCTIONS[] = {SIN, COS, TAN, COTAN, ASIN, ACOS, ATAN, LOG, LN, SQRT};
+const int FUNCTION_COUNT = 10;
+
+const int OPERATORS[] = {PLUS,MINUS,MULTIPLY,DIVIDE,POWER};
+const int OPERATOR_COUNT = 5;
+
 int isPrime(long n){
 	long i, sq;
 	if(n<2) return 0;
@@ -169,4 +175,33 @@ double doCalculate(double val1, double val2, int type, int *error){
 			return sqrt(val2);
 	}
 	return 0;
+}
+
+int isAFunctionType(int type){
+	int i;
+	for(i=0; i<FUNCTION_COUNT; i++)
+		if(type == FUNCTIONS[i])
+			return TRUE;
+	return FALSE;
+}
+
+int isAnOperatorType(int type){
+	int i;
+	for(i=0; i<OPERATOR_COUNT; i++)
+		if(type == OPERATORS[i])
+			return TRUE;
+	return FALSE;
+}
+
+int isFunctionOROperator(int type){
+	int i;
+	for(i=0; i<FUNCTION_COUNT; i++)
+		if(type == FUNCTIONS[i])
+			return TRUE;
+
+	for(i=0; i<OPERATOR_COUNT; i++)
+		if(type == OPERATORS[i])
+			return TRUE;
+
+	return FALSE;
 }

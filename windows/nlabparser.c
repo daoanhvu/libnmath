@@ -10,12 +10,6 @@
 	#define FALSE 0
 #endif
 
-int FUNCTIONS[] = {SIN, COS, TAN, COTAN, ASIN, ACOS, ATAN, LOG, LN, SQRT};
-const int FUNCTION_COUNT = 10;
-
-const int OPERATORS[] = {PLUS, MINUS,MULTIPLY,DIVIDE,POWER};
-const int OPERATOR_COUNT = 5;
-
 /******************************************************************************************/
 void addItem2Prefix(Function *f, NMAST *item){
 	if(f==NULL)
@@ -160,6 +154,8 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 	Token *stItm = NULL;
 	NMAST *ast = NULL;
 
+	NMAST* varNodes[50];
+
 	if(tokens == NULL)
 		return -1;
 
@@ -169,6 +165,8 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 			clearTree(&(f->prefix[i]));
 		f->prefixLen = 0;
 	}
+
+	f->numVarNode = 0;
 
 	while(i < tokens->size){
 		*idxE = i;
@@ -221,7 +219,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 			case POWER:
 				if(top >= 0){
 					stItm = stack[top];
-					while((contains(stItm->type, OPERATORS, OPERATOR_COUNT)==TRUE) && (stItm->priority) >= tk->priority){
+					while((isAnOperatorType(stItm->type)==TRUE) && (stItm->priority) >= tk->priority){
 						stItm = popFromStack(stack, &top);
 
 						ast = (NMAST*)malloc(sizeof(NMAST));
@@ -266,7 +264,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 				}
 
 				/*  */
-				while(stItm!=NULL && (stItm->type != RPAREN) && contains(stItm->type,FUNCTIONS, FUNCTION_COUNT)  != TRUE){
+				while(stItm!=NULL && (stItm->type != RPAREN) && isAFunctionType(stItm->type)  != TRUE){
 					addFunction2Tree(f, stItm);
 					free(stItm);
 					stItm = popFromStack(stack, &top);
@@ -278,7 +276,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 					return ERROR_PARENTHESE_MISSING;
 				}
 
-				if(contains(stItm->type,FUNCTIONS,FUNCTION_COUNT)  == TRUE){
+				if(isAFunctionType(stItm->type)  == TRUE){
 					addFunction2Tree(f, stItm);
 				}
 				free(stItm);
@@ -310,6 +308,11 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 				ast->type = tk->type;
 				ast->variable = tk->text[0];
 				addItem2Prefix(f, ast);
+
+				//I save variable node to speed up the process of calculating value of the function later
+				varNodes[f->numVarNode] = ast;
+				(f->numVarNode)++;
+
 				i++;
 				break;
 
@@ -323,7 +326,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 	while(top >= 0){
 		stItm = popFromStack(stack, &top);
 		
-		if(stItm->type == LPAREN || contains(stItm->type, FUNCTIONS, FUNCTION_COUNT)==TRUE){
+		if(stItm->type == LPAREN || isAFunctionType(stItm->type)==TRUE){
 			free(stItm);
 			clearStack(stack, top+1);
 			free(stack);
@@ -334,5 +337,33 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 		free(stItm);
 	}
 	free(stack);
+
+	if(f->numVarNode > 0){
+		f->variableNode = (NMAST**)malloc(sizeof(NMAST*) * f->numVarNode);
+		for(i=0; i<f->numVarNode; i++){
+			f->variableNode[i] = varNodes[i];
+		}
+	}
+
 	return 0;
+}
+
+int parseFunction(Function *f, int *idxE){
+	TokenList lst;
+	int i, ret;
+
+	lst.loggedSize = 10;
+	lst.list = (Token**)malloc(sizeof(Token*) * lst.loggedSize);
+	lst.size = 0;
+	parseTokens(f->str, f->len, &lst);
+	(*idxE) = getError();
+	if((*idxE) < 0 ){
+		ret = parseFunct(&lst, f, idxE);
+		for(i = 0; i<lst.size; i++)
+			free(lst.list[i]);
+		free(lst.list);
+		return ret;
+	}
+
+	return (*idxE);
 }

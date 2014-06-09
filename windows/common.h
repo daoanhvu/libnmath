@@ -40,15 +40,6 @@
 #define E_TYPE 			37
 #define SEC 			38
 
-/* Function value */
-#define F_COE 0x00
-#define F_VAR 0x01
-#define F_FUNCT 0x02
-#define F_OPT 0x03
-#define F_PARENT 0x04
-#define F_STR 0x05
-#define F_CONSTAN 0x06
-
 #define TYPE_FLOATING_POINT 0
 #define TYPE_FRACTION 1
 
@@ -100,6 +91,9 @@ typedef struct tagFunct{
 	NMAST **prefix;
 	int prefixLen;
 	int prefixAllocLen;
+
+	NMAST **variableNode;
+	int numVarNode;
 } Function;
 
 struct tagToken{
@@ -154,6 +148,9 @@ double parseDouble(char *str, int start, int end, int *error);
 int contains(int type, const int *aset, int len);
 double logab(double a, double b, int *error);
 double doCalculate(double val1, double val2, int type, int *error);
+int isAFunctionType(int type);
+int isAnOperatorType(int type);
+int isFunctionOROperator(int type);
 
 #ifdef __cplusplus
 }

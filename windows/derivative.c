@@ -1,16 +1,9 @@
 #include "derivative.h"
 
-TNode* d_product(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x);
-TNode* d_quotient(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x);
-TNode* d_sum_subtract(TNode *t, char optr, TNode *u, TNode *du, TNode *v, TNode *dv, char x);
-TNode* d_pow_exp(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x);
-TNode* d_sqrt(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x);
-TNode* d_sin(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x);
-TNode* d_cos(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x);
-TNode* d_atan(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x);
 
-TNode *createTreeNode(){
-	TNode *p = (TNode*)malloc(sizeof(TNode));
+
+NMAST *createTreeNode(){
+	NMAST *p = (NMAST*)malloc(sizeof(NMAST));
 	p->valueType = TYPE_FLOATING_POINT;
 	p->value = 0.0f;
 	(p->frValue).numerator = 0;
@@ -20,14 +13,14 @@ TNode *createTreeNode(){
 	return p;
 }
 
-TNode * cloneTree(TNode *t, TNode *cloneParent){
-	TNode *c;
+NMAST * cloneTree(NMAST *t, NMAST *cloneParent){
+	NMAST *c;
 	
 	if(t == NULL)
 		return NULL;
 	
-	c = (TNode*)malloc(sizeof(TNode));
-	memcpy(c, t, sizeof(TNode));
+	c = (NMAST*)malloc(sizeof(NMAST));
+	memcpy(c, t, sizeof(NMAST));
 	c->parent = cloneParent;
 	c->left = cloneTree(t->left, c);
 	c->right = cloneTree(t->right, c);
@@ -36,9 +29,9 @@ TNode * cloneTree(TNode *t, TNode *cloneParent){
 
 unsigned int __stdcall derivative(void *p){
 	DParam *dp = (DParam*)p;
-	TNode *t = dp->t;
+	NMAST *t = dp->t;
 	char x = dp->x;
-	TNode *u, *du, *v, *dv, *r;
+	NMAST *u, *du, *v, *dv, *r;
 	HANDLE tdu = 0, tdv = 0;
 	DParam pdu, pdv;
 	
@@ -47,8 +40,8 @@ unsigned int __stdcall derivative(void *p){
 		return 0;
 	}
 	
-	if(t->function == F_COE || t->function == F_CONSTAN ){
-		u = (TNode*)malloc(sizeof(TNode));
+	if(t->type == F_COE || t->type == F_CONSTAN ){
+		u = (NMAST*)malloc(sizeof(NMAST));
 		u->function = F_COE;
 		u->chr = COE;
 		u->value = 0.0;
@@ -58,8 +51,8 @@ unsigned int __stdcall derivative(void *p){
 		return 0;
 	}
 	
-	if(t->function == F_VAR){
-		u = (TNode*)malloc(sizeof(TNode));
+	if(t->type == F_VAR){
+		u = (NMAST*)malloc(sizeof(NMAST));
 		u->function = F_COE;
 		u->chr = COE;
 		u->value = 1.0;
@@ -97,7 +90,7 @@ unsigned int __stdcall derivative(void *p){
 		CloseHandle(tdv);
 	}
 	
-	if(t->function == F_FUNCT){
+	if(t->type == F_FUNCT){
 		switch(t->chr){
 			case SIN:
 				dp->return_value = d_sin(t, u, du, v, dv, x);
@@ -111,7 +104,7 @@ unsigned int __stdcall derivative(void *p){
 				dp->return_value = d_sqrt(t, u, du, v, dv, x);
 				return 0;
 		}
-	}else if(t->function == F_OPT){
+	}else if(t->type == F_OPT){
 		switch(t->chr){
 			case PLUS:
 			case MINUS:
@@ -136,15 +129,15 @@ unsigned int __stdcall derivative(void *p){
 }
 
 /* (u.v) = u'v + uv' */
-TNode* d_product(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
-	TNode *r = NULL;
+NMAST* d_product(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r = NULL;
 	
-	r = (TNode *)malloc(sizeof(TNode));
+	r = (NMAST *)malloc(sizeof(NMAST));
 	r->function = F_OPT;
 	r->chr = PLUS;
 	r->parent = NULL;
 	
-	r->left = (TNode *)malloc(sizeof(TNode));
+	r->left = (NMAST *)malloc(sizeof(NMAST));
 	r->left->function = F_OPT;
 	r->left->chr = MUL;
 	r->left->parent = r;
@@ -153,7 +146,7 @@ TNode* d_product(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 	if(dv != NULL)
 		dv->parent = r->left;
 		
-	r->right = (TNode *)malloc(sizeof(TNode));
+	r->right = (NMAST *)malloc(sizeof(NMAST));
 	r->right->function = F_OPT;
 	r->right->chr = MUL;
 	r->right->parent = r;
@@ -168,17 +161,17 @@ TNode* d_product(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 /*
  * (u/v)' = (u'v - uv')/v^2
  * */
-TNode* d_quotient(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
-	TNode *r;
+NMAST* d_quotient(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
 	
-	r = (TNode*)malloc(sizeof(TNode));
+	r = (NMAST*)malloc(sizeof(NMAST));
 	r->function = F_OPT;
 	r->chr = DIV;
 	r->value = 0;
 	r->sign = 1;
 	r->parent = NULL;
 			
-	r->left = (TNode*)malloc(sizeof(TNode));
+	r->left = (NMAST*)malloc(sizeof(NMAST));
 	(r->left)->parent = r;
 	(r->left)->function = F_OPT;
 	(r->left)->chr = MINUS;
@@ -186,7 +179,7 @@ TNode* d_quotient(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 	(r->left)->sign = 1;
 	
 	/* ========================================== */
-	(r->left)->left = (TNode*)malloc(sizeof(TNode));
+	(r->left)->left = (NMAST*)malloc(sizeof(NMAST));
 	(r->left)->left->function = F_OPT;
 	(r->left)->left->chr = MUL;
 	(r->left)->left->sign = 1;
@@ -198,7 +191,7 @@ TNode* d_quotient(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 	
 	/* =================================================== */
 	
-	(r->left)->right = (TNode*)malloc(sizeof(TNode));
+	(r->left)->right = (NMAST*)malloc(sizeof(NMAST));
 	(r->left)->right->function = F_OPT;
 	(r->left)->right->chr = MUL;
 	(r->left)->right->sign = 1;
@@ -210,7 +203,7 @@ TNode* d_quotient(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 	
 	/* ==================================================== */
 			
-	r->right = (TNode*)malloc(sizeof(TNode));
+	r->right = (NMAST*)malloc(sizeof(NMAST));
 	(r->right)->parent = r;
 	(r->right)->function = F_FUNCT;
 	(r->right)->chr = POW;
@@ -219,7 +212,7 @@ TNode* d_quotient(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 			
 	(r->right)->left = cloneTree(v, r->right);
 			
-	(r->right)->right = (TNode*)malloc(sizeof(TNode));
+	(r->right)->right = (NMAST*)malloc(sizeof(NMAST));
 	(r->right)->right->function = F_COE;
 	(r->right)->right->chr = COE;
 	(r->right)->right->value = 2;
@@ -232,10 +225,10 @@ TNode* d_quotient(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 /*
  * (u +- v) = u' +- v'
  * */
-TNode* d_sum_subtract(TNode *t, char optr, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
-	TNode *r;
+NMAST* d_sum_subtract(NMAST *t, char optr, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
 	
-	r = (TNode *)malloc(sizeof(TNode));
+	r = (NMAST *)malloc(sizeof(NMAST));
 	r->function = F_OPT;
 	r->chr = optr;
 	r->value = 0.0;
@@ -253,26 +246,26 @@ TNode* d_sum_subtract(TNode *t, char optr, TNode *u, TNode *du, TNode *v, TNode 
 }
 
 
-TNode* d_pow_exp(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
-	TNode *r;
+NMAST* d_pow_exp(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
 	int isXLeft = isContainVar(u, x);
 	int isXRight = isContainVar(v, x);
 	
 	/* power: (u^a)' = au^(a-1)*u' */
 	if( isXLeft!=0 && isXRight==0 ){
-		r = (TNode *)malloc(sizeof(TNode));
+		r = (NMAST *)malloc(sizeof(NMAST));
 		r->function = F_OPT;
 		r->chr = MUL;
 		r->value = 0.0;
 		r->parent = NULL;
 		
 		/* ===================================================== */
-		r->left = (TNode *)malloc(sizeof(TNode));
+		r->left = (NMAST *)malloc(sizeof(NMAST));
 		(r->left)->parent = r;
 		(r->left)->function = F_OPT;
 		(r->left)->chr = MUL;
 		
-		(r->left)->left = (TNode *)malloc(sizeof(TNode));
+		(r->left)->left = (NMAST *)malloc(sizeof(NMAST));
 		((r->left)->left)->function = F_COE;
 		((r->left)->left)->value = v->value;
 		((r->left)->left)->sign = v->sign;
@@ -281,7 +274,7 @@ TNode* d_pow_exp(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 		
 		/*printf(" Add Left Value 1/(v-1) \n");*/
 		
-		(r->left)->right = (TNode *)malloc(sizeof(TNode));
+		(r->left)->right = (NMAST *)malloc(sizeof(NMAST));
 		((r->left)->right)->function = F_OPT;
 		((r->left)->right)->value = 0.0;
 		((r->left)->right)->sign = 1;
@@ -309,19 +302,19 @@ TNode* d_pow_exp(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 	
 	/* power: (a^v)' = ln(a)*a^v*v' */
 	if( isXLeft==0 && isXRight!=0 ){
-		r = (TNode *)malloc(sizeof(TNode));
+		r = (NMAST *)malloc(sizeof(NMAST));
 		r->function = F_OPT;
 		r->chr = MUL;
 		r->value = 0.0;
 		r->parent = NULL;
 		
 		/* ===================================================== */
-		r->left = (TNode *)malloc(sizeof(TNode));
+		r->left = (NMAST *)malloc(sizeof(NMAST));
 		(r->left)->parent = r;
 		(r->left)->function = F_OPT;
 		(r->left)->chr = MUL;
 		
-		(r->left)->left = (TNode *)malloc(sizeof(TNode));
+		(r->left)->left = (NMAST *)malloc(sizeof(NMAST));
 		((r->left)->left)->function = F_FUNCT;
 		((r->left)->left)->value = 0;
 		((r->left)->left)->chr = LN;
@@ -330,7 +323,7 @@ TNode* d_pow_exp(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 		((r->left)->left)->left = NULL;
 		((r->left)->left)->right = cloneTree(u, (r->left)->left);
 		
-		(r->left)->right = (TNode *)malloc(sizeof(TNode));
+		(r->left)->right = (NMAST *)malloc(sizeof(NMAST));
 		((r->left)->right)->function = F_OPT;
 		((r->left)->right)->value = 0;
 		((r->left)->right)->chr = POW;
@@ -349,19 +342,19 @@ TNode* d_pow_exp(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 	
 	/* power: (u^v)' = (dv*ln(u) + v(du/u))*u^v */
 	if( isXLeft!=0 && isXRight!=0 ){
-		r = (TNode *)malloc(sizeof(TNode));
+		r = (NMAST *)malloc(sizeof(NMAST));
 		r->function = F_OPT;
 		r->chr = MUL;
 		r->value = 0.0;
 		r->parent = NULL;
 		
 		/* ===================================================== */
-		r->left = (TNode *)malloc(sizeof(TNode));
+		r->left = (NMAST *)malloc(sizeof(NMAST));
 		(r->left)->parent = r;
 		(r->left)->function = F_OPT;
 		(r->left)->chr = PLUS;
 		
-		(r->left)->left = (TNode *)malloc(sizeof(TNode));
+		(r->left)->left = (NMAST *)malloc(sizeof(NMAST));
 		((r->left)->left)->function = F_OPT;
 		((r->left)->left)->value = 0;
 		((r->left)->left)->chr = MUL;
@@ -372,20 +365,20 @@ TNode* d_pow_exp(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 		if(dv != NULL)
 			dv->parent = (r->left)->left;
 			
-		((r->left)->left)->right = (TNode *)malloc(sizeof(TNode));
+		((r->left)->left)->right = (NMAST *)malloc(sizeof(NMAST));
 		((r->left)->left)->right->function = F_FUNCT;
 		((r->left)->left)->right->chr = LN;
 		((r->left)->left)->right->left = NULL;
 		((r->left)->left)->right->right = cloneTree(u, ((r->left)->left)->right);
 		
-		(r->left)->right = (TNode *)malloc(sizeof(TNode));
+		(r->left)->right = (NMAST *)malloc(sizeof(NMAST));
 		((r->left)->right)->function = F_OPT;
 		((r->left)->right)->value = 0;
 		((r->left)->right)->chr = MUL;
 		((r->left)->right)->sign = 1;
 		((r->left)->right)->parent = r->left;
 		(r->left)->right->left = cloneTree(v, (r->left)->right);
-		(r->left)->right->right = (TNode *)malloc(sizeof(TNode));
+		(r->left)->right->right = (NMAST *)malloc(sizeof(NMAST));
 		(r->left)->right->right->function = F_OPT;
 		(r->left)->right->right->chr = DIV;
 		(r->left)->right->right->value = 0;
@@ -395,7 +388,7 @@ TNode* d_pow_exp(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 		(r->left)->right->right->right = cloneTree(u, (r->left)->right->right);
 		
 		/* ===================================================== */
-		r->right = (TNode *)malloc(sizeof(TNode));
+		r->right = (NMAST *)malloc(sizeof(NMAST));
 		r->right->function = F_OPT;
 		r->right->chr = POW;
 		r->right->left = cloneTree(u, r->right);
@@ -409,10 +402,10 @@ TNode* d_pow_exp(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 
 
 /* (sqrt(v))' = dv/(2*sqrt(v)) */
-TNode* d_sqrt(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
-	TNode *r;
+NMAST* d_sqrt(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
 	
-	r = (TNode *)malloc(sizeof(TNode));
+	r = (NMAST *)malloc(sizeof(NMAST));
 	r->function = F_OPT;
 	r->chr = DIV;
 	r->sign = 1;
@@ -423,14 +416,14 @@ TNode* d_sqrt(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 		dv->parent = r;
 		
 	/*Right child: product operator */
-	r->right = (TNode *)malloc(sizeof(TNode));
+	r->right = (NMAST *)malloc(sizeof(NMAST));
 	r->right->function = F_OPT;
 	r->right->value = 0;
 	r->right->sign = 1;
 	r->right->chr = MUL;
 	r->right->parent = r;
 		
-	r->right->left = (TNode *)malloc(sizeof(TNode));
+	r->right->left = (NMAST *)malloc(sizeof(NMAST));
 	r->right->left->function = F_COE;
 	r->right->left->chr = COE;
 	r->right->left->value = 2;
@@ -443,16 +436,16 @@ TNode* d_sqrt(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 }
 
 /* (sin(v))' = cos(v)*dv */
-TNode* d_sin(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
-	TNode *r;
+NMAST* d_sin(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
 	/* (cos(v))' = -sin(v)*dv */
-	r = (TNode *)malloc(sizeof(TNode));
+	r = (NMAST *)malloc(sizeof(NMAST));
 	r->function = F_OPT;
 	r->chr = MUL;
 	r->sign = 1;
 	r->parent = NULL;
 	
-	r->left = (TNode *)malloc(sizeof(TNode));
+	r->left = (NMAST *)malloc(sizeof(NMAST));
 	r->left->function = F_FUNCT;
 	r->left->chr = COS;
 	r->left->sign = 1;
@@ -468,16 +461,16 @@ TNode* d_sin(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 }
 
 /* (cos(v))' = -sin(v)dv */
-TNode* d_cos(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
-	TNode *r;
+NMAST* d_cos(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
 	/* (cos(v))' = -sin(v)*dv */
-	r = (TNode *)malloc(sizeof(TNode));
+	r = (NMAST *)malloc(sizeof(NMAST));
 	r->function = F_OPT;
 	r->chr = MUL;
 	r->sign = 1;
 	r->parent = NULL;
 	
-	r->left = (TNode *)malloc(sizeof(TNode));
+	r->left = (NMAST *)malloc(sizeof(NMAST));
 	r->left->function = F_FUNCT;
 	r->left->chr = SIN; /* <== negative here */
 	r->left->sign = -1;
@@ -493,22 +486,22 @@ TNode* d_cos(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 }
 
 /* tan(v)' =  (sec(v)^2)*dv  */
-TNode* d_tan(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
-	TNode *r;
+NMAST* d_tan(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
 	
-	r = (TNode *)malloc(sizeof(TNode));
+	r = (NMAST *)malloc(sizeof(NMAST));
 	r->function = F_OPT;
 	r->chr = MUL;
 	r->sign = 1;
 	r->parent = NULL;
 	
-	r->left = (TNode *)malloc(sizeof(TNode));
+	r->left = (NMAST *)malloc(sizeof(NMAST));
 	r->left->function = F_OPT;
 	r->left->chr = POW;
 	r->left->sign = 1;
 	r->left->parent = r;
 	
-	r->left->left = (TNode *)malloc(sizeof(TNode));
+	r->left->left = (NMAST *)malloc(sizeof(NMAST));
 	r->left->left->parent = r->left;
 	r->left->left->function = F_FUNCT;
 	r->left->left->chr = SEC;
@@ -516,7 +509,7 @@ TNode* d_tan(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 	r->left->left->left = NULL;
 	r->left->left->right = cloneTree(v, r->left->left);
 	
-	r->left->right = (TNode *)malloc(sizeof(TNode));
+	r->left->right = (NMAST *)malloc(sizeof(NMAST));
 	r->left->right->parent = r->left;
 	r->left->right->function = F_COE;
 	r->left->right->chr = COE;
@@ -531,21 +524,21 @@ TNode* d_tan(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 }
 
 /* arcsin(v)' = (1/sqrt(1-v^2))*dv */
-TNode* d_asin(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
-	TNode *r;
-	r = (TNode *)malloc(sizeof(TNode));
+NMAST* d_asin(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
+	r = (NMAST *)malloc(sizeof(NMAST));
 	r->function = F_OPT;
 	r->chr = MUL;
 	r->sign = 1;
 	r->parent = NULL;
 	
-	r->left = (TNode *)malloc(sizeof(TNode));
+	r->left = (NMAST *)malloc(sizeof(NMAST));
 	r->left->function = F_OPT;
 	r->left->chr = DIV;
 	r->left->sign = 1;
 	r->left->parent = r;
 	
-	r->left->left = (TNode *)malloc(sizeof(TNode));
+	r->left->left = (NMAST *)malloc(sizeof(NMAST));
 	r->left->left->function = F_COE;
 	r->left->left->chr = COE;
 	r->left->left->value = 1;
@@ -554,18 +547,18 @@ TNode* d_asin(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 	r->left->left->left = r->left->left->right = NULL;
 	
 	/* sqrt(...) */
-	r->left->right = (TNode *)malloc(sizeof(TNode));
+	r->left->right = (NMAST *)malloc(sizeof(NMAST));
 	r->left->right->function = F_FUNCT;
 	r->left->right->chr = SQRT;
 	r->left->right->parent = r->left;
 	r->left->right->left = NULL;
 	
-	r->left->right->right = (TNode *)malloc(sizeof(TNode));
+	r->left->right->right = (NMAST *)malloc(sizeof(NMAST));
 	r->left->right->right->function = F_OPT;
 	r->left->right->right->chr = MINUS;
 	r->left->right->right->parent = r->left->right;
 	
-	r->left->right->right->left = (TNode *)malloc(sizeof(TNode));
+	r->left->right->right->left = (NMAST *)malloc(sizeof(NMAST));
 	r->left->right->right->left->function = F_COE;
 	r->left->right->right->left->chr = COE;
 	r->left->right->right->left->value = 1;
@@ -573,7 +566,7 @@ TNode* d_asin(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 	r->left->right->right->left->parent = r->left->right->right;
 	r->left->right->right->left->left = r->left->right->right->left->right = NULL;
 	
-	r->left->right->right->right = (TNode *)malloc(sizeof(TNode));
+	r->left->right->right->right = (NMAST *)malloc(sizeof(NMAST));
 	r->left->right->right->right->function = F_OPT;
 	r->left->right->right->right->chr = POW;
 	r->left->right->right->right->value = 0;
@@ -582,7 +575,7 @@ TNode* d_asin(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 	
 	r->left->right->right->right->left = cloneTree(v, r->left->right->right->right);
 	
-	r->left->right->right->right->right = (TNode *)malloc(sizeof(TNode));
+	r->left->right->right->right->right = (NMAST *)malloc(sizeof(NMAST));
 	r->left->right->right->right->right->function = F_COE;
 	r->left->right->right->right->right->chr = COE;
 	r->left->right->right->right->right->value = 2;
@@ -597,21 +590,21 @@ TNode* d_asin(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 }
 
 /* arccos(v)' = (-1/sqrt(1-v^2))*dv */
-TNode* d_acos(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
-	TNode *r;
-	r = (TNode *)malloc(sizeof(TNode));
+NMAST* d_acos(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
+	r = (NMAST *)malloc(sizeof(NMAST));
 	r->function = F_OPT;
 	r->chr = MUL;
 	r->sign = 1;
 	r->parent = NULL;
 	
-	r->left = (TNode *)malloc(sizeof(TNode));
+	r->left = (NMAST *)malloc(sizeof(NMAST));
 	r->left->function = F_OPT;
 	r->left->chr = DIV;
 	r->left->sign = 1;
 	r->left->parent = r;
 	
-	r->left->left = (TNode *)malloc(sizeof(TNode));
+	r->left->left = (NMAST *)malloc(sizeof(NMAST));
 	r->left->left->function = F_COE;
 	r->left->left->chr = COE;
 	r->left->left->value = -1;
@@ -620,18 +613,18 @@ TNode* d_acos(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 	r->left->left->left = r->left->left->right = NULL;
 	
 	/* sqrt(...) */
-	r->left->right = (TNode *)malloc(sizeof(TNode));
+	r->left->right = (NMAST *)malloc(sizeof(NMAST));
 	r->left->right->function = F_FUNCT;
 	r->left->right->chr = SQRT;
 	r->left->right->parent = r->left;
 	r->left->right->left = NULL;
 	
-	r->left->right->right = (TNode *)malloc(sizeof(TNode));
+	r->left->right->right = (NMAST *)malloc(sizeof(NMAST));
 	r->left->right->right->function = F_OPT;
 	r->left->right->right->chr = MINUS;
 	r->left->right->right->parent = r->left->right;
 	
-	r->left->right->right->left = (TNode *)malloc(sizeof(TNode));
+	r->left->right->right->left = (NMAST *)malloc(sizeof(NMAST));
 	r->left->right->right->left->function = F_COE;
 	r->left->right->right->left->chr = COE;
 	r->left->right->right->left->value = 1;
@@ -639,7 +632,7 @@ TNode* d_acos(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 	r->left->right->right->left->parent = r->left->right->right;
 	r->left->right->right->left->left = r->left->right->right->left->right = NULL;
 	
-	r->left->right->right->right = (TNode *)malloc(sizeof(TNode));
+	r->left->right->right->right = (NMAST *)malloc(sizeof(NMAST));
 	r->left->right->right->right->function = F_OPT;
 	r->left->right->right->right->chr = POW;
 	r->left->right->right->right->value = 0;
@@ -648,7 +641,7 @@ TNode* d_acos(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 	
 	r->left->right->right->right->left = cloneTree(v, r->left->right->right->right);
 	
-	r->left->right->right->right->right = (TNode *)malloc(sizeof(TNode));
+	r->left->right->right->right->right = (NMAST *)malloc(sizeof(NMAST));
 	r->left->right->right->right->right->function = F_COE;
 	r->left->right->right->right->right->chr = COE;
 	r->left->right->right->right->right->value = 2;
@@ -663,21 +656,21 @@ TNode* d_acos(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 }
 
 /* arctan(v)' = (1/(v^2+1))*dv */
-TNode* d_atan(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
-	TNode *r;
-	r = (TNode *)malloc(sizeof(TNode));
+NMAST* d_atan(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
+	r = (NMAST *)malloc(sizeof(NMAST));
 	r->function = F_OPT;
 	r->chr = MUL;
 	r->sign = 1;
 	r->parent = NULL;
 	
-	r->left = (TNode *)malloc(sizeof(TNode));
+	r->left = (NMAST *)malloc(sizeof(NMAST));
 	r->left->function = F_OPT;
 	r->left->chr = DIV;
 	r->left->sign = 1;
 	r->left->parent = r;
 	
-	r->left->left = (TNode *)malloc(sizeof(TNode));
+	r->left->left = (NMAST *)malloc(sizeof(NMAST));
 	r->left->left->function = F_COE;
 	r->left->left->chr = COE;
 	r->left->left->value = 1;
@@ -686,12 +679,12 @@ TNode* d_atan(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 	r->left->left->left = r->left->left->right = NULL;
 	
 	/* (v^2+1) */
-	r->left->right = (TNode *)malloc(sizeof(TNode));
+	r->left->right = (NMAST *)malloc(sizeof(NMAST));
 	r->left->right->function = F_OPT;
 	r->left->right->chr = PLUS;
 	r->left->right->parent = r->left;
 	
-	r->left->right->left = (TNode *)malloc(sizeof(TNode));
+	r->left->right->left = (NMAST *)malloc(sizeof(NMAST));
 	r->left->right->left->function = F_OPT;
 	r->left->right->left->chr = POW;
 	r->left->right->left->value = 0;
@@ -699,7 +692,7 @@ TNode* d_atan(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 	r->left->right->left->parent = r->left->right;
 	r->left->right->left->left = cloneTree(v, r->left->right->left);
 	
-	r->left->right->left->right = (TNode *)malloc(sizeof(TNode));
+	r->left->right->left->right = (NMAST *)malloc(sizeof(NMAST));
 	r->left->right->left->right->function = F_COE;
 	r->left->right->left->right->chr = COE;
 	r->left->right->left->right->value = 2;
@@ -707,7 +700,7 @@ TNode* d_atan(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 	r->left->right->left->right->parent = r->left->right->left;
 	r->left->right->left->right->left = r->left->right->left->right->right = NULL;
 	
-	r->left->right->right = (TNode *)malloc(sizeof(TNode));
+	r->left->right->right = (NMAST *)malloc(sizeof(NMAST));
 	r->left->right->right->function = F_COE;
 	r->left->right->right->chr = COE;
 	r->left->right->right->value = 1;
@@ -721,12 +714,12 @@ TNode* d_atan(TNode *t, TNode *u, TNode *du, TNode *v, TNode *dv, char x){
 	return r;
 }
 
-int isContainVar(TNode *t, char x){
+int isContainVar(NMAST *t, char x){
 	
-	if( (t==NULL) || (t->function==F_COE) || (t->function==F_CONSTAN) )
+	if( (t==NULL) || (t->type==F_COE) || (t->type==F_CONSTAN) )
 		return 0;
 		
-	if( t->function == F_VAR ){
+	if( t->type == F_VAR ){
 		if(t->chr == x)
 			return 1;
 		return 0;
