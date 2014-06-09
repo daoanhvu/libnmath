@@ -66,9 +66,9 @@
 #define ERROR_PARENTHESE_MISSING -6
 #define ERROR_OUT_OF_DOMAIN -7
 #define ERROR_SYNTAX -8
-
 #define ERROR_SIN_SQRT -9
 #define ERROR_ASIN -10
+#define ERROR_BAD_TOKEN -11
 
 #define MAXTEXTLEN 20
 
@@ -79,10 +79,16 @@
 extern "C" {
 #endif
 
-typedef struct tagToken Token;
 typedef struct tagFraction Fraction;
+typedef struct tagToken Token;
 typedef struct tagTokenList TokenList;
 typedef struct tagNMAST NMAST;
+
+struct tagFraction{
+	int numerator;
+	int denomerator;
+};
+
 
 typedef struct tagFunct{
 	char *str;
@@ -135,11 +141,6 @@ struct tagNMAST{
 	struct tagNMAST *right;
 };
 
-struct tagFraction{
-	int numerator;
-	int denomerator;
-};
-
 /* 
  * This do the primity test
  * return 1: if n is prime
@@ -150,6 +151,9 @@ long gcd(long a, long b);
 long lcm(long a, long b);
 long l_cast(double val, double *fr);
 double parseDouble(char *str, int start, int end, int *error);
+int contains(int type, const int *aset, int len);
+double logab(double a, double b, int *error);
+double doCalculate(double val1, double val2, int type, int *error);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include "nlablexer.h"
 #include "common.h"
+#include "nlabparser.h"
 
 #define INCLEN 10
 
@@ -9,18 +10,11 @@
 	#define FALSE 0
 #endif
 
-int setFunctionTypes[] = {SIN, COS, TAN, COTAN, ASIN, ACOS, ATAN, LOG, LN, SQRT};
-const int functionTypesLength = 10;
-int setNumericOperators[] = {PLUS, MINUS,MULTIPLY,DIVIDE,POWER};
-const int NumericOperators = 5;
+int FUNCTIONS[] = {SIN, COS, TAN, COTAN, ASIN, ACOS, ATAN, LOG, LN, SQRT};
+const int FUNCTION_COUNT = 10;
 
-int contains(int type, int *aset, int len){
-	int i;
-	for(i=0; i<len; i++)
-		if(type == aset[i])
-			return TRUE;
-	return FALSE;
-}
+const int OPERATORS[] = {PLUS, MINUS,MULTIPLY,DIVIDE,POWER};
+const int OPERATOR_COUNT = 5;
 
 /******************************************************************************************/
 void addItem2Prefix(Function *f, NMAST *item){
@@ -184,7 +178,6 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 				val = parseDouble(tk->text, 0, tk->testLength, &error);
 
 				if(val == 0 && error < 0){
-					/*printf("ERROR 0");*/
 					clearStack(stack, top+1);
 					free(stack);
 					*idxE = j;
@@ -228,7 +221,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 			case POWER:
 				if(top >= 0){
 					stItm = stack[top];
-					while((contains(stItm->type, setNumericOperators, NumericOperators)==TRUE) && (stItm->priority) >= tk->priority){
+					while((contains(stItm->type, OPERATORS, OPERATOR_COUNT)==TRUE) && (stItm->priority) >= tk->priority){
 						stItm = popFromStack(stack, &top);
 
 						ast = (NMAST*)malloc(sizeof(NMAST));
@@ -273,7 +266,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 				}
 
 				/*  */
-				while(stItm!=NULL && (stItm->type != RPAREN) && contains(stItm->type,setFunctionTypes,functionTypesLength)  != TRUE){
+				while(stItm!=NULL && (stItm->type != RPAREN) && contains(stItm->type,FUNCTIONS, FUNCTION_COUNT)  != TRUE){
 					addFunction2Tree(f, stItm);
 					free(stItm);
 					stItm = popFromStack(stack, &top);
@@ -285,7 +278,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 					return ERROR_PARENTHESE_MISSING;
 				}
 
-				if(contains(stItm->type,setFunctionTypes,functionTypesLength)  == TRUE){
+				if(contains(stItm->type,FUNCTIONS,FUNCTION_COUNT)  == TRUE){
 					addFunction2Tree(f, stItm);
 				}
 				free(stItm);
@@ -323,14 +316,14 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 			default:
 				clearStack(stack, top+1);
 				free(stack);
-				return -2;
+				return ERROR_BAD_TOKEN;
 		}//end switch
 	}//end while
 
 	while(top >= 0){
 		stItm = popFromStack(stack, &top);
-		/*printLog(step++, itm, POP);*/
-		if(stItm->type == LPAREN || contains(stItm->type, setFunctionTypes, functionTypesLength)==TRUE){
+		
+		if(stItm->type == LPAREN || contains(stItm->type, FUNCTIONS, FUNCTION_COUNT)==TRUE){
 			free(stItm);
 			clearStack(stack, top+1);
 			free(stack);

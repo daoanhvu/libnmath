@@ -12,8 +12,8 @@
 int setLeadNegativeNumber[] = {LPAREN, LPRACKET,SEMI,COMMA,AND,OR,LT,LTE,GT,GTE,EQ,NE,IMPLY,RARROW};
 const int LeadNegativeNumberSize = 14;
 
-int setNumericOperators[] = {PLUS, MINUS,MULTIPLY,DIVIDE,POWER};
-const int NumericOperators = 5;
+//const int OPERATORS1[] = {PLUS, MINUS,MULTIPLY,DIVIDE,POWER};
+//const int OPERATOR_COUNT1 = 5;
 
 TokenList *gTokens = NULL;
 int gErrorColumn = -1;
@@ -74,14 +74,6 @@ Token* createTokenIdx(int _type, const char *_text, int frIdx, int toIdx, int _c
 		(tk->testLength)++;
 	}
 	return tk;
-}
-
-int contains(const int *aset, int len, int val){
-	int i;
-	for(i =0; i<len; i++)
-		if(aset[i] == val)
-			return TRUE;
-	return FALSE;
 }
 
 void addToken(TokenList *lst, Token *tk){
@@ -374,7 +366,7 @@ Token* parsSubtractSign(const char *inputString, int length, int *idx){
 	}
 		
 	if(inputString[(*idx)+1] != '>'){
-		if ((((*idx) == 0) || contains(setLeadNegativeNumber, LeadNegativeNumberSize,gTokens->list[gTokens->size-1]->type))
+		if ((((*idx) == 0) || contains(gTokens->list[gTokens->size-1]->type, setLeadNegativeNumber, LeadNegativeNumberSize))
 				&& (isDigit(inputString[(*idx)+1]))){
 				
 			floatingPoint = FALSE;
@@ -459,16 +451,16 @@ int isFunctionName(int index, const char *inputString, int l, int *outType){
 				(inputString[index+3]=='a')	&& (inputString[index+4]=='n') ){
 		(*outType) = COTAN;
 		k = index + 5;
-	}else if((index+4 < l) && ((c0=='s' && c1=='q' && c2=='r' && inputString[index+3]=='t' )){
+	}else if((index+4 < l) && (c0=='s' && c1=='q' && c2=='r' && inputString[index+3]=='t' )){
 		(*outType) = SQRT;
 		k = index + 4;
-	}else if((c0=='a' && c1=='t' && c2=='a' && inputString[index+3]=='n')){
+	}else if((index+4 < l) && (c0=='a' && c1=='t' && c2=='a' && inputString[index+3]=='n')){
 		(*outType) = ATAN;
 		k = index + 4;
-	}else if((c0=='a' && c1=='s' && c2=='i' && inputString[index+3]=='n')){
+	}else if((index+4 < l) && (c0=='a' && c1=='s' && c2=='i' && inputString[index+3]=='n')){
 		(*outType) = ASIN;
 		k = index + 4;
-	}else if((c0=='a' && c1=='c' && c2=='o' && inputString[index+3]=='s')) ) {
+	}else if((index+4 < l) && (c0=='a' && c1=='c' && c2=='o' && inputString[index+3]=='s')) {
 		(*outType) = ACOS;
 		k = index + 4;
 	} else if((index+3 < l)&& (c0=='t' && c1=='a' && c2=='n')){

@@ -1,155 +1,162 @@
-#ifndef _FUNCT_H_
-#define _FUNCT_H_
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <math.h>
+#include <Windows.h>
+#include <process.h>
+#include "nmath.h"
 
-#include "nmbase.h"
+int isInArray(char *vars, char c){
+	if(c == vars[0])
+		return 0;
 
-/* FLAGS also ASCII code of ^ operator + - * / PI E */
-#define VAR 0x00
-#define COE 0x11
-#define PLUS 0x2B
-#define MINUS 0x2D
-#define MUL 0x2A
-#define DIV 0x2F
-#define SIN 0x06
-#define COS 0x07
-#define TAN 0x08
-#define COTAN 0x12
-#define POW 0x5E
-#define SQRT 0x10
-#define LN 0x0A
-#define LOG 0x0B
-#define OPN 0x28
-#define CLO 0x29
-#define ASIN 0x13
-#define ACOS 0x14
-#define ATAN 0x15
-#define PI_FLG 0xE3
-#define E_FLG 0x65
+	if(c == vars[1])
+		return 1;
 
-#define SEC 0x16
+	if(c == vars[2])
+		return 2;
 
-/* Function value */
-#define F_COE 0x00
-#define F_VAR 0x01
-#define F_FUNCT 0x02
-#define F_OPT 0x03
-#define F_PARENT 0x04
-#define F_STR 0x05
-#define F_CONSTAN 0x06
-
-#define TYPE_FLOATING_POINT 0
-#define TYPE_FRACTION 1
-
-#define COE_VAL_PRIORITY 0x00
-#define PRIORITY_0 0x00
-#define PLUS_MINUS_PRIORITY 0x01
-#define MUL_DIV_PRIORITY 0x02
-#define FUNCTION_PRIORITY 0x03
-
-#define ERROR_DIV_BY_ZERO -1
-#define ERROR_LOG -2;
-#define ERROR_OPERAND_MISSING -3
-#define ERROR_PARSE -4
-#define ERROR_SIN -5
-#define ERROR_PARENTHESE_MISSING -6
-#define ERROR_OUT_OF_DOMAIN -7
-#define ERROR_SYNTAX -8
-
-#define ERROR_SIN_SQRT -9
-#define ERROR_ASIN -10
-
-#define PI 3.14159265358979323846
-#define E 2.718281828
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-typedef struct tagStack StackItem;
-typedef struct tagTNode TNode;
-
-typedef struct tagFunct{
-	char *str;
-	int len;
-
-	char variable[3];
-	char valLen;
-
-	TNode **prefix;
-	int prefixLen;
-	int prefixAllocLen;
-} Formula;
-
-struct tagStack{
-	char function;
-	int chr;
-	char priority;
-};
-
-struct tagToken{
-	int type;
-	char text[20];
-	int testLength;
-	/* This is used for operators & functions */
-	char priority;
-}Token;
-
-struct tagTNode{
-	/* 0:coefficient; 1:variable; 2: functions; 3:Operators; 4: ( or ) */
-	char function;
-	
-	/* This is used for operators & functions */
-	char priority;
-	
-	/* SEE: flags section */
-	int chr;
-	
-	/*
-	 TYPE_FLOATING_POINT OR TYPE_FRACTION
-	 * */
-	char valueType;
-	
-	double value;
-	Fraction frValue;
-	
-	/* this flag is just used for function cause the function cannot express its sign itself */
-	/* MUST = 1 by default */
-	int sign;
-	
-	struct tagTNode *parent;
-	struct tagTNode *left;
-	struct tagTNode *right;
-};
-
-typedef struct tagDParam{
-	TNode *t;
-	char x;
-	int error;
-	TNode *return_value;
-}DParam;
-
-typedef struct tagRParam{
-	TNode *t;
-	char *variables;
-	double *values;
-	double retv;
-	int error;
-}RParam;
-
-void initFunct(Formula *);
-void reset(Formula *f, const char *str, int *error);
-void setVariables(Formula *f, char variable[], int l);
-int parseFunct(Formula *, int *);
-void clearTree(TNode **prf);
-double calc(Formula *f, double *values, int numOfValue, int *);
-int reduce(Formula *f, int *);
-unsigned int __stdcall reduce_t(void *);
-unsigned int __stdcall calc_t(void *);
-void nodeToString(TNode *t, char *str, int len, int *newlen);
-void releaseFunct(Formula *);
-
-#ifdef __cplusplus
+	return -1;
 }
-#endif
 
-#endif
+void initFunct(Function *f){
+	f->str = NULL;
+	f->len = 0;
+
+	f->variable[0] = 0;
+	f->variable[1] = 0;
+	f->variable[2] = 0;
+	f->valLen = 0;
+
+	f->prefix = NULL;
+	f->prefixLen = 0;
+	f->prefixAllocLen = 0;
+}
+
+void reset(Function *f, const char *str, int *error){
+	int i=0, l=0, flagFirst = 0;
+	char buf[1024];
+	
+	(*error) = 0;
+	while(str[i]!='\0'){
+		if(str[i] != ' '){
+			if(!flagFirst){
+				flagFirst = 1;
+				switch(str[i]){
+					case '+':
+						i++;
+					break;
+					
+					case '^':
+					case '*':
+					case '/':
+						(*error) = i+1;
+						return;
+					break;
+					
+					default:
+						buf[l] = str[i];
+						l++;
+					break;
+				}
+			}else{
+				buf[l] = str[i];
+				l++;
+			}
+		}
+		i++;
+	}
+
+	if(l != f->len){
+		f->str = (char*)realloc(f->str, l);
+		f->len = l;
+	}
+	memcpy(f->str, buf, l);
+
+	f->variable[0] = 0;
+	f->variable[1] = 0;
+	f->variable[2] = 0;
+	f->valLen = 0;
+
+	for(i=0; i<f->prefixLen; i++)
+		clearTree(&(f->prefix[i]));
+	f->prefixLen = 0;
+	(*error) = 0;
+}
+
+void setVariables(Function *f, char variable[], int l){
+	int i;
+	if(f == NULL)
+		return;
+
+	f->valLen = l;
+	for(i=0;i<l;i++)
+		f->variable[i] = variable[i];
+	f->variable[i] = 0;
+}
+
+unsigned int __stdcall calc_t(void *param){
+	RParam *dp = (RParam *)param;
+	NMAST *t = dp->t;
+	RParam this_param_left;
+	RParam this_param_right;
+	HANDLE thread_1 = 0, thread_2 = 0;
+	int var_index = -1;
+
+	this_param_left.error = this_param_right.error = 0;
+	this_param_left.variables = this_param_right.variables = dp->variables;
+	this_param_left.values = this_param_right.values = dp->values;
+	if(t==NULL){
+		return 0;
+	}
+
+	if(t->type == VARIABLE){
+		var_index = isInArray(dp->variables, t->variable);
+		dp->retv = dp->values[var_index];
+		return dp->error;
+	}
+		
+	if( (t->type == NUMBER) || (t->type == PI_TYPE) ||(t->type == E_TYPE) ){
+		dp->retv = t->value;
+		return dp->error;
+	}
+
+	this_param_left.t = t->left;
+	thread_1 = (HANDLE)_beginthreadex(NULL, 0, &calc_t, (void*)&this_param_left, 0, NULL);
+		
+	this_param_right.t = t->right;
+	thread_2 = (HANDLE)_beginthreadex(NULL, 0, &calc_t, (void*)&this_param_right, 0, NULL);
+	
+	if(thread_1 != 0){
+		WaitForSingleObject(thread_1, INFINITE);
+		CloseHandle(thread_1);
+	}
+	if(thread_2 != 0){
+		WaitForSingleObject(thread_2, INFINITE);
+		CloseHandle(thread_2);
+	}
+
+	/* Actually, we don't need to check error here b'cause the reduce phase does that
+	if(this_param_left.error != 0){
+		dp->error = this_param_left.error;
+		return dp->error;
+	}
+	
+	if(this_param_right.error != 0){
+		dp->error = this_param_right.error;
+		return dp->error;
+	}*/
+		
+	dp->retv = doCalculate(this_param_left.retv, this_param_right.retv, t->type, &(dp->error));
+	return dp->error;
+}
+
+double calc(Function *f, double *values, int numOfValue, int *error){
+	RParam rp;
+	rp.error = 0;
+	rp.t = *(f->prefix);
+	rp.values = values;
+	rp.variables = f->variable;
+	calc_t((void*)&rp);
+	return rp.retv;
+}
