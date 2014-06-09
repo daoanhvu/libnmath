@@ -216,6 +216,15 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 				idx++;
 			}
 			
+		}else if( (idx+1 < length ) && (inStr[idx]=='p' || inStr[idx]=='P') && (inStr[idx+1]=='i' || inStr[idx+1]=='I')
+						&& ( (idx+1 == length-1) || !isLetter(inStr[idx+2]) ) ){
+			tk = createToken(PI_TYPE, "PI", 2, idx);
+			addToken(tokens, tk);
+			idx += 2;
+		}else if(inStr[idx]=='e' && ((idx==length-1) || !isLetter(inStr[idx+1]))){
+			tk = createToken(E_TYPE, "e", 1, idx);
+			addToken(tokens, tk);
+			idx++;
 		}else
 			idx++;
 	}

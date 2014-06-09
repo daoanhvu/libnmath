@@ -151,6 +151,8 @@ double doCalculate(double val1, double val2, int type, int *error);
 int isAFunctionType(int type);
 int isAnOperatorType(int type);
 int isFunctionOROperator(int type);
+int isConstant(int type);
+int isLetter(char c);
 
 #ifdef __cplusplus
 }

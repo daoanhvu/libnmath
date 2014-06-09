@@ -205,3 +205,15 @@ int isFunctionOROperator(int type){
 
 	return FALSE;
 }
+
+int isLetter(char c){
+	if (( c>='a' && c<='z' ) || ( c>='A' && c<='Z' ))
+		return TRUE;
+	return FALSE;
+}
+
+int isConstant(int type){
+	if(type == NUMBER || type == PI_TYPE || type == E_TYPE)
+		return TRUE;
+	return FALSE;
+}

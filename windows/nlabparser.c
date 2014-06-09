@@ -38,7 +38,7 @@ void clearTree(NMAST **prf){
 	(*prf) = NULL;
 }
 
-int clearStack(Token **ls, int len){
+int clearStackWithoutFreeItem(Token **ls, int len){
 	int i;
 	Token *p;
 
@@ -48,7 +48,6 @@ int clearStack(Token **ls, int len){
 	for(i=0; i<len; i++){
 		p = ls[i];
 		ls[i] = NULL;
-		//free(p);
 	}
 	return i;
 }
@@ -176,7 +175,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 				val = parseDouble(tk->text, 0, tk->testLength, &error);
 
 				if(val == 0 && error < 0){
-					clearStack(stack, top+1);
+					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
 					*idxE = j;
 					return error;
@@ -258,7 +257,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 				stItm = popFromStack(stack, &top);
 
 				if(stItm == NULL){
-					clearStack(stack, top+1);
+					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
 					return ERROR_SYNTAX;
 				}
@@ -317,7 +316,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 				break;
 
 			default:
-				clearStack(stack, top+1);
+				clearStackWithoutFreeItem(stack, top+1);
 				free(stack);
 				return ERROR_BAD_TOKEN;
 		}//end switch
@@ -328,7 +327,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 		
 		if(stItm->type == LPAREN || isAFunctionType(stItm->type)==TRUE){
 			free(stItm);
-			clearStack(stack, top+1);
+			clearStackWithoutFreeItem(stack, top+1);
 			free(stack);
 			return ERROR_PARENTHESE_MISSING; 
 		}

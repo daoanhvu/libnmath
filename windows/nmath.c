@@ -181,8 +181,7 @@ unsigned int __stdcall reduce_t(void *param){
 	/*
 		We don't reduce a node if it's a variable, a number, PI, E
 	*/
-	if( ((dp->t)->type == VARIABLE) || ((dp->t)->type == NUMBER) || 
-					((dp->t)->type == PI_TYPE) || ((dp->t)->type == E_TYPE))
+	if(((dp->t)->type == VARIABLE) || isConstant((dp->t)->type == NUMBER))
 		return dp->error;
 		
 	//if this node is an operator
@@ -192,7 +191,8 @@ unsigned int __stdcall reduce_t(void *param){
 			/* take care of special cases */
 			if((dp->t)->type == PLUS){
 				/* 0 + something */
-				if( ((dp->t)->left)->type == NUMBER && ((dp->t)->left)->value == 0.0 ){
+				if( (  ((dp->t)->left)->type == NUMBER  || ((dp->t)->left)->type == PI_TYPE || ((dp->t)->left)->type == E_TYPE ) 
+							&& ((dp->t)->left)->value == 0.0 ){
 				
 					//remove the left child (value 0)
 					p = (dp->t)->left;
