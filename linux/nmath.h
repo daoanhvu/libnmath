@@ -8,6 +8,7 @@
 extern "C" {
 #endif
 
+/* Derivative param */
 typedef struct tagDParam{
 	NMAST *t;
 	char x;
@@ -15,6 +16,7 @@ typedef struct tagDParam{
 	NMAST *returnValue;
 }DParam;
 
+/* Reduce param */
 typedef struct tagRParam{
 	NMAST *t;
 	char *variables;
@@ -28,8 +30,8 @@ void initFunct(Function *);
 void resetFunction(Function *f, const char *str, const char *vars, int varCount, int *error);
 double calc(Function *f, double *values, int numOfValue, int *);
 int reduce(Function *f, int *);
-unsigned int __stdcall reduce_t(void *);
-unsigned int __stdcall calc_t(void *);
+void* reduce_t(void *);
+void* calc_t(void *);
 void nodeToString(NMAST *t, char *str, int len, int *newlen);
 void releaseFunct(Function *);
 
@@ -37,7 +39,7 @@ void releaseFunct(Function *);
 	In case of multi-variable function, we need to tell which variable that we are 
 	getting derivative of
 */
-unsigned int __stdcall derivative(void *);
+void* derivative(void *);
 
 #ifdef __cplusplus
 }

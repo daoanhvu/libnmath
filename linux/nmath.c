@@ -131,64 +131,58 @@ void resetFunction(Function *f, const char *str, const char *vars, int varCount,
 	(*error) = 0;
 }
 
-unsigned int __stdcall reduce_t(void *param){
+void* reduce_t(void *param){
 	RParam *dp = (RParam *)param;
 	NMAST *p;
 	RParam this_param_left;
 	RParam this_param_right;
-	HANDLE thread_1 = 0, thread_2 = 0;
+	pthread_t thrLeft, thrRight;
+	int idThrLeft=-1, idThrRight = -1;
 	this_param_left.error = this_param_right.error = 0;
 	
+	/* If the tree is NULL */
 	if((dp->t)==NULL){
-		return 0;
+		return &(dp->error);
 	}
 
 	/*
 		If this node is has left child, and the left child is an operator or a function then we
 		create a thread to reduce the left child.
 	*/
-	if( ((dp->t)->left) != NULL && ( isAnOperatorType(((dp->t)->left)->type) || 
-														isAFunctionType(((dp->t)->left)->type)) ){
-		/*printf(" To Left \n", (t->left)->type);*/
+	if( ((dp->t)->left) != NULL && isFunctionOROperator(((dp->t)->left)->type) ){
 		this_param_left.t = (dp->t)->left;
-		thread_1 = (HANDLE)_beginthreadex(NULL, 0, &reduce_t, (void*)&this_param_left, 0, NULL);
+		idThrLeft = pthread_create(&thrLeft, NULL, reduce_t, (void*)(&this_param_left));
 	}
 		
 	/*
 		If this node is has right child, and the right child is an operator or a function then we
 		create a thread to reduce the right child.
 	*/
-	if( ((dp->t)->right) != NULL && ( isAnOperatorType(((dp->t)->right)->type) || 
-														isAFunctionType(((dp->t)->right)->type)) ){
-		/*printf(" To Right\n", (t->right)->type);*/
+	if( ((dp->t)->right) != NULL && isFunctionOROperator(((dp->t)->right)->type) ){
 		this_param_right.t = (dp->t)->right;
-		thread_2 = (HANDLE)_beginthreadex(NULL, 0, &reduce_t, (void*)&this_param_right, 0, NULL);
+		idThrRight = pthread_create(&thrRight, NULL, reduce_t, (void*)(&this_param_right));
 	}
-	if(thread_1 != 0){
-		WaitForSingleObject(thread_1, INFINITE);
-		CloseHandle(thread_1);
-	}
-	
-	if(thread_2 != 0){
-		WaitForSingleObject(thread_2, INFINITE);
-		CloseHandle(thread_2);
-	}
+	if(idThrLeft == 0)
+		pthread_join(thrLeft, NULL);
+	if(idThrRight == 0)
+		pthread_join(thrRight, NULL);
 
 	if(this_param_left.error != 0){
 		dp->error = this_param_left.error;
-		return dp->error;
+		return &(dp->error);
 	}
 	
 	if(this_param_right.error != 0){
 		dp->error = this_param_right.error;
-		return dp->error;
+		return &(dp->error);
 	}
+	/*************************************************************************************/
 	
 	/*
 		We don't reduce a node if it's a variable, a number, PI, E
 	*/
 	if(((dp->t)->type == VARIABLE) || isConstant((dp->t)->type))
-		return dp->error;
+		return &(dp->error);
 		
 	//if this node is an operator
 	if( ((dp->t)->type == PLUS) || ((dp->t)->type == MINUS) || ((dp->t)->type == MULTIPLY)
@@ -222,8 +216,7 @@ unsigned int __stdcall reduce_t(void *param){
 						/* Now release p */
 						free(p);
 						p = NULL;
-						return dp->error;
-						
+						return &(dp->error);
 					}
 				}
 				
@@ -253,14 +246,14 @@ unsigned int __stdcall reduce_t(void *param){
 						/* Now release p */
 						free(p);
 						p = NULL;
-						return dp->error;
+						return &(dp->error);
 					}
 				}
 				
 				//Left and right child of this node are null, 
 				// I'm not sure that this piece of code can be reached
 				if( ((dp->t)->left == NULL) || ((dp->t)->right == NULL) )
-					return dp->error;
+					return &(dp->error);
 			}
 			
 			if((dp->t)->type == MULTIPLY){
@@ -276,7 +269,7 @@ unsigned int __stdcall reduce_t(void *param){
 					(dp->t)->sign = 1;
 					
 					/* MUST return here */
-					return dp->error;
+					return &(dp->error);
 				}
 				
 				/* (1 * something) */
@@ -297,7 +290,7 @@ unsigned int __stdcall reduce_t(void *param){
 
 					free(p);
 					
-					return dp->error;
+					return &(dp->error);
 				}
 
 				/* (something * 1) */
@@ -314,7 +307,7 @@ unsigned int __stdcall reduce_t(void *param){
 					(dp->t)->left = p->left;
 					(dp->t)->right = p->right;
 					free(p);
-					return dp->error;
+					return &(dp->error);
 				}
 			}
 						
@@ -334,7 +327,7 @@ unsigned int __stdcall reduce_t(void *param){
 						//(dp->t)->priority = COE_VAL_PRIORITY;
 						(dp->t)->sign = 1;
 						(dp->t)->left = (dp->t)->right = NULL;
-						return dp->error;
+						return &(dp->error);
 					}
 					
 					if( ((dp->t)->right)->value == 1.0 ){
@@ -356,7 +349,7 @@ unsigned int __stdcall reduce_t(void *param){
 						
 						free(p);
 						
-						return dp->error;
+						return &(dp->error);
 					}
 				}
 				
@@ -377,7 +370,7 @@ unsigned int __stdcall reduce_t(void *param){
 					(dp->t)->sign = p->sign;
 					(dp->t)->left = (dp->t)->right = NULL;
 					 
-					return dp->error;
+					return &(dp->error);
 				}
 				
 				// number ^ number, this is a trivial case
@@ -387,7 +380,7 @@ unsigned int __stdcall reduce_t(void *param){
 					(dp->t)->value = doCalculate(((dp->t)->left)->value, ((dp->t)->right)->value, (dp->t)->type, &(dp->error));
 					
 					if(dp->error != 0)
-						return dp->error;
+						return &(dp->error);
 						
 					(dp->t)->type = NUMBER;
 					p = (dp->t)->left;
@@ -395,7 +388,7 @@ unsigned int __stdcall reduce_t(void *param){
 					p = (dp->t)->right;
 					free(p);
 					(dp->t)->left = (dp->t)->right = NULL;
-					return dp->error;
+					return &(dp->error);
 				}
 			} // END OPERATOR POWER
 			
@@ -404,14 +397,14 @@ unsigned int __stdcall reduce_t(void *param){
 				/*printf("doCalculate %c\n", t->type);*/
 				(dp->t)->value = doCalculate(((dp->t)->left)->value, ((dp->t)->right)->value, (dp->t)->type, &(dp->error));
 				if(dp->error != 0)
-					return dp->error;
+					return &(dp->error);
 				(dp->t)->type = NUMBER;
 				p = (dp->t)->left;
 				free(p);
 				p = (dp->t)->right;
 				free(p);
 				(dp->t)->left = (dp->t)->right = NULL;
-				return dp->error;
+				return &(dp->error);
 			}
 		}
 	}
@@ -434,7 +427,7 @@ unsigned int __stdcall reduce_t(void *param){
 				if(((dp->t)->right)->type==NUMBER){
 					(dp->t)->value = doCalculate(0, ((dp->t)->right)->value, (dp->t)->type, &(dp->error));
 					if(dp->error != 0)
-						return dp->error;
+						return &(dp->error);
 					(dp->t)->type = NUMBER;
 					if((dp->t)->left != NULL){
 						p = (dp->t)->left;
@@ -443,7 +436,7 @@ unsigned int __stdcall reduce_t(void *param){
 					p = (dp->t)->right;
 					free(p);
 					(dp->t)->left = (dp->t)->right = NULL;
-					return dp->error;
+					return &(dp->error);
 				}
 			}
 			/*printf("End Process function %d\n", t->type);*/
@@ -461,7 +454,7 @@ unsigned int __stdcall reduce_t(void *param){
 				(dp->t)->value = doCalculate(((dp->t)->left)->value, ((dp->t)->right)->value, (dp->t)->type, &(dp->error));
 				
 				if(dp->error != 0)
-					return dp->error;
+					return &(dp->error);
 					
 				(dp->t)->type = NUMBER;
 				p = (dp->t)->left;
@@ -469,61 +462,63 @@ unsigned int __stdcall reduce_t(void *param){
 				p = (dp->t)->right;
 				free(p);
 				(dp->t)->left = (dp->t)->right = NULL;
-				return dp->error;
+				return &(dp->error);
 			}
 		break;
 	}
-	return dp->error;
-} // 2.0 get done here
+	return &(dp->error);
+}
 
 int reduce(Function *f, int *error){
-	DParam dp;
+	RParam dp;
 	dp.t = *(f->prefix);
 	dp.error = 0;
 	reduce_t(&dp);
 	return 0;
 }
 
-unsigned int __stdcall calc_t(void *param){
+void* calc_t(void *param){
 	RParam *dp = (RParam *)param;
 	NMAST *t = dp->t;
 	RParam this_param_left;
 	RParam this_param_right;
-	HANDLE thread_1 = 0, thread_2 = 0;
+	pthread_t thrLeft, thrRight;
+	int idThrLeft=-1, idThrRight = -1;
 	int var_index = -1;
 
 	this_param_left.error = this_param_right.error = 0;
 	this_param_left.variables = this_param_right.variables = dp->variables;
 	this_param_left.values = this_param_right.values = dp->values;
+	
+	/* If the input tree is NULL, we do nothing */
 	if(t==NULL){
-		return 0;
+		return NULL;
 	}
 
 	if(t->type == VARIABLE){
 		var_index = isInArray(dp->variables, t->variable);
 		dp->retv = dp->values[var_index];
-		return dp->error;
+		return &(dp->error);
 	}
 		
 	if( (t->type == NUMBER) || (t->type == PI_TYPE) ||(t->type == E_TYPE) ){
 		dp->retv = t->value;
-		return dp->error;
+		return &(dp->error);
 	}
 
 	this_param_left.t = t->left;
-	thread_1 = (HANDLE)_beginthreadex(NULL, 0, &calc_t, (void*)&this_param_left, 0, NULL);
-		
+	idThrLeft = pthread_create(&thrLeft, NULL, calc_t, (void*)&this_param_left);
 	this_param_right.t = t->right;
-	thread_2 = (HANDLE)_beginthreadex(NULL, 0, &calc_t, (void*)&this_param_right, 0, NULL);
+	idThrRight = pthread_create(&thrRight, NULL, calc_t, (void*)&this_param_right);
 	
-	if(thread_1 != 0){
-		WaitForSingleObject(thread_1, INFINITE);
-		CloseHandle(thread_1);
+	if(idThrLeft == 0){
+		pthread_join(thrLeft, NULL);
 	}
-	if(thread_2 != 0){
-		WaitForSingleObject(thread_2, INFINITE);
-		CloseHandle(thread_2);
+	
+	if(idThrRight == 0){
+		pthread_join(thrRight, NULL);
 	}
+	/*******************************************************************************/
 
 	/* Actually, we don't need to check error here b'cause the reduce phase does that
 	if(this_param_left.error != 0){
@@ -537,12 +532,12 @@ unsigned int __stdcall calc_t(void *param){
 	}*/
 		
 	dp->retv = doCalculate(this_param_left.retv, this_param_right.retv, t->type, &(dp->error));
-	return dp->error;
+	return &(dp->error);
 }
 
 double calc(Function *f, double *values, int numOfValue, int *error){
 	RParam rp;
-	int i;
+	//int i;
 
 	rp.error = 0;
 	rp.t = *(f->prefix);
@@ -550,8 +545,8 @@ double calc(Function *f, double *values, int numOfValue, int *error){
 	rp.variables = f->variable;
 
 	//replace variable by value
-	for(i=0; i<f->numVarNode; i++){
-	}
+	//for(i=0; i<f->numVarNode; i++){
+	//}
 
 	calc_t((void*)&rp);
 	return rp.retv;
@@ -584,17 +579,17 @@ NMAST * cloneTree(NMAST *t, NMAST *cloneParent){
 	return c;
 }
 
-unsigned int __stdcall derivative(void *p){
+void* derivative(void *p){
 	DParam *dp = (DParam*)p;
 	NMAST *t = dp->t;
 	char x = dp->x;
 	NMAST *u, *du, *v, *dv;
-	HANDLE tdu = 0, tdv = 0;
+	pthread_t tdu, tdv;
+	int id_du = -1, id_dv = -1;
 	DParam pdu, pdv;
 	
 	if(t==NULL){
-		dp->returnValue = NULL;
-		return 0;
+		return NULL;
 	}
 	
 	if(t->type == NUMBER || t->type == PI_TYPE|| t->type == E_TYPE ){
@@ -603,8 +598,7 @@ unsigned int __stdcall derivative(void *p){
 		u->value = 0.0;
 		u->parent = NULL;
 		u->left = u->right = NULL;
-		dp->returnValue = u;
-		return 0;
+		return u;
 	}
 	
 	/*
@@ -618,90 +612,80 @@ unsigned int __stdcall derivative(void *p){
 		u->value = 1.0;
 		u->parent = NULL;
 		u->left = u->right = NULL;
-		dp->returnValue = u;
-		return 0;
+		
+		if(dp->x == t->variable){
+			u->value = 1.0;
+			return u;
+		}
+		
+		u->value = 0.0;
+		return u;
 	}
-	
+
 	dv = du = NULL;
 	
 	u = t->left;
 	v = t->right;
 
-	if(u!=NULL){
+	if(u!=NULL) {
 		pdu.t = t->left;
 		pdu.x = x;
-		tdu = (HANDLE)_beginthreadex(NULL, 0, &derivative, (void*)&pdu, 0, NULL);
+		id_du = pthread_create(&tdu, NULL, derivative, (void*)(&pdu));
 	}
 	
 	if(v != NULL){
 		pdv.t = t->right;
 		pdv.x = x;
-		tdv = (HANDLE)_beginthreadex(NULL, 0, &derivative, (void*)&pdv, 0, NULL);
+		id_dv = pthread_create(&tdv, NULL, derivative, (void*)(&pdv));
 	}
-
-	if(tdu != 0){
-		WaitForSingleObject(tdu, INFINITE);
-		du = pdu.returnValue;
-		CloseHandle(tdu);
-	}
-	if(tdv != 0){
-		WaitForSingleObject(tdv, INFINITE);
-		dv = pdv.returnValue;
-		CloseHandle(tdv);
-	}
-	
+	if(id_du == 0)
+		pthread_join(tdu, (void**)&du);
+	if(id_dv == 0)
+		pthread_join(tdv, (void**)&dv);
+		
+	/****************************************************************/
+	// 2.0 get done here	
 	switch(t->type){
 		case SIN:
-			dp->returnValue = d_sin(t, u, du, v, dv, x);
-			return 0;
-				
+			return d_sin(t, u, du, v, dv, x);
+			
 		case COS:
-			dp->returnValue = d_cos(t, u, du, v, dv, x);
-			return 0;
+			return d_cos(t, u, du, v, dv, x);
 
 		case TAN:
-			dp->returnValue = d_tan(t, u, du, v, dv, dp->x);
-			return 0;
+			return d_tan(t, u, du, v, dv, dp->x);
 
 		case COTAN:
-			dp->returnValue = d_cotan(t, u, du, v, dv, dp->x);
-			return 0;
+			return d_cotan(t, u, du, v, dv, dp->x);
 				
 		case ASIN:
-			dp->returnValue = d_asin(t, u, du, v, dv, dp->x);
-			return 0;
+			return d_asin(t, u, du, v, dv, dp->x);
 				
 		case ACOS:
-			dp->returnValue = d_acos(t, u, du, v, dv, dp->x);
-			return 0;
+			return d_acos(t, u, du, v, dv, dp->x);
 				
 		case ATAN:
-			dp->returnValue = d_atan(t, u, du, v, dv, dp->x);
-			return 0;
+			return d_atan(t, u, du, v, dv, dp->x);
 				
 		case SQRT:
-			dp->returnValue = d_sqrt(t, u, du, v, dv, x);
-			return 0;
+			return d_sqrt(t, u, du, v, dv, x);
 
 		case PLUS:
 		case MINUS:
-			dp->returnValue = d_sum_subtract(t, t->type, u, du, v, dv, x);
-			return 0;
+			return d_sum_subtract(t, t->type, u, du, v, dv, x);
 			
 		case MULTIPLY:
-			dp->returnValue = d_product(t, u, du, v, dv, x);
-			return 0;
+			return d_product(t, u, du, v, dv, x);
 				
 		case DIVIDE:
-			dp->returnValue = d_quotient(t, u, du, v, dv, x);
-			return 0;
+			return d_quotient(t, u, du, v, dv, x);
 				
 		case POWER:
-			dp->returnValue = d_pow_exp(t, u, du, v, dv, x);
-			return 0;
+			return d_pow_exp(t, u, du, v, dv, x);
 	}
-	dp->returnValue = NULL;
-	return 0;
+	
+	/* WHERE du AND dv GO IF WE NOT TO USE THEM ????? */
+	return NULL;
 }
 
 /* (u.v) = u'v + uv' */

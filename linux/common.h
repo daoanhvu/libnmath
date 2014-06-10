@@ -62,11 +62,10 @@
 #define ERROR_BAD_TOKEN -11
 
 #define MAXTEXTLEN 20
+#define INCLEN 10
 
 #define PI	3.14159265358979323846
 #define E	2.718281828
-
-#define INCLEN 10
 
 #ifndef TRUE
 	#define TRUE -1

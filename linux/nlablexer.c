@@ -2,6 +2,7 @@
 #include "nlablexer.h"
 #include "common.h"
 
+
 const int setLeadNegativeNumber[] = {LPAREN, LPRACKET,SEMI,COMMA,AND,OR,LT,LTE,GT,GTE,EQ,NE,IMPLY,RARROW};
 const int LeadNegativeNumberSize = 14;
 
