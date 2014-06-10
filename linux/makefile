@@ -4,6 +4,14 @@ nmathmake:
 	gcc -Wall -Werror -c -o bin/nlabparser.o nlabparser.c -lm
 	gcc -Wall -Werror -c -o bin/nmath.o nmath.c -lm -lpthread
 	ar -rc -o bin/libnmath.a bin/common.o bin/nlablexer.o bin/nlabparser.o bin/nmath.o
+	
+m64:
+	gcc -m64 -Wall -Werror -c -o bin/common64.o common.c -lm
+	gcc -m64 -Wall -Werror -c -o bin/nlablexer64.o nlablexer.c
+	gcc -m64 -Wall -Werror -c -o bin/nlabparser64.o nlabparser.c -lm
+	gcc -m64 -Wall -Werror -c -o bin/nmath64.o nmath.c -lm -lpthread
+	ar -rc -o bin/libnmath64.a bin/common64.o bin/nlablexer64.o bin/nlabparser64.o bin/nmath64.o
+	
 test:
 	gcc -Wall -Werror -o bin/test test.c common.c nlablexer.c nlabparser.c nmath.c -lm -lpthread
 	

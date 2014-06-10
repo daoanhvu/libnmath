@@ -1,1 +1,1 @@
-cl /LD funct.c derivative.c nmbase.c /link /out:nmath.dll
+cl /LD common.c nlablexer.c nlabparser.c nmath.c /link /out:nmath.dll
