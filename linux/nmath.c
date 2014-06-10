@@ -2,8 +2,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-#include <Windows.h>
-#include <process.h>
+
+#ifdef unix
+#include <pthread.h>
+#endif
+
 #include "nmath.h"
 
 NMAST* d_product(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);

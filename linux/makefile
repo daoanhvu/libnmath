@@ -1,14 +1,14 @@
 nmathmake:
-	gcc -Wall -Werror -c -o nmbase.o nmbase.c -lm
-	gcc -Wall -Werror -c -o derivative.o derivative.c -lm -lpthread
-	gcc -Wall -Werror -c -o funct.o funct.c -lm -lpthread
-#	ar rcs libfunct.a nmbase.o derivative.o funct.o
-	ar -rc libfunct.a nmbase.o derivative.o funct.o
+	gcc -Wall -Werror -c -o bin/common.o common.c -lm
+	gcc -Wall -Werror -c -o bin/nlablexer.o nlablexer.c
+	gcc -Wall -Werror -c -o bin/nlabparser.o nlabparser.c -lm
+	gcc -Wall -Werror -c -o bin/nmath.o nmath.c -lm -lpthread
+	ar -rc -o bin/libnmath.a bin/common.o bin/nlablexer.o bin/nlabparser.o bin/nmath.o
 test:
-	gcc -Wall -Werror -o test test.c nmbase.c derivative.c funct.c -lm -lpthread
+	gcc -Wall -Werror -o bin/test test.c common.c nlablexer.c nlabparser.c nmath.c -lm -lpthread
 	
 test2:
-	gcc -Wall -Werror -o test test2.c libfunct.a -lm -lpthread
+	gcc -Wall -Werror -o bin/test test2.c libfunct.a -lm -lpthread
 	
 install:
 	mkdir /home/vudao/workspace1/mylib/nmath/include/
