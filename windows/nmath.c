@@ -19,6 +19,14 @@ NMAST* d_asin(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
 NMAST* d_acos(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
 NMAST* d_atan(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
 
+
+/*
+	Check if a tree contains variable x
+	@param t the tree
+	@param x variable to check if existed
+*/
+int isContainVar(NMAST *t, char x);
+
 /* ultility for print NMAST */
 void getOperatorChar(int operatorType, char *opCh){
 	switch(operatorType){
@@ -42,13 +50,6 @@ void getOperatorChar(int operatorType, char *opCh){
 			return;
 	}
 }
-
-/*
-	Check if a tree contains variable x
-	@param t the tree
-	@param x variable to check if existed
-*/
-int isContainVar(NMAST *t, char x);
 
 void toString(const NMAST *t, char *str, int *curpos, int len){
 	double fr;

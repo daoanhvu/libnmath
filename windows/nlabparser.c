@@ -105,6 +105,8 @@ void addFunction2Tree(Function *f, Token * stItm){
 			ast->valueType = TYPE_FLOATING_POINT;
 			ast->sign = 1;
 			ast->type = stItm->type;
+			ast->variable = 0;
+			ast->value = 0;
 			//ast->priority = stItm->priority;
 			ast->parent = NULL;
 			ast->left = NULL;
@@ -120,6 +122,8 @@ void addFunction2Tree(Function *f, Token * stItm){
 			ast->valueType = TYPE_FLOATING_POINT;
 			ast->sign = 1;
 			ast->type = stItm->type;
+			ast->variable = 0;
+			ast->value = 0;
 			//ast->priority = stItm->priority;
 			ast->parent = NULL;
 			ast->left = f->prefix[f->prefixLen-2];
