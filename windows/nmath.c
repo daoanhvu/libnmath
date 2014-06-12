@@ -454,7 +454,7 @@ unsigned int __stdcall reduce_t(void *param){
 						p = (dp->t)->right;
 						
 						(dp->t)->type = p->type;
-						//(dp->t)->variable = p->variable;
+						(dp->t)->variable = p->variable;
 						(dp->t)->value = p->value;
 						(dp->t)->valueType = p->valueType;
 						(dp->t)->frValue = p->frValue;
@@ -484,7 +484,7 @@ unsigned int __stdcall reduce_t(void *param){
 						p = (dp->t)->left;
 						
 						(dp->t)->type = p->type;
-						//(dp->t)->variable = p->variable;
+						(dp->t)->variable = p->variable;
 						(dp->t)->value = p->value;
 						(dp->t)->valueType = p->valueType;
 						(dp->t)->frValue = p->frValue;
@@ -519,7 +519,8 @@ unsigned int __stdcall reduce_t(void *param){
 					(dp->t)->type = NUMBER;
 					(dp->t)->value = 0;
 					(dp->t)->sign = 1;
-					
+					(dp->t)->variable = 0;
+
 					/* MUST return here */
 					return dp->error;
 				}
@@ -533,7 +534,7 @@ unsigned int __stdcall reduce_t(void *param){
 					(dp->t)->type = p->type;
 					(dp->t)->value = p->value;
 					(dp->t)->sign = p->sign;
-					//(dp->t)->variable = p->variable;
+					(dp->t)->variable = p->variable;
 					(dp->t)->frValue = p->frValue;
 					//(dp->t)->priority = p->priority;
 					(dp->t)->valueType = p->valueType;
@@ -552,7 +553,7 @@ unsigned int __stdcall reduce_t(void *param){
 					(dp->t)->type = p->type;
 					(dp->t)->value = p->value;
 					(dp->t)->sign = p->sign;
-					//(dp->t)->variable = p->variable;
+					(dp->t)->variable = p->variable;
 					(dp->t)->frValue = p->frValue;
 					//(dp->t)->priority = p->priority;
 					(dp->t)->valueType = p->valueType;
@@ -571,7 +572,7 @@ unsigned int __stdcall reduce_t(void *param){
 						clearTree(&((dp->t)->right));
 						
 						(dp->t)->type = NUMBER;
-						//(dp->t)->variable = 0;
+						(dp->t)->variable = 0;
 						(dp->t)->valueType = TYPE_FLOATING_POINT;
 						(dp->t)->value = 1.0;
 						((dp->t)->frValue).numerator = 1;
@@ -590,7 +591,7 @@ unsigned int __stdcall reduce_t(void *param){
 						p = (dp->t)->left;
 						
 						(dp->t)->type = p->type;
-						//(dp->t)->variable = p->variable;
+						(dp->t)->variable = p->variable;
 						(dp->t)->valueType = p->valueType;
 						(dp->t)->value = p->value;
 						(dp->t)->frValue = p->frValue;
@@ -1542,7 +1543,7 @@ int isContainVar(NMAST *t, char x){
 		return 0;
 		
 	if( t->type == VARIABLE ){
-		if(t->type == x)
+		if(t->variable == x)
 			return 1;
 		return 0;
 	}

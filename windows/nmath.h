@@ -30,7 +30,7 @@ double calc(Function *f, double *values, int numOfValue, int *);
 int reduce(Function *f, int *);
 unsigned int __stdcall reduce_t(void *);
 unsigned int __stdcall calc_t(void *);
-void nodeToString(NMAST *t, char *str, int len, int *newlen);
+void toString(const NMAST *t, char *str, int *curpos, int len);
 void releaseFunct(Function *);
 
 /*
