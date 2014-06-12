@@ -50,7 +50,7 @@ void getOperatorChar(int operatorType, char *opCh){
 */
 int isContainVar(NMAST *t, char x);
 
-void toString(NMAST *t, char *str, int *curpos, int len){
+void toString(const NMAST *t, char *str, int *curpos, int len){
 	double fr;
 	long lval;
 	int i, l;
@@ -69,7 +69,8 @@ void toString(NMAST *t, char *str, int *curpos, int len){
 			else{
 				l = sprintf(tmp, "%ld", lval);
 			}
-			for(i=0; i<l-1; i++){
+			//for(i=0; i<l-1; i++){
+			for(i=0; i<l; i++){
 				str[(*curpos)] = tmp[i];
 				(*curpos)++;
 			}
