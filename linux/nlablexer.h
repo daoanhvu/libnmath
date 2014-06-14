@@ -4,7 +4,7 @@
 #include "common.h"
 
 void parseTokens(const char *inStr, int length, TokenList *tokens);
-int getError();
+int getLexerError();
 int isLogicOperator(char c);
 int isDigit(char c);
 Token* checkCommaSemi(char c, int *idx);

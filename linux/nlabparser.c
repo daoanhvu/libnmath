@@ -137,7 +137,12 @@ void addFunction2Tree(Function *f, Token * stItm){
 }
 
 /******************************************************************************************/
-
+/**
+	Parse the input string in object f to NMAST tree
+	@return
+		0 if everything ok otherwise it returns a value != 0
+		in case error occurs, idxE will hold the position where error comes from.
+*/
 int parseFunct(TokenList *tokens, Function *f, int *idxE){
 	int i=0, j =0, error, top=-1, allocLen=0;
 	double val;
@@ -148,8 +153,9 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 
 	NMAST* varNodes[50];
 
+	*idxE = 0;
 	if(tokens == NULL)
-		return -1;
+		return ERROR_BAD_TOKEN;
 
 	/* Clear prefix tree if any*/
 	if(f->prefixLen > 0){
@@ -170,8 +176,8 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 				if(val == 0 && error < 0){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
-					*idxE = j;
-					return error;
+					*idxE = tk->column;
+					return ERROR_PARSING_NUMBER;
 				}
 				ast = (NMAST*)malloc(sizeof(NMAST));
 				ast->valueType = TYPE_FLOATING_POINT;
@@ -249,22 +255,25 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 			case RPAREN:
 				stItm = popFromStack(stack, &top);
 
+				/* got an opening-parenthese but can not find a closing-parenthese */
 				if(stItm == NULL){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
-					return ERROR_SYNTAX;
+					*idxE = tk->column;
+					return ERROR_PARENTHESE_MISSING;
 				}
 
 				/*  */
-				while(stItm!=NULL && (stItm->type != RPAREN) && isAFunctionType(stItm->type)  != TRUE){
+				while(stItm!=NULL && (stItm->type != LPAREN) && isAFunctionType(stItm->type)  != TRUE){
 					addFunction2Tree(f, stItm);
 					//free(stItm);
 					stItm = popFromStack(stack, &top);
 				}
 
-				/*check if Open parenthese missing*/
+				/* got an opening-parenthese but can not find a closing-parenthese */
 				if(stItm==NULL){
 					free(stack);
+					*idxE = tk->column;
 					return ERROR_PARENTHESE_MISSING;
 				}
 
@@ -311,6 +320,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 			default:
 				clearStackWithoutFreeItem(stack, top+1);
 				free(stack);
+				*idxE = tk->column;
 				return ERROR_BAD_TOKEN;
 		}//end switch
 	}//end while
@@ -322,6 +332,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 			free(stItm);
 			clearStackWithoutFreeItem(stack, top+1);
 			free(stack);
+			*idxE = tk->column;
 			return ERROR_PARENTHESE_MISSING; 
 		}
 		
@@ -348,8 +359,7 @@ int parseFunction(Function *f, int *idxE){
 	lst.list = (Token**)malloc(sizeof(Token*) * lst.loggedSize);
 	lst.size = 0;
 	parseTokens(f->str, f->len, &lst);
-	(*idxE) = getError();
-	if((*idxE) < 0 ){
+	if(getLexerError() < 0 ){
 		ret = parseFunct(&lst, f, idxE);
 		for(i = 0; i<lst.size; i++)
 			free(lst.list[i]);

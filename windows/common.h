@@ -39,6 +39,7 @@
 #define PI_TYPE 		36
 #define E_TYPE 			37
 #define SEC 			38
+#define DOMAIN_NOTAION	39
 
 #define TYPE_FLOATING_POINT 0
 #define TYPE_FRACTION 1
@@ -50,7 +51,7 @@
 #define FUNCTION_PRIORITY 0x03
 
 #define ERROR_DIV_BY_ZERO -1
-#define ERROR_LOG -2;
+#define ERROR_LOG -2
 #define ERROR_OPERAND_MISSING -3
 #define ERROR_PARSE -4
 #define ERROR_SIN -5
@@ -60,6 +61,8 @@
 #define ERROR_SIN_SQRT -9
 #define ERROR_ASIN -10
 #define ERROR_BAD_TOKEN -11
+#define ERROR_LEXER -12
+#define ERROR_PARSING_NUMBER -13
 
 #define MAXTEXTLEN 20
 

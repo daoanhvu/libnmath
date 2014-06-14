@@ -8,7 +8,7 @@ const int LeadNegativeNumberSize = 14;
 TokenList *gTokens = NULL;
 int gErrorColumn = -1;
 
-int getError(){
+int getLexerError(){
 	return gErrorColumn;
 }
 
@@ -182,6 +182,10 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 			tk = createTokenIdx(type, inStr, idx, k-1, idx);
 			addToken(tokens, tk);
 			idx = k;
+		}else if(idx>0 && (inStr[idx-1]==' ') && (inStr[idx]=='D') && (inStr[idx+1]==':') ){
+			tk = createToken(DOMAIN_NOTAION, "DOMAIN_NOTAION", 14, idx);
+			addToken(tokens, tk);
+			idx += 2;
 		}else if( isVariable(idx, inStr, length) ){
 			//tk = createTokenIdx(NAME, inStr, idx, idx, idx);
 			tk = createTokenIdx(VARIABLE, inStr, idx, idx, idx);
