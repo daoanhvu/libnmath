@@ -50,6 +50,7 @@
 #define MUL_DIV_PRIORITY 0x02
 #define FUNCTION_PRIORITY 0x03
 
+#define NO_ERROR 0
 #define ERROR_DIV_BY_ZERO -1
 #define ERROR_LOG -2
 #define ERROR_OPERAND_MISSING -3
@@ -59,10 +60,11 @@
 #define ERROR_OUT_OF_DOMAIN -7
 #define ERROR_SYNTAX -8
 #define ERROR_SIN_SQRT -9
-#define ERROR_ASIN -10
+#define ERROR_NOT_A_FUNCTION -10
 #define ERROR_BAD_TOKEN -11
 #define ERROR_LEXER -12
 #define ERROR_PARSING_NUMBER -13
+#define ERROR_MISSING_VARIABLE -14
 
 #define MAXTEXTLEN 20
 
@@ -88,6 +90,7 @@ typedef struct tagFraction Fraction;
 typedef struct tagToken Token;
 typedef struct tagTokenList TokenList;
 typedef struct tagNMAST NMAST;
+typedef struct tagNMASTList NMASTList;
 
 struct tagFraction{
 	int numerator;
@@ -108,6 +111,8 @@ typedef struct tagFunct{
 
 	NMAST **variableNode;
 	int numVarNode;
+	
+	NMAST *domain;
 } Function;
 
 struct tagToken{
@@ -147,6 +152,12 @@ struct tagNMAST{
 	struct tagNMAST *parent;
 	struct tagNMAST *left;
 	struct tagNMAST *right;
+};
+
+struct tagNMASTList{
+	int loggedSize;
+	int size;
+	struct tagNMAST **list;
 };
 
 /* 

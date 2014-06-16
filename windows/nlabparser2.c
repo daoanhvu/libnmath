@@ -4,6 +4,10 @@
 
 /** Global variables those are used in parsing */
 int currentIdx = -1;
+int errorIdx = -1;
+int errorCode = 0;
+Function *returnFunction = NULL;
+NMAST *returnAst = NULL;
 
 /**
 	access right: public
@@ -40,104 +44,134 @@ int parseExpression() {
 	@return if
 */
 int functionNotation(TokenList *tokens, int index){
-	int i, k;
+	int i, k, varsize = 0;
+	int oldIndex = index;
 	Token *next = NULL;
 	NMAST *functionDefNode = NULL;
+	char vars[4];
 
 	if(index >= tokens->size)
 		return index;
-		
-	functionDefNode = (NMAST*)malloc(sizeof(NMAST));
 	
-	
+	errorCode = ERROR_NOT_A_FUNCTION;
 	if(tokens->list[index]->type == NAME ){
+		errorCode = ERROR_PARENTHESE_MISSING;
+		errorIdx = tokens->list[index]->column;
 		if(tokens->list[index+1]->type == LPAREN){
+			errorCode = ERROR_MISSING_VARIABLE;
+			errorIdx = tokens->list[index+1]->column;
 			if(tokens->list[index+2]->type == NAME){
-				AST v = new AST(Token.VARIABLE, currentToken);
-				functionDefNode.addChild(v);
-				
-				currentIdx++;
-				currentToken = tokens.get(currentIdx);
-				k = currentIdx + 1;
-				next = tokens.get(k);
-				while(true){
-					if( (currentToken.getType() == Token.COMMA) && 
-												( next.getType() == Token.VARIABLE || next.getType() == Token.NAME)	) {
-						v = new AST(Token.VARIABLE, next);
-						functionDefNode.addChild(v);
+				vars[varsize++] = (tokens->list[index+2])->text[0];
+				index += 3;
+				while( (index+1<tokens->size) && (tokens->list[index]->type == COMMA)
+							&& (tokens->list[index+1]->type == NAME || tokens->list[index+1]->type == VARIABLE ) ){
+					vars[varsize++] = (tokens->list[index+1])->text[0];
+					index += 2;
+				}
+
+				errorCode = ERROR_PARENTHESE_MISSING;
+				errorIdx = tokens->list[index]->column;
+				if( (index<tokens->size) && (tokens->list[index]->type == RPAREN)){
+					returnFunction = (Function*)malloc(sizeof(Function));
+					//Should use memcpy here
+					for(i=0;i<varsize;i++)
+						returnFunction->variable[i] = vars[i];
 						
-						currentIdx += 2;
-						currentToken = tokens.get(currentIdx);
-						k = currentIdx + 1;
-						next = tokens.get(k);
-					} else{
-						if(currentToken.getType() == Token.RPAREN){
-							currentIdx++;
-							currentToken = tokens.get(currentIdx);
-						}else{
-							//Exception
-							error = currentToken.getColumn();
-						}
-					
-						return functionDefNode;
-					}
+					errorCode = NO_ERROR;
+					errorIdx = -1;
+					return (index + 1);
 				}
 			}
 		}
 	}
+	errorIdx = tokens->list[index-2]->column;
+	return oldIndex;
+}//done
 
-	free(functionDefNode);
-	return index;
+NMAST* popASTStack(NMASTList *sk){
+	NMAST* ele;
+	if(sk == NULL || sk->size == 0)
+		return NULL;
+	
+	ele = sk->list[sk->size-1];
+	(sk->size)--;
+	
+	return ele;
+}
+
+void pushASTStack(NMASTList *sk, NMAST* ele){
+	//NMAST **lst;
+	if(sk == NULL)
+		return;
+		
+	if(sk->size == sk->loggedSize){
+		sk->loggedSize += INCLEN;
+		/**
+			IMPORTANT: this is maybe not secure here
+		*/
+		sk->list = (NMAST*)realloc(sk->list, sizeof(NMAST) * sk->loggedSize);
+		
+		//if(lst != NULL)
+		//	sk->list = lst;
+	}
+	sk->list[sk->size] = ele;
+	(sk->size)++;
 }
 
 /**
-	 * expression: LPAREN? expressionWithoutParenthese (( + | - | * | / | ^) expressionWithoutParenthese)* LPAREN?
-	 * @param index
-	 * @return
-	 */
+ * expression: LPAREN? expressionWithoutParenthese (( + | - | * | / | ^) expressionWithoutParenthese)* LPAREN?
+ * @param index
+ * @return
+ */
 int expression(int index){
 	int k, l;
 	int oldIndex = index;
 	boolean fParen = false;
-	List<AST> rs = new ArrayList<AST>();
-	Stack<AST> sk = new Stack<AST>();
+	NMASTList rs = (NMASTList*)malloc(sizeof(NMASTList));
+	NMASTList sk = (NMASTList*)malloc(sizeof(NMASTList));
 	AST itm, op1, op2;
-	Token tk = tokens.get(index);
+	
+	Token *tk = tokens->list[index];
 		
 	if(tk.getType() == Token.LPAREN){
-		fParen = true;
+		addToTokenStack(tk);
 		index++;
 	}
 		
-	returnedAst = null;
+	returnedAst = NULL;
 	if( (k = expressionWithoutParenthese(index)) > index){
 		rs.add(returnedAst);
-		if( k < tokens.size() ) {
-			tk = tokens.get(k);
+		if( k < tokens->size ) {
+			tk = tokens->list[k];
 		}else{
-			if(fParen) //match )
-				return oldIndex; // << missing RPAREN
-				
+			//If we got a RPAREN here, maybe it belong to parent rule
 			return k;
 		}
 			
-		while(tk != null){
+		while(tk != NULL){
 			if(setNumericOperators.contains(tk) 
 					&& (  (l = expressionWithoutParenthese(k+1)) > (k+1) ) ){
 				//Operator
-				op1 = new AST(tk.getType(), tk);
-				while(!sk.isEmpty() && (sk.peek().getPriority() >= op1.getPriority())) {
-					op2 = sk.pop();
+				op1 = (NMAST*)malloc(sizeof(NMAST));
+				op1->type =  tk->type;
+				op1->sign =  1;
+				op1->variable =  0;
+				op1->parent = op1->left = op1->right;
+				op1->value = 0.0;
+				op1->valueType = TYPE_FLOATING_POINT;
+				
+				while( sk->size>0 && (sk->list[sk->size-1]->priority >= op1->priority )) {
+					//pop
+					op2 = popASTStack(sk);
 					rs.add(op2);
 				}
-				sk.push(op1);
+				pushASTStack(sk, op1);
 					
 				//expressionWithoutParenthese
-				rs.add(returnedAst);
+				pushASTStack(rs, returnedAst);
 				k = l;
-				tk = tokens.get(k);
-					
-			}else if(tk.getType() == Token.RPAREN){
+				tk = tokens->list[k];
+			}else if(tk.getType() == RPAREN){
 				/**
 				 * it's is possible that this RPAREN comes from parent rule
 				 */
@@ -189,141 +223,124 @@ int expression(int index){
 	return oldIndex;
 }
 	
-	/**
-	 * expressionWithoutParenthese: LPAREN? parseExpressionElement (( + | - | * | / | ^) parseExpressionElement)* LPAREN?
-	 * TODO: fix this
-	 * @param index
-	 * @return
-	 */
-	private int expressionWithoutParenthese(int index) {
-		int k, l;
-		int oldIndex = index;
-		boolean fParen = false;
-		List<AST> rs = new ArrayList<AST>();
-		Stack<AST> sk = new Stack<AST>();
-		AST itm, op1, op2;
-		Token tk = tokens.get(index);
+/**
+ * expressionWithoutParenthese: LPAREN? parseExpressionElement (( + | - | * | / | ^) parseExpressionElement)* LPAREN?
+ * TODO: fix this
+ * @param index
+ * @return
+ */
+int expressionWithoutParenthese(int index) {
+	int k, l;
+	int oldIndex = index;
+	boolean fParen = false;
+	List<AST> rs = new ArrayList<AST>();
+	Stack<AST> sk = new Stack<AST>();
+	AST itm, op1, op2;
+	Token tk = tokens.get(index);
 		
-		if(tk.getType() == Token.LPAREN){
-			fParen = true;
-			index++;
+	if(tk.getType() == Token.LPAREN){
+		fParen = true;
+		index++;
+	}
+		
+	returnedAst = null;
+	if( (k = expressionElement(index)) > index){
+		rs.add(returnedAst);
+		//k++;
+		if( k < tokens.size() ) {
+			tk = tokens.get(k);
+		}else{
+			if(fParen)
+				return oldIndex; // << missing RPAREN
+					
+			return k;
 		}
-		
-		returnedAst = null;
-		if( (k = expressionElement(index)) > index){
-			rs.add(returnedAst);
-			//k++;
-			if( k < tokens.size() ) {
-				tk = tokens.get(k);
-			}else{
+			
+		while(tk != null){
+			if(setNumericOperators.contains(tk) 
+					&& (  (l = expressionElement(k+1)) > (k+1) ) ){
+				//Operator
+				op1 = new AST(tk.getType(), tk);
+				while( !sk.isEmpty() && (sk.peek().getPriority() >= op1.getPriority())) {
+					op2 = sk.pop();
+					rs.add(op2);
+				}
+				sk.push(op1);
+					
+				//expressionElement
+				rs.add(returnedAst);
+				k = l;
+				tk = null;
+				if(k < tokens.size())
+					tk = tokens.get(k);
+					
+			}else if(tk.getType() == Token.RPAREN){ //match )
+				if(fParen) 
+					k++;
+					
+				tk = null;
+			}else{ // NOT match )
 				if(fParen)
-					return oldIndex; // << missing RPAREN
-					
-				return k;
-			}
-			
-			while(tk != null){
-				if(setNumericOperators.contains(tk) 
-						&& (  (l = expressionElement(k+1)) > (k+1) ) ){
-					//Operator
-					op1 = new AST(tk.getType(), tk);
-					while( !sk.isEmpty() && (sk.peek().getPriority() >= op1.getPriority())) {
-						op2 = sk.pop();
-						rs.add(op2);
-					}
-					sk.push(op1);
-					
-					//expressionElement
-					rs.add(returnedAst);
-					k = l;
-					tk = null;
-					if(k < tokens.size())
-						tk = tokens.get(k);
-					
-				}else if(tk.getType() == Token.RPAREN){ //match )
-					if(fParen) 
-						k++;
-					
-					tk = null;
-				}else{ // NOT match )
-					if(fParen)
-						return oldIndex;
+					return oldIndex;
 						
-					tk = null;
-				}
+				tk = null;
 			}
+		}
 			
-			while(!sk.isEmpty()){
-				rs.add(sk.pop());
-			}
+		while(!sk.isEmpty()){
+			rs.add(sk.pop());
+		}
 			
-			if(rs.size() > 0){
-				//Build tree from infix
-				while(rs.size() > 1){
-					l = 2;
+		if(rs.size() > 0){
+			//Build tree from infix
+			while(rs.size() > 1){
+				l = 2;
+				itm = rs.get(l);
+				while(!setNumericOperators.contains(itm.getType())){
+					l++;
 					itm = rs.get(l);
-					while(!setNumericOperators.contains(itm.getType())){
-						l++;
-						itm = rs.get(l);
-					}
-					AST operand1 = rs.get(l-2);
-					AST operand2 = rs.get(l-1);
-					rs.remove(operand1);
-					rs.remove(operand2);
-					itm.addChild(operand1);
-					itm.addChild(operand2);
 				}
-				if(rs.get(0).getChildrent()!=null && rs.get(0).getChildrent().size()>0){
-					if(rs.get(0).getChildrent().size()==1)
-						returnedAst = rs.get(0).getChildrent().get(0);
-					else{
-						returnedAst = new AST(AbstractAST.EXPRESSION, "EXPRESSION",rs.get(0).getColumn());
-						returnedAst.addChild(rs.get(0));
-					}
-				}else
-					returnedAst = rs.get(0);
+				AST operand1 = rs.get(l-2);
+				AST operand2 = rs.get(l-1);
+				rs.remove(operand1);
+				rs.remove(operand2);
+				itm.addChild(operand1);
+				itm.addChild(operand2);
 			}
-			
-			return k;
+			if(rs.get(0).getChildrent()!=null && rs.get(0).getChildrent().size()>0){
+				if(rs.get(0).getChildrent().size()==1)
+					returnedAst = rs.get(0).getChildrent().get(0);
+				else{
+					returnedAst = new AST(AbstractAST.EXPRESSION, "EXPRESSION",rs.get(0).getColumn());
+					returnedAst.addChild(rs.get(0));
+				}
+			}else
+				returnedAst = rs.get(0);
 		}
-		return oldIndex;
+		
+		return k;
 	}
+	return oldIndex;
+}
 	
-	/**
-	 * TODO: implement this routine
-	 * expressionElement: NUMBER | VARIABLE | CONSTANT | FUNCTION_CALL
-	 * @return
-	 */
-	private AST parseExpressionElement() {
-		int k;
-		if( (k=expressionElement(currentIdx))>currentIdx){
-			currentIdx = k+1;
-			currentToken = null;
-			if(currentIdx < tokens.size())
-				currentToken = tokens.get(currentIdx);
-			return returnedAst;
-		}
-		return null;
+/**
+ * TODO: implement this routine
+ * expressionElement: NUMBER | VARIABLE | CONSTANT | FUNCTION_CALL
+ * @return
+ */
+int expressionElement(int index) {
+	int k;
+	Token tk = tokens.get(index);
+	returnedAst = null;
+	if(tk.getType() == Token.NUMBER || tk.getType() == Token.VARIABLE || tk.getType() == Token.NAME || 
+			tk.getType() == Token.CONSTANT){
+		returnedAst = new AST(tk.getType(), tk.getText(), tk.getColumn());
+		return (index + 1);
+	}else if( (k = functionCall(index)) > index ){
+		return k;
 	}
-	
-	/**
-	 * TODO: implement this routine
-	 * expressionElement: NUMBER | VARIABLE | CONSTANT | FUNCTION_CALL
-	 * @return
-	 */
-	private int expressionElement(int index) {
-		int k;
-		Token tk = tokens.get(index);
-		returnedAst = null;
-		if(tk.getType() == Token.NUMBER || tk.getType() == Token.VARIABLE || tk.getType() == Token.NAME || 
-				tk.getType() == Token.CONSTANT){
-			returnedAst = new AST(tk.getType(), tk.getText(), tk.getColumn());
-			return (index + 1);
-		}else if( (k = functionCall(index)) > index ){
-			return k;
-		}
-		return index;
-	}
+	return index;
+}
 	
 	/**
 	 * functionCall: NAME LPAREN expression RPARENT
