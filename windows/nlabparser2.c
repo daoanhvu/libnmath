@@ -2,10 +2,13 @@
 #include <stdio.h>
 #include "nlabparser2.h"
 
+#define MAXPOOLSIZE 32
+
 /** Global variables those are used in parsing */
 int currentIdx = -1;
 int errorIdx = -1;
 int errorCode = 0;
+int g_ParenInStack = 0;
 Function *returnFunction = NULL;
 NMAST *returnAst = NULL;
 
@@ -68,7 +71,6 @@ int functionNotation(TokenList *tokens, int index){
 					vars[varsize++] = (tokens->list[index+1])->text[0];
 					index += 2;
 				}
-
 				errorCode = ERROR_PARENTHESE_MISSING;
 				errorIdx = tokens->list[index]->column;
 				if( (index<tokens->size) && (tokens->list[index]->type == RPAREN)){
@@ -92,10 +94,8 @@ NMAST* popASTStack(NMASTList *sk){
 	NMAST* ele;
 	if(sk == NULL || sk->size == 0)
 		return NULL;
-	
 	ele = sk->list[sk->size-1];
 	(sk->size)--;
-	
 	return ele;
 }
 
@@ -118,6 +118,39 @@ void pushASTStack(NMASTList *sk, NMAST* ele){
 	(sk->size)++;
 }
 
+NMAST* removeNMASTAt(NMASTList *sk, int k){
+	int i;
+	NMAST* ele;
+	if(sk == NULL || k<0 || k >= sk->size)
+		return;
+	
+	ele = sk->list[k];
+	for(i=k+1; i<sk->size; i++){
+		sk->list[i-1] = sk->list[i];
+	}
+	sk->list[sk->size - 1] = NULL;
+	(sk->size)--;
+	
+	return ele;
+}
+
+/**
+	Special routine used for PRN, just use internally please
+	
+*/
+void removeFromNMASTList(NMASTList *sk, int fromIdx, int len){
+	int i;
+	if(sk == NULL || fromIdx<0 || fromIdx >= sk->size)
+		return;
+	
+	ele = sk->list[fromIdx];
+	for(i=fromIdx+len; i<sk->size; i++){
+		sk->list[i-len] = sk->list[i];
+		sk->list[i] = NULL;
+	}
+	(sk->size) -= len;
+}
+
 /**
  * expression: LPAREN? expressionWithoutParenthese (( + | - | * | / | ^) expressionWithoutParenthese)* LPAREN?
  * @param index
@@ -129,12 +162,15 @@ int expression(int index){
 	boolean fParen = false;
 	NMASTList rs = (NMASTList*)malloc(sizeof(NMASTList));
 	NMASTList sk = (NMASTList*)malloc(sizeof(NMASTList));
-	AST itm, op1, op2;
+	NMAST* itm, op1, op2, operand1, operand2;
+	
+	NMAST	*pool[MAXPOOLSIZE];
+	int poolSize = 0;
 	
 	Token *tk = tokens->list[index];
 		
 	if(tk.getType() == Token.LPAREN){
-		addToTokenStack(tk);
+		g_ParenInStack++;
 		index++;
 	}
 		
@@ -145,11 +181,12 @@ int expression(int index){
 			tk = tokens->list[k];
 		}else{
 			//If we got a RPAREN here, maybe it belong to parent rule
+			//TODO: need clear stack, clear rs, release stack, release rs
 			return k;
 		}
 			
 		while(tk != NULL){
-			if(setNumericOperators.contains(tk) 
+			if(isAnOperatorType(tk->type) 
 					&& (  (l = expressionWithoutParenthese(k+1)) > (k+1) ) ){
 				//Operator
 				op1 = (NMAST*)malloc(sizeof(NMAST));
@@ -159,6 +196,9 @@ int expression(int index){
 				op1->parent = op1->left = op1->right;
 				op1->value = 0.0;
 				op1->valueType = TYPE_FLOATING_POINT;
+				
+				//add to pool
+				pool[poolSize] = op1;
 				
 				while( sk->size>0 && (sk->list[sk->size-1]->priority >= op1->priority )) {
 					//pop
@@ -171,55 +211,55 @@ int expression(int index){
 				pushASTStack(rs, returnedAst);
 				k = l;
 				tk = tokens->list[k];
-			}else if(tk.getType() == RPAREN){
+			}else if(tk->type == RPAREN){
+				if(g_ParenInStack <= 0){
+					//TODO: need clear stack, clear rs, release stack, release rs
+					for(k=0; k<poolSize; k++)
+						free(pool[k]);
+					free(sk);
+					free(rs);
+					return oldIdx;
+				}
 				/**
 				 * it's is possible that this RPAREN comes from parent rule
 				 */
-				if(fParen)
-					k++;
-					
-				tk = null;
+				g_ParenInStack--;
+				k++;
+				tk = NULL;
 			}else{
-				if(fParen) //match )
-					return oldIndex;
-						
-				tk = null;
+				tk = NULL;
 			}
 		}
 			
-		while(!sk.isEmpty()){
-			rs.add(sk.pop());
+		while(sk->size > 0){
+			pushASTStack(rs, popASTStack(sk));
 		}
+		//release stack
+		free(sk);
 			
-		if(rs.size() > 0){
+		if(rs->size > 0){
 			//Build tree from infix
-			while(rs.size() > 1){
+			while(rs->size > 1){
 				l = 2;
-				itm = rs.get(l);
-				while(!setNumericOperators.contains(itm.getType())){
+				itm = rs->list[l];
+				while(!isAnOperatorType(itm->type)){
 					l++;
-					itm = rs.get(l);
+					itm = rs->list[l];
 				}
-				AST operand1 = rs.get(l-2);
-				AST operand2 = rs.get(l-1);
-				rs.remove(operand1);
-				rs.remove(operand2);
-				itm.addChild(operand1);
-				itm.addChild(operand2);
+				itm->left = rs->list[l-2];
+				itm->right = rs->list[l-1];
+				removeFromNMASTList(rs, l-2, 2);
 			}
-			if(rs.get(0).getChildrent()!=null && rs.get(0).getChildrent().size()>0){
-				if(rs.get(0).getChildrent().size()==1)
-					returnedAst = rs.get(0).getChildrent().get(0);
-				else{
-					returnedAst = new AST(AbstractAST.EXPRESSION, "EXPRESSION",rs.get(0).getColumn());
-					returnedAst.addChild(rs.get(0));
-				}
-			}else
-				returnedAst = rs.get(0);
+			returnedAst = rs->list[0];
 		}
-			
+		free(rs);
 		return k;
 	}
+	//TODO: need clear stack, clear rs, release stack, release rs
+	for(k=0; k<poolSize; k++)
+		free(pool[k]);
+	free(sk);
+	free(rs);
 	return oldIndex;
 }
 	
