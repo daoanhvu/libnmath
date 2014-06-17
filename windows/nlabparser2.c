@@ -159,7 +159,6 @@ void removeFromNMASTList(NMASTList *sk, int fromIdx, int len){
 int expression(int index){
 	int k, l;
 	int oldIndex = index;
-	boolean fParen = false;
 	NMASTList rs = (NMASTList*)malloc(sizeof(NMASTList));
 	NMASTList sk = (NMASTList*)malloc(sizeof(NMASTList));
 	NMAST* itm, op1, op2, operand1, operand2;
@@ -168,15 +167,15 @@ int expression(int index){
 	int poolSize = 0;
 	
 	Token *tk = tokens->list[index];
-		
-	if(tk.getType() == Token.LPAREN){
+
+	if(tk.getType() == LPAREN){
 		g_ParenInStack++;
 		index++;
 	}
 		
 	returnedAst = NULL;
 	if( (k = expressionWithoutParenthese(index)) > index){
-		rs.add(returnedAst);
+		pushASTStack(rs, returnedAst);
 		if( k < tokens->size ) {
 			tk = tokens->list[k];
 		}else{
@@ -272,92 +271,98 @@ int expression(int index){
 int expressionWithoutParenthese(int index) {
 	int k, l;
 	int oldIndex = index;
-	boolean fParen = false;
-	List<AST> rs = new ArrayList<AST>();
-	Stack<AST> sk = new Stack<AST>();
-	AST itm, op1, op2;
-	Token tk = tokens.get(index);
-		
-	if(tk.getType() == Token.LPAREN){
-		fParen = true;
+	NMASTList rs = (NMASTList*)malloc(sizeof(NMASTList));
+	NMASTList sk = (NMASTList*)malloc(sizeof(NMASTList));
+	NMAST* itm, op1, op2, operand1, operand2;
+	
+	NMAST	*pool[MAXPOOLSIZE];
+	int poolSize = 0;
+	
+	Token *tk = tokens->list[index];
+
+	if(tk.getType() == LPAREN){
+		g_ParenInStack++;
 		index++;
 	}
 		
-	returnedAst = null;
+	returnedAst = NULL;
 	if( (k = expressionElement(index)) > index){
-		rs.add(returnedAst);
-		//k++;
-		if( k < tokens.size() ) {
-			tk = tokens.get(k);
+		pushASTStack(rs, returnedAst);
+		if( k < tokens->size ) {
+			tk = tokens->list[k];
 		}else{
-			if(fParen)
-				return oldIndex; // << missing RPAREN
-					
+			//If we got a RPAREN here, maybe it belong to parent rule
+			//TODO: need clear stack, clear rs, release stack, release rs
 			return k;
 		}
 			
-		while(tk != null){
-			if(setNumericOperators.contains(tk) 
+		while(tk != NULL){
+			if(isAnOperatorType(tk->type) 
 					&& (  (l = expressionElement(k+1)) > (k+1) ) ){
 				//Operator
-				op1 = new AST(tk.getType(), tk);
-				while( !sk.isEmpty() && (sk.peek().getPriority() >= op1.getPriority())) {
-					op2 = sk.pop();
+				op1 = (NMAST*)malloc(sizeof(NMAST));
+				op1->type =  tk->type;
+				op1->sign =  1;
+				op1->variable =  0;
+				op1->parent = op1->left = op1->right;
+				op1->value = 0.0;
+				op1->valueType = TYPE_FLOATING_POINT;
+				
+				//add to pool
+				pool[poolSize] = op1;
+				
+				while( sk->size>0 && (sk->list[sk->size-1]->priority >= op1->priority )) {
+					//pop
+					op2 = popASTStack(sk);
 					rs.add(op2);
 				}
-				sk.push(op1);
+				pushASTStack(sk, op1);
 					
 				//expressionElement
-				rs.add(returnedAst);
+				pushASTStack(rs, returnedAst);
 				k = l;
-				tk = null;
-				if(k < tokens.size())
-					tk = tokens.get(k);
-					
-			}else if(tk.getType() == Token.RPAREN){ //match )
-				if(fParen) 
-					k++;
-					
-				tk = null;
-			}else{ // NOT match )
-				if(fParen)
-					return oldIndex;
-						
-				tk = null;
+				tk = tokens->list[k];
+			}else if(tk->type == RPAREN) {
+				if(g_ParenInStack <= 0){
+					//TODO: need clear stack, clear rs, release stack, release rs
+					for(k=0; k<poolSize; k++)
+						free(pool[k]);
+					free(sk);
+					free(rs);
+					return oldIdx;
+				}
+				/**
+				 * it's is possible that this RPAREN comes from parent rule
+				 */
+				g_ParenInStack--;
+				k++;
+				tk = NULL;
+			}else{
+				tk = NULL;
 			}
 		}
 			
-		while(!sk.isEmpty()){
-			rs.add(sk.pop());
+		while(sk->size > 0){
+			pushASTStack(rs, popASTStack(sk));
 		}
+		//release stack
+		free(sk);
 			
-		if(rs.size() > 0){
+		if(rs->size > 0){
 			//Build tree from infix
-			while(rs.size() > 1){
+			while(rs->size > 1){
 				l = 2;
-				itm = rs.get(l);
-				while(!setNumericOperators.contains(itm.getType())){
+				itm = rs->list[l];
+				while(!isAnOperatorType(itm->type)){
 					l++;
-					itm = rs.get(l);
+					itm = rs->list[l];
 				}
-				AST operand1 = rs.get(l-2);
-				AST operand2 = rs.get(l-1);
-				rs.remove(operand1);
-				rs.remove(operand2);
-				itm.addChild(operand1);
-				itm.addChild(operand2);
+				itm->left = rs->list[l-2];
+				itm->right = rs->list[l-1];
+				removeFromNMASTList(rs, l-2, 2);
 			}
-			if(rs.get(0).getChildrent()!=null && rs.get(0).getChildrent().size()>0){
-				if(rs.get(0).getChildrent().size()==1)
-					returnedAst = rs.get(0).getChildrent().get(0);
-				else{
-					returnedAst = new AST(AbstractAST.EXPRESSION, "EXPRESSION",rs.get(0).getColumn());
-					returnedAst.addChild(rs.get(0));
-				}
-			}else
-				returnedAst = rs.get(0);
+			returnedAst = rs->list[0];
 		}
-		
 		return k;
 	}
 	return oldIndex;
@@ -370,12 +375,22 @@ int expressionWithoutParenthese(int index) {
  */
 int expressionElement(int index) {
 	int k;
-	Token tk = tokens.get(index);
-	returnedAst = null;
-	if(tk.getType() == Token.NUMBER || tk.getType() == Token.VARIABLE || tk.getType() == Token.NAME || 
-			tk.getType() == Token.CONSTANT){
+	Token *tk = tokens->list[index];
+	returnedAst = NULL;
+	if(tk->type == NUMBER || tk->type == CONSTANT || tk->type == PI_TYPE || tk->type == E_TYPE){
+		returnedAst = (NMAST*)malloc(sizeof(NMAST));
+		returnedAst->type = tk->type;
+		returnedAst->value = parseDouble(tk->text, 0, tk->testLength-1, &errorCode);
 		returnedAst = new AST(tk.getType(), tk.getText(), tk.getColumn());
+		returnedAst->parent = returnedAst->left = returnedAst->right = NULL;
 		return (index + 1);
+	}else if(tk->type == NAME || tk->type == VARIABLE){
+		returnedAst = (NMAST*)malloc(sizeof(NMAST));
+		returnedAst->type = tk->type;
+		returnedAst->value = parseDouble(tk->text, 0, tk->testLength-1, &errorCode);
+		returnedAst = new AST(tk.getType(), tk.getText(), tk.getColumn());
+		returnedAst->parent = returnedAst->left = returnedAst->right = NULL;
+		
 	}else if( (k = functionCall(index)) > index ){
 		return k;
 	}
