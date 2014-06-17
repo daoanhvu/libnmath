@@ -107,7 +107,7 @@ void pushASTStack(NMASTList *sk, NMAST* ele){
 	if(sk->size == sk->loggedSize){
 		sk->loggedSize += INCLEN;
 		/**
-			IMPORTANT: this is maybe not secure here
+			IMPORTANT: It may not secure here
 		*/
 		sk->list = (NMAST*)realloc(sk->list, sizeof(NMAST) * sk->loggedSize);
 		
@@ -260,7 +260,7 @@ int expression(int index){
 	free(sk);
 	free(rs);
 	return oldIndex;
-}
+}//done
 	
 /**
  * expressionWithoutParenthese: LPAREN? parseExpressionElement (( + | - | * | / | ^) parseExpressionElement)* LPAREN?
@@ -363,10 +363,16 @@ int expressionWithoutParenthese(int index) {
 			}
 			returnedAst = rs->list[0];
 		}
+		free(rs);
 		return k;
 	}
+	//TODO: need clear stack, clear rs, release stack, release rs
+	for(k=0; k<poolSize; k++)
+		free(pool[k]);
+	free(sk);
+	free(rs);
 	return oldIndex;
-}
+} //done
 	
 /**
  * TODO: implement this routine
@@ -383,229 +389,261 @@ int expressionElement(int index) {
 		returnedAst->value = parseDouble(tk->text, 0, tk->testLength-1, &errorCode);
 		returnedAst = new AST(tk.getType(), tk.getText(), tk.getColumn());
 		returnedAst->parent = returnedAst->left = returnedAst->right = NULL;
+		returnedAst->variable = 0;
 		return (index + 1);
 	}else if(tk->type == NAME || tk->type == VARIABLE){
 		returnedAst = (NMAST*)malloc(sizeof(NMAST));
 		returnedAst->type = tk->type;
 		returnedAst->value = parseDouble(tk->text, 0, tk->testLength-1, &errorCode);
-		returnedAst = new AST(tk.getType(), tk.getText(), tk.getColumn());
+		returnedAst->variable = tk->text[0];
 		returnedAst->parent = returnedAst->left = returnedAst->right = NULL;
-		
+		return (index + 1);
 	}else if( (k = functionCall(index)) > index ){
 		return k;
 	}
 	return index;
+} //done
+	
+/**
+ * functionCall: NAME LPAREN expression RPARENT
+ * @return
+ */
+NMAST* parseFunctionCall(){
+	int k;
+	g_ParenInStack = 0;
+	if( (k=functionCall(currentIdx))>currentIdx){
+		currentIdx = k+1;
+		currentToken = null;
+		if(currentIdx < tokens->size)
+			currentToken = tokens->list[currentIdx];
+		return returnedAst;
+	}
+	return NULL;
+}//done
+	
+/**
+ * functionCall: NAME LPAREN expression RPAREN;
+ * @param index the start token index where we want to check if its a function call
+ * @return index if its not a function call or the last token index of the function call
+ */
+int functionCall(int index){
+	int k;
+	NMAST* f;
+	Token *tk = tokens->list[index];
+	errorCode = ERROR_BAD_TOKEN;
+	errorIdx = tokens->list[index]->column;
+	if( /*(tk.getType() == Token.NAME) &&*/ isAFunctionType(tk->type)){
+		errorCode = ERROR_PARENTHESE_MISSING;
+		errorIdx = tokens->list[index]->column;
+		if( tokens->list[index + 1]->type == LPAREN ){
+			if( (k=expression(index + 2)) > (index+2)){
+				errorCode = ERROR_PARENTHESE_MISSING;
+				errorIdx = tokens->list[k]->column;
+				if(k<tokens->size && tokens->list[k]->type == RPAREN){
+					if(g_ParenInStack > 0){
+						errorCode = NO_ERROR;
+						errorIdx = -1;
+						g_ParenInStack--;
+						return k+1;
+					}
+				}
+			}
+		}
+	}
+	return index;
+}//done
+	
+/**
+ * interval: intervalWithBoundaries | intervalElementOf | simpleInterval;
+ * @return the next index token after the interval
+ */
+int interval(int idx){
+	int nextIdx;
+	if( (nextIdx = intervalWithBoundaries(idx)) > idx ){
+		return nextIdx;
+	}else if( (nextIdx = intervalElementOf(idx)) > idx){
+		return nextIdx;
+	}else if( (nextIdx = simpleInterval(idx)) > idx){
+		return nextIdx;
+	}
+	return idx;
+}//done
+	
+/**
+ * simpleInterval : LPAREN? (NAME|VARIABLE) (LT | LTE | GT | GTE) (NUMBER|PI_TYPE|E_TYPE) RPARENT?
+ * @param idx
+ * @return
+ */
+int simpleInterval(int idx){
+	Token *tk = tokens->list[idx];
+	int oldIdx = idx;
+	
+	if(tk->type == LPAREN){
+		g_ParenInStack++;
+		idx++;
+		tk = tokens->list[idx];
+	}
+		
+	if(tk->type == NAME || tk->type == VARIABLE){
+		if(tokens->list[idx+1]->type==LT ||
+				tokens->list[idx+1]->type==LTE || tokens->list[idx+1]->type==GT ||
+				tokens->list[idx+1]->type==GTE) {
+			if(tokens->list[idx+2]->type == NUMBER || tokens->list[idx+2]->type == PI_TYPE 
+										|| tokens->list[idx+2]->type == E_TYPE) {
+				if(tokens->list[idx + 3]->type == RPAREN){
+					if(g_ParenInStack <= 0) {
+						return oldIdx;
+					}
+					g_ParenInStack--;
+					idx++;
+				}
+					
+				returnedAst = (NMAST*)malloc(sizeof(NMAST));
+				returnedAst->parent = NULL;
+				returnedAst->type = tokens->list[idx+1]->type;
+				returnedAst->variable = 0;
+				returnedAst->value = 0;
+				
+				returnedAst->left = (NMAST*)malloc(sizeof(NMAST));
+				returnedAst->left->parent = returnedAst;
+				returnedAst->left->type = tk->type;
+				returnedAst->left->variable = tk->text[0];
+				returnedAst->left->value = 0;
+				returnedAst->left->left = returnedAst->left->right = NULL;
+				
+				returnedAst->right = (NMAST*)malloc(sizeof(NMAST));
+				returnedAst->right->parent = returnedAst;
+				returnedAst->right->type = tokens->list[idx+2]->type;
+				returnedAst->right->variable = 0;
+				returnedAst->right->left = returnedAst->right->right = NULL;
+				switch(tokens->list[idx+2]->type){
+					case NUMBER:
+						returnedAst->right->value = parseDouble(tokens->list[idx+2]->text, 0, tokens->list[idx+2]->textLength-1);
+					break;
+					
+					case PI_TYPE:
+						returnedAst->right->value = PI;
+					break;
+					
+					case E_TYPE:
+						returnedAst->right->value = E;
+					break;
+				}
+				
+				return (idx+3);
+			}
+		}
+	}
+		
+	return idx;
+}//done
+	
+/**
+ * intervalElementOf: NAME ELEMENT_OF (LPAREN | LPRACKET) NUMBER COMMA NUMBER (RPAREN | RPRACKET);
+ * @param idx
+ * @return
+ */
+int intervalElementOf(int idx){
+	Token *tk = tokens->list[idx];
+	Token* tokenK1, tokenK2, tokenK3, tokenK4, tokenK5, tokenK6;
+	returnedAst = NULL;
+	if(tk->type == NAME){
+		tokenK1 = tokens->list[idx + 1];
+		if(tokenK1.getType()==ELEMENT_OF) {
+			tokenK2 = tokens->list[idx + 2];
+			if(tokenK2->type == LPAREN || tokenK2->type == LPRACKET ){
+				tokenK3 = tokens->list[idx + 3];
+				if(tokenK3->type == NUMBER){
+					tokenK4 = tokens->list[idx + 4];
+					if(tokenK4->type == COMMA){
+						tokenK5 = tokens->list[currentIdx + 5];
+						if(tokenK5->type == NUMBER){
+							tokenK6 = tokens->list[idx + 6];
+							if(tokenK6->type == RPAREN
+												|| tokenK6->type == RPRACKET ){
+								returnedAst = new AST(Token.INTERVAL, "INTERVAL", tk.getColumn());
+								//TODO: Something not clear here
+								returnedAst.addChild(new AST(Token.NAME, tk));
+								AST leftBound = new AST(tokenK2.getType(), tokenK3.getText(), tokenK3.getColumn());
+								returnedAst.addChild(leftBound);
+								AST rightBound = new AST(tokenK6.getType(), tokenK5.getText(), tokenK5.getColumn());
+								returnedAst.addChild(rightBound);
+								return (idx + 7);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return idx;
 }
 	
-	/**
-	 * functionCall: NAME LPAREN expression RPARENT
-	 * @return
-	 */
-	public AST parseFunctionCall(){
-		int k;
-		stackCheckParen.clear();
-		if( (k=functionCall(currentIdx))>currentIdx){
-			currentIdx = k+1;
-			currentToken = null;
-			if(currentIdx < tokens.size())
-				currentToken = tokens.get(currentIdx);
-			return returnedAst;
-		}
-		return null;
+/**
+ * intervalWithLowerAndUpper: LPAREN? NUMBER (LT | LTE | GT | GTE) NAME (LT | LTE | GT | GTE) NUMBER RPARENT? ;
+ * @return
+ */
+int intervalWithBoundaries(int idx){
+	Token tk = tokens.get(idx);
+	boolean hasParenthese = false;
+	String op1Text="", textTypeName = "";
+	int oldIdx = idx;
+	if(tk.getType() == AbstractAST.LPAREN){
+		hasParenthese = true;
+		idx++;
+		tk = tokens.get(idx);
 	}
-	
-	/**
-	 * 
-	 * @param index the start token index where we want to check if its a function call
-	 * @return index if its not a function call or the last token index of the function call
-	 */
-	private int functionCall(int index){
-		int k;
-		Token tk = tokens.get(index);
-		AST f;
-		if( /*(tk.getType() == Token.NAME) &&*/ setFunctionNames.contains(tk)){
-			if( tokens.get(index + 1).getType() == Token.LPAREN ){
-				if( (k=expression(index + 2)) > (index+2)){
-					if(k<tokens.size() && tokens.get(k).getType() == Token.RPAREN){
-						if(checkParenthese(0, tokens.size()-1)){ 		//if(checkParenthese(index, k)){
-							f = new AST(Token.FUNCTION_CALL, tk);
-							f.addChild(returnedAst);
-							returnedAst = f;
-							return k+1;
-						}else
-							error = tokens.get(index + 1).getColumn();
-					}else
-						error = tokens.get(index + 1).getColumn();
-				}
-			}
-		}
-		//error = tokens.get(index + 1).getColumn();
-		return index;
-	}
-	
-	/**
-	 * 
-	 * @return
-	 */
-	private int interval(int idx){
-		int nextIdx;
-		if( (nextIdx = intervalWithBoundaries(idx)) > idx ){
-			return nextIdx;
-		}else if( (nextIdx = intervalElementOf(idx)) > idx){
-			return nextIdx;
-		}else if( (nextIdx = simpleInterval(idx)) > idx){
-			return nextIdx;
-		}
-		return idx;
-	}
-	
-	/**
-	 * simpleInterval : LPAREN? NAME (LT | LTE | GT | GTE) NUMBER RPARENT?
-	 * @param idx
-	 * @return
-	 */
-	private int simpleInterval(int idx){
-		Token tk = tokens.get(idx);
-		int oldIdx = idx;
-		boolean hasParenthese = false;
-		if(tk.getType() == AbstractAST.LPAREN){
-			hasParenthese = true;
-			idx++;
-			tk = tokens.get(idx);
-		}
 		
-		if(tk.getType() == AbstractAST.NAME){
-			if(tokens.get(idx+1).getType()==Token.LT ||
-					tokens.get(idx+1).getType()==Token.LTE || tokens.get(idx+1).getType()==Token.GT ||
-					tokens.get(idx+1).getType()==Token.GTE) {
-				if(tokens.get(idx+2).getType() == Token.NUMBER) {
+	if(tk.getType() == AbstractAST.NUMBER){
+		Token tokenK1 = tokens.get(idx + 1);
+		if(setComparationOperators.contains(tokenK1)){
+			Token tokenK2 = tokens.get(idx + 2);
+			if(tokenK2.getType() == AbstractAST.NAME){
+				Token tokenK3 = tokens.get(idx + 3);
+				if(setComparationOperators.contains(tokenK3)){
+					Token tokenK4 = tokens.get(idx + 4);
+					if(tokenK4.getType() == AbstractAST.NUMBER){
 					
-					if(hasParenthese) {
-						if(tokens.get(idx + 3).getType() != AbstractAST.RPAREN){
-							return oldIdx;
-						}
-						idx++;
-					}
-					
-					returnedAst = new AST(Token.INTERVAL, "INTERVAL", tk.getColumn());
-					returnedAst.addChild(new AST(Token.NAME, tk));
-					returnedAst.addChild(new AST(tokens.get(idx+1).getType(), tokens.get(idx+1)));
-					AST rightBound = new AST(tokens.get(idx+2).getType(), tokens.get(idx+2).getText(), tokens.get(idx+2).getColumn());
-					returnedAst.addChild(rightBound);
-					return (idx+3);
-				}
-			}
-		}
-		
-		return idx;
-	}
-	
-	/**
-	 * intervalElementOf: NAME ELEMENT_OF (LPAREN | LPRACKET) NUMBER COMMA NUMBER (RPAREN | RPRACKET);
-	 * @param idx
-	 * @return
-	 */
-	private int intervalElementOf(int idx){
-		Token tk = tokens.get(idx);
-		returnedAst = null;
-		if(tk.getType() == AbstractAST.NAME){
-			Token tokenK1 = tokens.get(idx + 1);
-			if(tokenK1.getType()==Token.ELEMENT_OF) {
-				Token tokenK2 = tokens.get(idx + 2);
-				if(tokenK2.getType() == Token.LPAREN
-							|| tokenK2.getType() == Token.LPRACKET ){
-					Token tokenK3 = tokens.get(idx + 3);
-					if(tokenK3.getType() == Token.NUMBER){
-						Token tokenK4 = tokens.get(idx + 4);
-						if(tokenK4.getType() == Token.COMMA){
-							Token tokenK5 = tokens.get(currentIdx + 5);
-							if(tokenK5.getType() == Token.NUMBER){
-								Token tokenK6 = tokens.get(idx + 6);
-								if(tokenK6.getType() == Token.RPAREN
-													|| tokenK6.getType() == Token.RPRACKET ){
-									returnedAst = new AST(Token.INTERVAL, "INTERVAL", tk.getColumn());
-									//TODO: Something not clear here
-									returnedAst.addChild(new AST(Token.NAME, tk));
-									AST leftBound = new AST(tokenK2.getType(), tokenK3.getText(), tokenK3.getColumn());
-									returnedAst.addChild(leftBound);
-									AST rightBound = new AST(tokenK6.getType(), tokenK5.getText(), tokenK5.getColumn());
-									returnedAst.addChild(rightBound);
-									return (idx + 7);
-								}
+						if(hasParenthese) {
+							if(tokens.get(idx + 5).getType() != AbstractAST.RPAREN){
+								return oldIdx;
 							}
+							idx++;
 						}
-					}
-				}
-			}
-		}
-		return idx;
-	}
-	
-	/**
-	 * intervalWithLowerAndUpper: LPAREN? NUMBER (LT | LTE | GT | GTE) NAME (LT | LTE | GT | GTE) NUMBER RPARENT? ;
-	 * @return
-	 */
-	private int intervalWithBoundaries(int idx){
-		Token tk = tokens.get(idx);
-		boolean hasParenthese = false;
-		String op1Text="", textTypeName = "";
-		int oldIdx = idx;
-		if(tk.getType() == AbstractAST.LPAREN){
-			hasParenthese = true;
-			idx++;
-			tk = tokens.get(idx);
-		}
-		
-		if(tk.getType() == AbstractAST.NUMBER){
-			Token tokenK1 = tokens.get(idx + 1);
-			if(setComparationOperators.contains(tokenK1)){
-				Token tokenK2 = tokens.get(idx + 2);
-				if(tokenK2.getType() == AbstractAST.NAME){
-					Token tokenK3 = tokens.get(idx + 3);
-					if(setComparationOperators.contains(tokenK3)){
-						Token tokenK4 = tokens.get(idx + 4);
-						if(tokenK4.getType() == AbstractAST.NUMBER){
+							
+						/**
+							The reason for doing this is that we always
+							read the comparation in the order that 
+							variable comes first.
+							Example: -1 < x < 3
+								x is greater than -1 and x is less than 3
+						*/
+						if("LT".equals(tokenK1.getTypeName()))
+							op1Text = "GT";
+						else if("GT".equals(tokenK1.getTypeName()))
+							op1Text = "LT";
+						else if("LTE".equals(tokenK1.getTypeName()))
+							op1Text = "GTE";
+						else if("GTE".equals(tokenK1.getTypeName()))
+							op1Text = "LTE";
+							
+						textTypeName = op1Text + "_" + tokenK3.getTypeName();
+						returnedAst = new AST(AbstractAST.INTERVAL, textTypeName, tk.getColumn());
+						AST nameNode = new AST(tokenK2.getType(), tokenK2.getText(), tokenK2.getColumn());
+						returnedAst.addChild(nameNode);
+						AST lBound = new AST(tk.getType(), tk.getText(), tk.getColumn());
+						returnedAst.addChild(lBound);
+						AST rBound = new AST(tokenK4.getType(), tokenK4.getText(), tokenK4.getColumn());
+						returnedAst.addChild(rBound);
 						
-							if(hasParenthese) {
-								if(tokens.get(idx + 5).getType() != AbstractAST.RPAREN){
-									return oldIdx;
-								}
-								idx++;
-							}
-							
-							/**
-								The reason for doing this is that we always
-								read the comparation in the order that 
-								variable comes first.
-								Example: -1 < x < 3
-									x is greater than -1 and x is less than 3
-							*/
-							if("LT".equals(tokenK1.getTypeName()))
-								op1Text = "GT";
-							else if("GT".equals(tokenK1.getTypeName()))
-								op1Text = "LT";
-							else if("LTE".equals(tokenK1.getTypeName()))
-								op1Text = "GTE";
-							else if("GTE".equals(tokenK1.getTypeName()))
-								op1Text = "LTE";
-								
-							textTypeName = op1Text + "_" + tokenK3.getTypeName();
-							returnedAst = new AST(AbstractAST.INTERVAL, textTypeName, tk.getColumn());
-							AST nameNode = new AST(tokenK2.getType(), tokenK2.getText(), tokenK2.getColumn());
-							returnedAst.addChild(nameNode);
-							AST lBound = new AST(tk.getType(), tk.getText(), tk.getColumn());
-							returnedAst.addChild(lBound);
-							AST rBound = new AST(tokenK4.getType(), tokenK4.getText(), tokenK4.getColumn());
-							returnedAst.addChild(rBound);
-							
-							return idx + 5;
-						}
+						return idx + 5;
 					}
 				}
 			}
 		}
-		return oldIdx;
 	}
+	return oldIdx;
+}
 	
 	/**
 	 * simple_domain: LPAREN? interval ( (OR | AND) interval)* RPAREN? ;
