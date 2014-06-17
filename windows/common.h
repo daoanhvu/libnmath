@@ -40,6 +40,7 @@
 #define E_TYPE 			37
 #define SEC 			38
 #define DOMAIN_NOTAION	39
+#define GT_LT			40
 
 #define TYPE_FLOATING_POINT 0
 #define TYPE_FRACTION 1
@@ -134,6 +135,7 @@ struct tagTokenList{
 struct tagNMAST{
 	int type;
 
+	int priority;
 	/*
 	 TYPE_FLOATING_POINT OR TYPE_FRACTION
 	 0: floating point value
@@ -176,6 +178,7 @@ double doCalculate(double val1, double val2, int type, int *error);
 int isAFunctionType(int type);
 int isAnOperatorType(int type);
 int isFunctionOROperator(int type);
+int isComparationOperator(int type);
 int isConstant(int type);
 int isLetter(char c);
 
