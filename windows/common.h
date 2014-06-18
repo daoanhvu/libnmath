@@ -41,6 +41,9 @@
 #define SEC 			38
 #define DOMAIN_NOTAION	39
 #define GT_LT			40
+#define GTE_LT			41
+#define GT_LTE			42
+#define GTE_LTE			42
 
 #define TYPE_FLOATING_POINT 0
 #define TYPE_FRACTION 1
