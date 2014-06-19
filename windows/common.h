@@ -2,7 +2,7 @@
 #define _COMMON_H
 
 #define COMMA			1
-#define SEMI			2
+#define SEMI				2
 #define AND				3
 #define OR				4
 #define GT				5 //>

@@ -25,6 +25,18 @@ int getErrorCode(){
 	return errorCode;
 }
 
+void replaceNAMEByVARIABLE(Function *f, TokenList *tokens){
+	int i, k;
+	for(i=0; i<tokens->size; i++){
+		if(tokens->list[i]->type == NAME){
+			for(k=0; k<f->valLen; k++){
+				if(tokens->list[i]->text[0]==f->variable[k] && tokens->list[i]->textLength==1)
+					tokens->list[i]->type = VARIABLE;
+			}
+		}
+	}
+}
+
 /**
 	access right: public
 */	
@@ -34,26 +46,25 @@ Function* parseFunctionExpression(TokenList *tokens){
 	currentIdx = 0;
 	errorCode = ERROR_NOT_A_FUNCTION;
 	errorIdx = tokens->list[currentIdx]->column;
-	if(tokens->list[currentIdx]->type == NAME && 
-		(tokens->list[currentIdx + 1]->type==LPAREN)){
-		if( (k=functionNotation(tokens, currentIdx + 2)) > (currentIdx + 2) ){	
-			if(tokens->list[k]->type == EQ){
-				k++;
-				if( (l = expression(tokens, k))>k){
-					returnFunction->prefix = (NMAST**)malloc(sizeof(NMAST*));
-					returnFunction->prefixAllocLen = 1;
-					returnFunction->prefixLen = 1;
-					returnFunction->prefix[0] = returnedAst;
+	
+	if( (k=functionNotation(tokens, currentIdx)) > currentIdx ){
+		if(tokens->list[k]->type == EQ){
+			replaceNAMEByVARIABLE(returnFunction, tokens);
+			k++;
+			if( (l = expression(tokens, k))>k){
+				returnFunction->prefix = (NMAST**)malloc(sizeof(NMAST*));
+				returnFunction->prefixAllocLen = 1;
+				returnFunction->prefixLen = 1;
+				returnFunction->prefix[0] = returnedAst;
 
-					if((k = domain(tokens, l))>l){
-						returnFunction->domain = returnedAst;
-					}
-					
-					//Clear error status
-					errorCode = NO_ERROR;
-					errorIdx = -1;
-					
+				if((k = domain(tokens, l))>l){
+					returnFunction->domain = returnedAst;
 				}
+					
+				//Clear error status
+				errorCode = NO_ERROR;
+				errorIdx = -1;
+					
 			}
 		}
 	}
@@ -95,7 +106,7 @@ int functionNotation(TokenList *tokens, int index){
 				vars[varsize++] = (tokens->list[index+2])->text[0];
 				index += 3;
 				while( (index+1<tokens->size) && (tokens->list[index]->type == COMMA)
-							&& (tokens->list[index+1]->type == NAME || tokens->list[index+1]->type == VARIABLE ) ){
+							&& (tokens->list[index+1]->type == NAME ) ){
 					vars[varsize++] = (tokens->list[index+1])->text[0];
 					index += 2;
 				}
@@ -200,8 +211,11 @@ int expression(TokenList *tokens, int index){
 	NMAST	*pool[MAXPOOLSIZE];
 	int poolSize = 0;
 	
-	Token *tk = tokens->list[index];
-
+	Token *tk;
+	
+	if(index >= tokens->size) return index;
+	
+	tk = tokens->list[index];
 	if(tk->type == LPAREN){
 		g_ParenInStack++;
 		addedLParent = 1;
@@ -257,7 +271,7 @@ int expression(TokenList *tokens, int index){
 				//expressionWithoutParenthese
 				pushASTStack(rs, returnedAst);
 				k = l;
-				tk = tokens->list[k];
+				tk = (k<tokens->size)?tokens->list[k]:NULL;
 			}else if(tk->type == RPAREN){
 				if(g_ParenInStack <= 0){
 					//TODO: need clear stack, clear rs, release stack, release rs
@@ -322,8 +336,11 @@ int expressionWithoutParenthese(TokenList *tokens, int index) {
 	NMAST	*pool[MAXPOOLSIZE];
 	int poolSize = 0;
 	
-	Token *tk = tokens->list[index];
-
+	Token *tk;
+	
+	if(index >= tokens->size) return index;
+	
+	tk = tokens->list[index];
 	if(tk->type == LPAREN){
 		g_ParenInStack++;
 		index++;
@@ -378,7 +395,7 @@ int expressionWithoutParenthese(TokenList *tokens, int index) {
 				//expressionElement
 				pushASTStack(rs, returnedAst);
 				k = l;
-				tk = tokens->list[k];
+				tk = (k<tokens->size)?tokens->list[k]:NULL;
 			}else if(tk->type == RPAREN) {
 				if(g_ParenInStack <= 0){
 					//TODO: need clear stack, clear rs, release stack, release rs
@@ -613,8 +630,11 @@ int simpleInterval(TokenList *tokens, int idx){
  */
 int intervalElementOf(TokenList *tokens, int idx){
 	double val1, val2;
-	Token *tk = tokens->list[idx];
-	Token *tokenK1, *tokenK2, *tokenK3, *tokenK4, *tokenK5, *tokenK6;
+	Token *tk, *tokenK1, *tokenK2, *tokenK3, *tokenK4, *tokenK5, *tokenK6;
+	
+	if(idx >= tokens->size) return idx;
+	
+	tk = tokens->list[idx];
 	returnedAst = NULL;
 	if(tk->type == NAME){
 		tokenK1 = tokens->list[idx + 1];
@@ -682,7 +702,7 @@ int intervalElementOf(TokenList *tokens, int idx){
 }
 	
 /**
- * intervalWithLowerAndUpper: LPAREN? NUMBER (LT | LTE | GT | GTE) NAME (LT | LTE | GT | GTE) NUMBER RPARENT? ;
+ * intervalWithLowerAndUpper: LPAREN? NUMBER (LT | LTE | GT | GTE) (NAME|VARIABLE) (LT | LTE | GT | GTE) NUMBER RPARENT? ;
  *	<br>
  * Note that the tree built in this rule as same as the one in rule intervalElementOf
  * @return
@@ -703,7 +723,7 @@ int intervalWithBoundaries(TokenList *tokens, int idx){
 		tokenK1 = tokens->list[idx + 1];
 		if(isComparationOperator(tokenK1->type)){
 			tokenK2 = tokens->list[idx + 2];
-			if(tokenK2->type == NAME){
+			if(tokenK2->type == NAME || tokenK2->type == VARIABLE){
 				tokenK3 = tokens->list[idx + 3];
 				if(isComparationOperator(tokenK3->type)){
 					tokenK4 = tokens->list[idx + 4];
@@ -771,9 +791,11 @@ int simpleDomain(TokenList *tokens, int index){
 	
 	NMAST	*pool[MAXPOOLSIZE];
 	int poolSize = 0;
+	Token *tk;
 	
-	Token *tk = tokens->list[index];
-
+	if(index >= tokens->size) return index;
+	
+	tk = tokens->list[index];
 	if(tk->type == LPAREN){
 		g_ParenInStack++;
 		index++;
@@ -914,9 +936,11 @@ int domain(TokenList *tokens, int index){
 	
 	NMAST	*pool[MAXPOOLSIZE];
 	int poolSize = 0;
+	Token *tk;
 	
-	Token *tk = tokens->list[index];
-
+	if(index >= tokens->size) return index;
+	
+	tk = tokens->list[index];
 	if(tk->type == LPAREN){
 		g_ParenInStack++;
 		index++;
