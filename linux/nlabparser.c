@@ -105,6 +105,8 @@ void addFunction2Tree(Function *f, Token * stItm){
 			ast->valueType = TYPE_FLOATING_POINT;
 			ast->sign = 1;
 			ast->type = stItm->type;
+			ast->variable = 0;
+			ast->value = 0;
 			//ast->priority = stItm->priority;
 			ast->parent = NULL;
 			ast->left = NULL;
@@ -120,6 +122,8 @@ void addFunction2Tree(Function *f, Token * stItm){
 			ast->valueType = TYPE_FLOATING_POINT;
 			ast->sign = 1;
 			ast->type = stItm->type;
+			ast->variable = 0;
+			ast->value = 0;
 			//ast->priority = stItm->priority;
 			ast->parent = NULL;
 			ast->left = f->prefix[f->prefixLen-2];
@@ -151,7 +155,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 	Token *stItm = NULL;
 	NMAST *ast = NULL;
 
-	NMAST* varNodes[50];
+	//NMAST* varNodes[50];
 
 	*idxE = 0;
 	if(tokens == NULL)
@@ -171,14 +175,14 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 		tk = tokens->list[i];
 		switch(tk->type){
 			case NUMBER:
-				val = parseDouble(tk->text, 0, tk->testLength, &error);
-
+				val = parseDouble(tk->text, 0, tk->textLength, &error);
 				if(val == 0 && error < 0){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
 					*idxE = tk->column;
 					return ERROR_PARSING_NUMBER;
 				}
+
 				ast = (NMAST*)malloc(sizeof(NMAST));
 				ast->valueType = TYPE_FLOATING_POINT;
 				ast->sign = 1;
@@ -311,8 +315,8 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 				addItem2Prefix(f, ast);
 
 				//I save variable node to speed up the process of calculating value of the function later
-				varNodes[f->numVarNode] = ast;
-				(f->numVarNode)++;
+				//varNodes[f->numVarNode] = ast;
+				//(f->numVarNode)++;
 
 				i++;
 				break;
@@ -341,16 +345,22 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 	}
 	free(stack);
 
-	if(f->numVarNode > 0){
-		f->variableNode = (NMAST**)malloc(sizeof(NMAST*) * f->numVarNode);
-		for(i=0; i<f->numVarNode; i++){
-			f->variableNode[i] = varNodes[i];
-		}
-	}
+	//if(f->numVarNode > 0) {
+	//	f->variableNode = (NMAST**)malloc(sizeof(NMAST*) * f->numVarNode);
+	//	for(i=0; i<f->numVarNode; i++){
+	//		f->variableNode[i] = varNodes[i];
+	//	}
+	//}
 
 	return 0;
 }
 
+/*
+	Parse the input string in object f to NMAST tree
+	@return
+		0 if everything ok otherwise it returns a value != 0
+		in case error occurs, idxE will hold the position where error comes from.
+*/
 int parseFunction(Function *f, int *idxE){
 	TokenList lst;
 	int i, ret;
@@ -358,8 +368,11 @@ int parseFunction(Function *f, int *idxE){
 	lst.loggedSize = 10;
 	lst.list = (Token**)malloc(sizeof(Token*) * lst.loggedSize);
 	lst.size = 0;
+
+	/* build the tokens list from the input string */
 	parseTokens(f->str, f->len, &lst);
-	if(getLexerError() < 0 ){
+	/* after lexer work, getLexerError() will return -1 if every ok, otherwise it return -1 */
+	if( getLexerError() < 0 ){
 		ret = parseFunct(&lst, f, idxE);
 		for(i = 0; i<lst.size; i++)
 			free(lst.list[i]);
@@ -367,5 +380,5 @@ int parseFunction(Function *f, int *idxE){
 		return ret;
 	}
 
-	return (*idxE);
+	return ERROR_LEXER;
 }

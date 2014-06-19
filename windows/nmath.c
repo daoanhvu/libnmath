@@ -271,7 +271,6 @@ void toString(const NMAST *t, char *str, int *curpos, int len){
 	}
 }
 
-
 int isInArray(char *vars, char c){
 	if(c == vars[0])
 		return 0;
@@ -300,6 +299,8 @@ void initFunct(Function *f){
 
 	f->variableNode = NULL;
 	f->numVarNode = 0;
+	
+	f->domain = NULL;
 }
 
 void releaseFunct(Function *f){
@@ -319,6 +320,10 @@ void releaseFunct(Function *f){
 	temp = f->prefix;
 	free(temp);
 	f->prefix = NULL;
+	
+	if(f->domain != NULL){
+		clearTree(&(f->domain));
+	}
 
 	if(f->numVarNode > 0){
 		temp = f->variableNode;
@@ -742,6 +747,8 @@ unsigned int __stdcall calc_t(void *param){
 	this_param_left.error = this_param_right.error = 0;
 	this_param_left.variables = this_param_right.variables = dp->variables;
 	this_param_left.values = this_param_right.values = dp->values;
+	
+	/* If the input tree is NULL, we do nothing */
 	if(t==NULL){
 		return 0;
 	}
@@ -771,6 +778,7 @@ unsigned int __stdcall calc_t(void *param){
 		WaitForSingleObject(thread_2, INFINITE);
 		CloseHandle(thread_2);
 	}
+	/*******************************************************************************/
 
 	/* Actually, we don't need to check error here b'cause the reduce phase does that
 	if(this_param_left.error != 0){
@@ -789,7 +797,7 @@ unsigned int __stdcall calc_t(void *param){
 
 double calc(Function *f, double *values, int numOfValue, int *error){
 	RParam rp;
-	int i;
+	//int i;
 
 	rp.error = 0;
 	rp.t = *(f->prefix);
@@ -797,8 +805,8 @@ double calc(Function *f, double *values, int numOfValue, int *error){
 	rp.variables = f->variable;
 
 	//replace variable by value
-	for(i=0; i<f->numVarNode; i++){
-	}
+	//for(i=0; i<f->numVarNode; i++){
+	//}
 
 	calc_t((void*)&rp);
 	return rp.retv;

@@ -74,7 +74,7 @@ function createToken(_type, _text, _col){
 	return obj;
 }
 	
-function parseTokens(String inputStr){
+function parseTokens(inputStr){
 	var k = 0;
 	var tk = null;
 	var gotFloatingPoint = false;

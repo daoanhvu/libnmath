@@ -2,9 +2,6 @@
 #include <math.h>
 #include "common.h"
 
-#define TRUE -1
-#define FALSE 0
-
 const int FUNCTIONS[] = {SIN, COS, TAN, COTAN, ASIN, ACOS, ATAN, LOG, LN, SQRT};
 const int FUNCTION_COUNT = 10;
 

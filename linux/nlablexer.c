@@ -44,8 +44,8 @@ Token* createToken(int _type, const char *_text, int txtlen, int _col){
 			tk->priority = 0;
 	}
 	
-	tk->testLength = (MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen;
-	for(i=0; i<tk->testLength; i++)
+	tk->textLength = (MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen;
+	for(i=0; i<tk->textLength; i++)
 		tk->text[i] = _text[i];
 	
 	
@@ -84,10 +84,10 @@ Token* createTokenIdx(int _type, const char *_text, int frIdx, int toIdx, int _c
 	}
 	
 	//l = (MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen;
-	tk->testLength = 0;
+	tk->textLength = 0;
 	for(i=frIdx; i<=toIdx; i++){
-		tk->text[tk->testLength] = _text[i];
-		(tk->testLength)++;
+		tk->text[tk->textLength] = _text[i];
+		(tk->textLength)++;
 	}
 	return tk;
 }
@@ -216,11 +216,11 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 			
 		}else if( (idx+1 < length ) && (inStr[idx]=='p' || inStr[idx]=='P') && (inStr[idx+1]=='i' || inStr[idx+1]=='I')
 						&& ( (idx+1 == length-1) || !isLetter(inStr[idx+2]) ) ){
-			tk = createToken(PI_TYPE, "PI", 2, idx);
+			tk = createToken(PI_TYPE, "3.141592653589793238", 20, idx);
 			addToken(tokens, tk);
 			idx += 2;
 		}else if(inStr[idx]=='e' && ((idx==length-1) || !isLetter(inStr[idx+1]))){
-			tk = createToken(E_TYPE, "e", 1, idx);
+			tk = createToken(E_TYPE, "2.718281828", 11, idx);
 			addToken(tokens, tk);
 			idx++;
 		}else

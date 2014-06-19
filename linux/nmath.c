@@ -301,6 +301,8 @@ void initFunct(Function *f){
 
 	f->variableNode = NULL;
 	f->numVarNode = 0;
+	
+	f->domain = NULL;
 }
 
 void releaseFunct(Function *f){
@@ -320,6 +322,10 @@ void releaseFunct(Function *f){
 	temp = f->prefix;
 	free(temp);
 	f->prefix = NULL;
+	
+	if(f->domain != NULL){
+		clearTree(&(f->domain));
+	}
 
 	if(f->numVarNode > 0){
 		temp = f->variableNode;

@@ -8,6 +8,9 @@ const int FUNCTION_COUNT = 10;
 const int OPERATORS[] = {PLUS,MINUS,MULTIPLY,DIVIDE,POWER};
 const int OPERATOR_COUNT = 5;
 
+const int COMPARING_OPERATORS[] = {LT,LTE,EQ,GT,GTE};
+const int COMPARING_OPERATORS_COUNT = 5;
+
 int isPrime(long n){
 	long i, sq;
 	if(n<2) return 0;
@@ -200,6 +203,14 @@ int isFunctionOROperator(int type){
 		if(type == OPERATORS[i])
 			return TRUE;
 
+	return FALSE;
+}
+
+int isComparationOperator(int type){
+	int i;
+	for(i=0; i<COMPARING_OPERATORS_COUNT; i++)
+		if(type == COMPARING_OPERATORS[i])
+			return TRUE;
 	return FALSE;
 }
 

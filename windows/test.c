@@ -1,24 +1,24 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <conio.h>
+
+#ifdef _WIN32
+	#include <conio.h>
+#endif
+
+#include "nlabparser2.h"
 #include "nmath.h"
 
+void printError(int col, int code);
+int test1(int argc, char *agr[]);
+int test2(int argc, char *agr[]);
+
 int main(int argc, char *agr[]){
-	Function f;
-	DParam d;
-	int error;
-	double vars[] = {4, 1};
-	double ret;
-	char dstr[32];
-	int l = 0;
+	//return test1(argc, agr);
+	return test2(argc, agr);
+}
 
-	initFunct(&f);
-	printf("x+3*y^2\n");
-	resetFunction(&f, "x+3*y^2", "xy", 2, &error);
-
-	error = parseFunction(&f, &l);
-	if(error != 0) {
-		switch(error){
+void printError(int col, int code){
+	switch(code){
 		case ERROR_DIV_BY_ZERO:
 			break;
 
@@ -35,7 +35,7 @@ int main(int argc, char *agr[]){
 			break;
 
 		case ERROR_PARENTHESE_MISSING:
-			printf("Missing parenthese at %d\n", l);
+			printf("Missing parenthese at %d\n", col);
 			break;
 
 		case ERROR_OUT_OF_DOMAIN:
@@ -55,12 +55,28 @@ int main(int argc, char *agr[]){
 
 		case ERROR_PARSING_NUMBER:
 			break;
-		}
+	}
+}
 
+int test1(int argc, char *agr[]){
+	Function f;
+	DParam d;
+	int error;
+	double vars[] = {4, 1};
+	double ret;
+	char dstr[32];
+	int l = 0;
+
+	initFunct(&f);
+	printf("x+3*y^2\n");
+	resetFunction(&f, "x+3*y^2", "xy", 2, &error);
+
+	error = parseFunction(&f, &l);
+	if(error != 0) {
+		printError(l, error);
 		releaseFunct(&f);
 		return error;
 	}
-
 	l = 0;
 	ret = calc(&f, vars, 2, &error);
 	printf("Ret = %lf", ret );
@@ -75,4 +91,28 @@ int main(int argc, char *agr[]){
 
 	releaseFunct(&f);
 	return 0;
+}
+
+int test2(int argc, char *agr[]){
+	char strF[] = "f(x,y)=x+y";
+	int len = 10;
+	TokenList lst;
+	int i, ret;
+	Function *f;
+
+	lst.loggedSize = 10;
+	lst.list = (Token**)malloc(sizeof(Token*) * lst.loggedSize);
+	lst.size = 0;
+
+	/* build the tokens list from the input string */
+	parseTokens(f->str, f->len, &lst);
+	/* after lexer work, getLexerError() will return -1 if every ok, otherwise it return -1 */
+	
+	f = parseFunctionExpression(&lst);
+	
+	for(i = 0; i<lst.size; i++)
+		free(lst.list[i]);
+	free(lst.list);
+	
+	return ERROR_LEXER;
 }

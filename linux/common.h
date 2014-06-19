@@ -40,6 +40,10 @@
 #define E_TYPE 			37
 #define SEC 			38
 #define DOMAIN_NOTAION	39
+#define GT_LT			40
+#define GTE_LT			41
+#define GT_LTE			42
+#define GTE_LTE			42
 
 #define TYPE_FLOATING_POINT 0
 #define TYPE_FRACTION 1
@@ -50,6 +54,7 @@
 #define MUL_DIV_PRIORITY 0x02
 #define FUNCTION_PRIORITY 0x03
 
+#define NO_ERROR 0
 #define ERROR_DIV_BY_ZERO -1
 #define ERROR_LOG -2
 #define ERROR_OPERAND_MISSING -3
@@ -59,10 +64,11 @@
 #define ERROR_OUT_OF_DOMAIN -7
 #define ERROR_SYNTAX -8
 #define ERROR_SIN_SQRT -9
-#define ERROR_ASIN -10
+#define ERROR_NOT_A_FUNCTION -10
 #define ERROR_BAD_TOKEN -11
 #define ERROR_LEXER -12
 #define ERROR_PARSING_NUMBER -13
+#define ERROR_MISSING_VARIABLE -14
 
 #define MAXTEXTLEN 20
 #define INCLEN 10
@@ -87,6 +93,7 @@ typedef struct tagFraction Fraction;
 typedef struct tagToken Token;
 typedef struct tagTokenList TokenList;
 typedef struct tagNMAST NMAST;
+typedef struct tagNMASTList NMASTList;
 
 struct tagFraction{
 	int numerator;
@@ -107,13 +114,15 @@ typedef struct tagFunct{
 
 	NMAST **variableNode;
 	int numVarNode;
+	
+	NMAST *domain;
 } Function;
 
 struct tagToken{
 	int type;
 	char text[MAXTEXTLEN];
 	int column;
-	int testLength;
+	int textLength;
 	
 	/* This is used for operators & functions */
 	char priority;
@@ -128,6 +137,7 @@ struct tagTokenList{
 struct tagNMAST{
 	int type;
 
+	int priority;
 	/*
 	 TYPE_FLOATING_POINT OR TYPE_FRACTION
 	 0: floating point value
@@ -148,6 +158,12 @@ struct tagNMAST{
 	struct tagNMAST *right;
 };
 
+struct tagNMASTList{
+	int loggedSize;
+	int size;
+	struct tagNMAST **list;
+};
+
 /* 
  * This do the primity test
  * return 1: if n is prime
@@ -164,6 +180,7 @@ double doCalculate(double val1, double val2, int type, int *error);
 int isAFunctionType(int type);
 int isAnOperatorType(int type);
 int isFunctionOROperator(int type);
+int isComparationOperator(int type);
 int isConstant(int type);
 int isLetter(char c);
 
