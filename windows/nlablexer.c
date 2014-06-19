@@ -43,8 +43,8 @@ Token* createToken(int _type, const char *_text, int txtlen, int _col){
 			tk->priority = 0;
 	}
 	
-	tk->testLength = (MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen;
-	for(i=0; i<tk->testLength; i++)
+	tk->textLength = (MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen;
+	for(i=0; i<tk->textLength; i++)
 		tk->text[i] = _text[i];
 	
 	
@@ -83,10 +83,10 @@ Token* createTokenIdx(int _type, const char *_text, int frIdx, int toIdx, int _c
 	}
 	
 	//l = (MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen;
-	tk->testLength = 0;
+	tk->textLength = 0;
 	for(i=frIdx; i<=toIdx; i++){
-		tk->text[tk->testLength] = _text[i];
-		(tk->testLength)++;
+		tk->text[tk->textLength] = _text[i];
+		(tk->textLength)++;
 	}
 	return tk;
 }

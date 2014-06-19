@@ -176,7 +176,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 		tk = tokens->list[i];
 		switch(tk->type){
 			case NUMBER:
-				val = parseDouble(tk->text, 0, tk->testLength, &error);
+				val = parseDouble(tk->text, 0, tk->textLength, &error);
 				if(val == 0 && error < 0){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);

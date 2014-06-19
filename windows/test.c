@@ -47,9 +47,6 @@ int main(int argc, char *agr[]){
 		case ERROR_SIN_SQRT:
 			break;
 
-		case ERROR_ASIN:
-			break;
-
 		case ERROR_BAD_TOKEN:
 			break;
 

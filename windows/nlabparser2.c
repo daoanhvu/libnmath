@@ -23,6 +23,9 @@ TokenList *g_tokens = NULL;
 Function* parseFunctionExpression(TokenList *tokens){
 	Function* fd = NULL;
 	int k, l;
+
+	errorCode = ERROR_NOT_A_FUNCTION;
+	errorIdx = tokens->list[currentIdx]->column;
 	if(tokens->list[currentIdx]->type == NAME && 
 		(tokens->list[currentIdx + 1]->type==LPAREN)){
 		if( (k=functionNotation(tokens, currentIdx + 2)) > (currentIdx + 2) ){	
@@ -34,13 +37,14 @@ Function* parseFunctionExpression(TokenList *tokens){
 					returnFunction->prefixLen = 1;
 					returnFunction->prefix[0] = returnedAst;
 
+					//Clear error status
+					errorCode = NO_ERROR;
+					errorIdx = -1;
+
 					if((k = domain(tokens, l))>l){
 						returnFunction->domain = returnedAst;
 					}
 				}
-			} else {
-				//Exception;
-				errorIdx = currentToken.getColumn();
 			}
 		}
 	}
@@ -67,7 +71,6 @@ int functionNotation(TokenList *tokens, int index){
 	if(index >= tokens->size)
 		return index;
 	
-	errorCode = ERROR_NOT_A_FUNCTION;
 	if(tokens->list[index]->type == NAME ){
 		errorCode = ERROR_PARENTHESE_MISSING;
 		errorIdx = tokens->list[index]->column;
@@ -86,6 +89,14 @@ int functionNotation(TokenList *tokens, int index){
 				errorIdx = tokens->list[index]->column;
 				if( (index<tokens->size) && (tokens->list[index]->type == RPAREN)){
 					returnFunction = (Function*)malloc(sizeof(Function));
+					returnFunction->prefix = NULL;
+					returnFunction->prefixAllocLen = 0;
+					returnFunction->prefixLen = 0;
+					returnFunction->domain = NULL;
+					returnFunction->str = NULL;
+					returnFunction->len = NULL;
+
+					returnFunction->valLen = varsize;
 					//Should use memcpy here
 					for(i=0;i<varsize;i++)
 						returnFunction->variable[i] = vars[i];
@@ -184,7 +195,7 @@ int expression(TokenList *tokens, int index){
 	}
 		
 	returnedAst = NULL;
-	if( (k = expressionWithoutParenthese(index)) > index){
+	if( (k = expressionWithoutParenthese(tokens, index)) > index){
 		//init rs
 		rs = (NMASTList*)malloc(sizeof(NMASTList));
 		rs->list = NULL;
@@ -208,7 +219,7 @@ int expression(TokenList *tokens, int index){
 		sk->size = 0;
 		while(tk != NULL){
 			if(isAnOperatorType(tk->type) 
-					&& (  (l = expressionWithoutParenthese(k+1)) > (k+1) ) ){
+					&& (  (l = expressionWithoutParenthese(tokens, k+1)) > (k+1) ) ){
 				//Operator
 				op1 = (NMAST*)malloc(sizeof(NMAST));
 				op1->type =  tk->type;
@@ -220,7 +231,7 @@ int expression(TokenList *tokens, int index){
 				op1->valueType = TYPE_FLOATING_POINT;
 				
 				//add to pool
-				pool[poolSize] = op1;
+				pool[poolSize++] = op1;
 				
 				while( sk->size>0 && (sk->list[sk->size-1]->priority >= op1->priority )) {
 					//pop
@@ -305,7 +316,7 @@ int expressionWithoutParenthese(TokenList *tokens, int index) {
 	}
 		
 	returnedAst = NULL;
-	if( (k = expressionElement(index)) > index){
+	if( (k = expressionElement(tokens, index)) > index){
 		//init rs
 		rs = (NMASTList*)malloc(sizeof(NMASTList));
 		rs->list = NULL;
@@ -329,7 +340,7 @@ int expressionWithoutParenthese(TokenList *tokens, int index) {
 		sk->size = 0;
 		while(tk != NULL){
 			if(isAnOperatorType(tk->type) 
-					&& (  (l = expressionElement(k+1)) > (k+1) ) ){
+					&& (  (l = expressionElement(tokens, k+1)) > (k+1) ) ){
 				//Operator
 				op1 = (NMAST*)malloc(sizeof(NMAST));
 				op1->type =  tk->type;
@@ -341,7 +352,7 @@ int expressionWithoutParenthese(TokenList *tokens, int index) {
 				op1->valueType = TYPE_FLOATING_POINT;
 				
 				//add to pool
-				pool[poolSize] = op1;
+				pool[poolSize++] = op1;
 				
 				while( sk->size>0 && (sk->list[sk->size-1]->priority >= op1->priority )) {
 					//pop
@@ -416,7 +427,7 @@ int expressionElement(TokenList *tokens, int index) {
 	if(tk->type == NUMBER){
 		returnedAst = (NMAST*)malloc(sizeof(NMAST));
 		returnedAst->type = tk->type;
-		returnedAst->value = parseDouble(tk->text, 0, tk->testLength-1, &errorCode);
+		returnedAst->value = parseDouble(tk->text, 0, tk->textLength-1, &errorCode);
 		returnedAst->parent = returnedAst->left = returnedAst->right = NULL;
 		returnedAst->variable = 0;
 		return (index + 1);
@@ -442,7 +453,7 @@ int expressionElement(TokenList *tokens, int index) {
 		returnedAst->variable = tk->text[0];
 		returnedAst->parent = returnedAst->left = returnedAst->right = NULL;
 		return (index + 1);
-	}else if( (k = functionCall(index)) > index ){
+	}else if( (k = functionCall(tokens, index)) > index ){
 		return k;
 	}
 	return index;
@@ -455,11 +466,8 @@ int expressionElement(TokenList *tokens, int index) {
 NMAST* parseFunctionCall(TokenList *tokens){
 	int k;
 	g_ParenInStack = 0;
-	if( (k=functionCall(currentIdx))>currentIdx){
-		currentIdx = k+1;
-		currentToken = NULL;
-		if(currentIdx < tokens->size)
-			currentToken = tokens->list[currentIdx];
+	if( (k=functionCall(tokens, currentIdx))>currentIdx){
+		currentIdx = k;
 		return returnedAst;
 	}
 	return NULL;
@@ -500,9 +508,9 @@ int functionCall(TokenList *tokens, int index){
  */
 int interval(TokenList *tokens, int idx){
 	int nextIdx;
-	if( (nextIdx = intervalWithBoundaries(idx)) > idx ){
+	if( (nextIdx = intervalWithBoundaries(tokens, idx)) > idx ){
 		return nextIdx;
-	}else if( (nextIdx = intervalElementOf(idx)) > idx){
+	}else if( (nextIdx = intervalElementOf(tokens, idx)) > idx){
 		return nextIdx;
 	}else if( (nextIdx = simpleInterval(tokens, idx)) > idx){
 		return nextIdx;
@@ -548,6 +556,7 @@ int simpleInterval(TokenList *tokens, int idx){
 				returnedAst->type = tokens->list[idx+1]->type;
 				returnedAst->variable = 0;
 				returnedAst->value = 0;
+				returnedAst->priority = tokens->list[idx+1]->priority;
 				
 				returnedAst->left = (NMAST*)malloc(sizeof(NMAST));
 				returnedAst->left->parent = returnedAst;
@@ -563,7 +572,7 @@ int simpleInterval(TokenList *tokens, int idx){
 				returnedAst->right->left = returnedAst->right->right = NULL;
 				switch(tokens->list[idx+2]->type){
 					case NUMBER:
-						returnedAst->right->value = parseDouble(tokens->list[idx+2]->text, 0, tokens->list[idx+2]->textLength-1);
+						returnedAst->right->value = parseDouble(tokens->list[idx+2]->text, 0, tokens->list[idx+2]->textLength-1, &errorIdx);
 					break;
 					
 					case PI_TYPE:
@@ -602,7 +611,7 @@ int intervalElementOf(TokenList *tokens, int idx){
 				if(tokenK3->type == NUMBER || tokenK3->type == PI_TYPE || tokenK3->type == E_TYPE){
 					switch(tokenK3->type){
 						case NUMBER:
-							val1 = parseDouble(tokenK3->text, 0, tokenK3->testLength-1, &errorIdx);
+							val1 = parseDouble(tokenK3->text, 0, tokenK3->textLength-1, &errorIdx);
 						break;
 
 						case PI_TYPE:
@@ -616,10 +625,10 @@ int intervalElementOf(TokenList *tokens, int idx){
 					tokenK4 = tokens->list[idx + 4];
 					if(tokenK4->type == COMMA){
 						tokenK5 = tokens->list[currentIdx + 5];
-						if(tokenK5->type == NUMBER){
+						if(tokenK5->type == NUMBER || tokenK5->type == PI_TYPE || tokenK5->type == E_TYPE){
 							switch(tokenK5->type){
 								case NUMBER:
-									val2 = parseDouble(tokenK5->text, 0, tokenK5->testLength-1, &errorIdx);
+									val2 = parseDouble(tokenK5->text, 0, tokenK5->textLength-1, &errorIdx);
 								break;
 
 								case PI_TYPE:
@@ -638,12 +647,12 @@ int intervalElementOf(TokenList *tokens, int idx){
 								returnedAst->parent = NULL;
 
 								returnedAst->left = (NMAST*)malloc(sizeof(NMAST));
-								returnedAst->left->type = NUMBER;
+								returnedAst->left->type = tokenK3->type;
 								returnedAst->left->value = val1;
 								returnedAst->left->parent = returnedAst;
 
 								returnedAst->right = (NMAST*)malloc(sizeof(NMAST));
-								returnedAst->right->type = NUMBER;
+								returnedAst->right->type = tokenK5->type;;
 								returnedAst->right->value = val2;
 								returnedAst->right->parent = returnedAst;
 
@@ -665,6 +674,7 @@ int intervalElementOf(TokenList *tokens, int idx){
  * @return
  */
 int intervalWithBoundaries(TokenList *tokens, int idx){
+	double val1, val2;
 	Token *tk = tokens->list[idx];
 	Token *tokenK1, *tokenK2, *tokenK3, *tokenK4;
 	int oldIdx = idx, type;
@@ -756,7 +766,7 @@ int simpleDomain(TokenList *tokens, int index){
 	}
 		
 	returnedAst = NULL;
-	if( (k=interval(index)) > index ){
+	if( (k=interval(tokens, index)) > index ){
 		//init rs
 		rs = (NMASTList*)malloc(sizeof(NMASTList));
 		rs->list = NULL;
@@ -781,7 +791,7 @@ int simpleDomain(TokenList *tokens, int index){
 
 		while( tk != NULL ){
 			if((tk->type == OR || tk->type == AND) 
-							&& ((l = interval(k+1))>(k+1))) {
+							&& ((l = interval(tokens, k+1))>(k+1))) {
 				//Logical Operator
 				op1 = (NMAST*)malloc(sizeof(NMAST));
 				op1->type = tokens->list[index]->type;
@@ -789,7 +799,10 @@ int simpleDomain(TokenList *tokens, int index){
 				op1->value = 0.0;
 				op1->valueType = TYPE_FLOATING_POINT;
 				op1->sign = 1;
-				op1->parent = ast->left = ast->right = NULL;
+				op1->parent = op1->left = op1->right = NULL;
+
+				//add to pool
+				pool[poolSize++] = op1;
 				
 				while(sk->size>0 && (sk->list[sk->size-1]->type==OR||sk->list[sk->size-1]->type==AND)
 						&&(sk->list[sk->size-1]->priority >= op1->priority)){
@@ -856,7 +869,7 @@ NMAST* parseOR_AND(TokenList *tokens, int index) {
 		ast = (NMAST*)malloc(sizeof(NMAST)); //AST(currentToken.getType(), .getText(), currentToken.getColumn());
 		ast->type = tokens->list[index]->type;
 		ast->value = 0.0;
-		as->priority = tokens->list[index]->priority;
+		ast->priority = tokens->list[index]->priority;
 		ast->valueType = TYPE_FLOATING_POINT;
 		ast->sign = 1;
 		ast->parent = ast->left = ast->right = NULL;
@@ -865,22 +878,19 @@ NMAST* parseOR_AND(TokenList *tokens, int index) {
 	return NULL;
 }
 	
-NMAST* parseDomain(){
+NMAST* parseDomain(TokenList *tokens){
 	int k;
-	stackCheckParen.clear();
-	if( (k=domain(currentIdx))>currentIdx){
+	g_ParenInStack = 0;
+	if( (k=domain(tokens, currentIdx))>currentIdx){
 		currentIdx = k;
-		currentToken = null;
-		if(currentIdx < tokens.size())
-			currentToken = tokens.get(currentIdx);
-		if(stackCheckParen.isEmpty())
+		if(g_ParenInStack==0)
 			return returnedAst;
 	}
-	return null;
+	return NULL;
 }
 
 /**
- * domain: simple_domain ( (OR | AND) simple_domain)* ;
+ * domain: LPARENT? simple_domain ( (OR | AND) simple_domain)*  RPARENT?;
  */
 int domain(TokenList *tokens, int index){
 	int k, l;
@@ -923,7 +933,7 @@ int domain(TokenList *tokens, int index){
 		sk->size = 0;
 			
 		while( tk != NULL ){
-			if((tk->type==OR||tk->type==AND) && ((l = simpleDomain(k+1))>(k+1))) {
+			if((tk->type==OR||tk->type==AND) && ((l = simpleDomain(tokens, k+1))>(k+1))) {
 				//Logical Operator
 				op1 = (NMAST*)malloc(sizeof(NMAST));
 				op1->type = tokens->list[index]->type;
@@ -931,7 +941,10 @@ int domain(TokenList *tokens, int index){
 				op1->value = 0.0;
 				op1->valueType = TYPE_FLOATING_POINT;
 				op1->sign = 1;
-				op1->parent = ast->left = ast->right = NULL;
+				op1->parent = op1->left = op1->right = NULL;
+
+				//Add to pool
+				pool[poolSize++] = op1;
 				
 				while(sk->size>0 && (sk->list[sk->size-1]->type==OR||sk->list[sk->size-1]->type==AND)
 						&&(sk->list[sk->size-1]->priority >= tk->priority)){

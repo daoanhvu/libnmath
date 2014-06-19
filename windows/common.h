@@ -123,7 +123,7 @@ struct tagToken{
 	int type;
 	char text[MAXTEXTLEN];
 	int column;
-	int testLength;
+	int textLength;
 	
 	/* This is used for operators & functions */
 	char priority;
