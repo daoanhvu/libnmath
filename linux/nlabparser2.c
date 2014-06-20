@@ -15,7 +15,8 @@ int errorCode = 0;
 int g_ParenInStack = 0;
 Function *returnFunction = NULL;
 NMAST *returnedAst = NULL;
-TokenList *g_tokens = NULL;
+
+extern TokenList *gTokens;
 
 int getErrorColum(){
 	return currentIdx;
@@ -43,22 +44,28 @@ void replaceNAMEByVARIABLE(Function *f, TokenList *tokens){
 Function* parseFunctionExpression(TokenList *tokens){
 	Function* fd = NULL;
 	int k, l;
+	
+	gTokens = tokens;
+	
 	currentIdx = 0;
 	errorCode = ERROR_NOT_A_FUNCTION;
 	errorIdx = tokens->list[currentIdx]->column;
 	
-	if( (k=functionNotation(tokens, currentIdx)) > currentIdx ){
+	if( (k=functionNotation(currentIdx)) > currentIdx ){
 		if(tokens->list[k]->type == EQ){
 			replaceNAMEByVARIABLE(returnFunction, tokens);
 			k++;
-			if( (l = expression(tokens, k))>k){
+			if( (l = expression(k))>k){
 				returnFunction->prefix = (NMAST**)malloc(sizeof(NMAST*));
 				returnFunction->prefixAllocLen = 1;
 				returnFunction->prefixLen = 1;
 				returnFunction->prefix[0] = returnedAst;
-
-				if((k = domain(tokens, l))>l){
-					returnFunction->domain = returnedAst;
+				
+				if( (l<tokens->size) && (tokens->list[l]->type == DOMAIN_NOTAION)){
+					l++;
+					if((k = domain(l))>l){
+						returnFunction->domain = returnedAst;
+					}
 				}
 					
 				//Clear error status
@@ -70,9 +77,12 @@ Function* parseFunctionExpression(TokenList *tokens){
 	}
 	
 	if(errorCode != NO_ERROR && returnedAst != NULL){
+		if(returnFunction != NULL)
+			free(returnFunction);
+			
 		clearTree(*returnedAst);
 	}
-	
+	gTokens = NULL;
 	return returnFunction;
 }
 
@@ -86,33 +96,33 @@ int parseExpression() {
 	functionNotation: NAME LPAREN NAME (COMA NAME)* PRARENT;
 	@return if
 */
-int functionNotation(TokenList *tokens, int index){
+int functionNotation(int index){
 	int i, k, varsize = 0;
 	int oldIndex = index;
 	Token *next = NULL;
 	NMAST *functionDefNode = NULL;
 	char vars[4];
 
-	if(index >= tokens->size)
+	if(index >= gTokens->size)
 		return index;
 	
-	if(tokens->list[index]->type == NAME ){
+	if(gTokens->list[index]->type == NAME ){
 		errorCode = ERROR_PARENTHESE_MISSING;
-		errorIdx = tokens->list[index]->column;
-		if(tokens->list[index+1]->type == LPAREN){
+		errorIdx = gTokens->list[index]->column;
+		if(gTokens->list[index+1]->type == LPAREN){
 			errorCode = ERROR_MISSING_VARIABLE;
-			errorIdx = tokens->list[index+1]->column;
-			if(tokens->list[index+2]->type == NAME){
-				vars[varsize++] = (tokens->list[index+2])->text[0];
+			errorIdx = gTokens->list[index+1]->column;
+			if(gTokens->list[index+2]->type == NAME){
+				vars[varsize++] = (gTokens->list[index+2])->text[0];
 				index += 3;
-				while( (index+1<tokens->size) && (tokens->list[index]->type == COMMA)
-							&& (tokens->list[index+1]->type == NAME ) ){
-					vars[varsize++] = (tokens->list[index+1])->text[0];
+				while( (index+1<gTokens->size) && (gTokens->list[index]->type == COMMA)
+							&& (gTokens->list[index+1]->type == NAME ) ){
+					vars[varsize++] = (gTokens->list[index+1])->text[0];
 					index += 2;
 				}
 				errorCode = ERROR_PARENTHESE_MISSING;
-				errorIdx = tokens->list[index]->column;
-				if( (index<tokens->size) && (tokens->list[index]->type == RPAREN)){
+				errorIdx = gTokens->list[index]->column;
+				if( (index<gTokens->size) && (gTokens->list[index]->type == RPAREN)){
 					returnFunction = (Function*)malloc(sizeof(Function));
 					returnFunction->prefix = NULL;
 					returnFunction->prefixAllocLen = 0;
@@ -133,7 +143,7 @@ int functionNotation(TokenList *tokens, int index){
 			}
 		}
 	}
-	errorIdx = tokens->list[index-2]->column;
+	errorIdx = gTokens->list[index-2]->column;
 	return oldIndex;
 }//done
 
@@ -202,7 +212,7 @@ void removeFromNMASTList(NMASTList *sk, int fromIdx, int len){
  * @param index
  * @return
  */
-int expression(TokenList *tokens, int index){
+int expression(int index){
 	int k, l, addedLParent = 0;
 	int oldIndex = index;
 	NMASTList *rs, *sk;
@@ -213,9 +223,9 @@ int expression(TokenList *tokens, int index){
 	
 	Token *tk;
 	
-	if(index >= tokens->size) return index;
+	if(index >= gTokens->size) return index;
 	
-	tk = tokens->list[index];
+	tk = gTokens->list[index];
 	if(tk->type == LPAREN){
 		g_ParenInStack++;
 		addedLParent = 1;
@@ -223,7 +233,7 @@ int expression(TokenList *tokens, int index){
 	}
 		
 	returnedAst = NULL;
-	if( (k = expressionWithoutParenthese(tokens, index)) > index){
+	if( (k = expressionWithoutParenthese(index)) > index){
 		//init rs
 		rs = (NMASTList*)malloc(sizeof(NMASTList));
 		rs->list = NULL;
@@ -231,8 +241,8 @@ int expression(TokenList *tokens, int index){
 		rs->size = 0;
 		
 		pushASTStack(rs, returnedAst);
-		if( k < tokens->size ) {
-			tk = tokens->list[k];
+		if( k < gTokens->size ) {
+			tk = gTokens->list[k];
 		}else{
 			//If we got a RPAREN here, maybe it belong to parent rule
 			if(index > oldIndex)
@@ -247,7 +257,7 @@ int expression(TokenList *tokens, int index){
 		sk->size = 0;
 		while(tk != NULL){
 			if(isAnOperatorType(tk->type) 
-					&& (  (l = expressionWithoutParenthese(tokens, k+1)) > (k+1) ) ){
+					&& (  (l = expressionWithoutParenthese(k+1)) > (k+1) ) ){
 				//Operator
 				op1 = (NMAST*)malloc(sizeof(NMAST));
 				op1->type =  tk->type;
@@ -271,7 +281,7 @@ int expression(TokenList *tokens, int index){
 				//expressionWithoutParenthese
 				pushASTStack(rs, returnedAst);
 				k = l;
-				tk = (k<tokens->size)?tokens->list[k]:NULL;
+				tk = (k<gTokens->size)?gTokens->list[k]:NULL;
 			}else if(tk->type == RPAREN){
 				if(g_ParenInStack <= 0){
 					//TODO: need clear stack, clear rs, release stack, release rs
@@ -327,7 +337,7 @@ int expression(TokenList *tokens, int index){
  * @param index
  * @return
  */
-int expressionWithoutParenthese(TokenList *tokens, int index) {
+int expressionWithoutParenthese(int index) {
 	int k, l;
 	int oldIndex = index;
 	NMASTList *rs, *sk;
@@ -338,16 +348,16 @@ int expressionWithoutParenthese(TokenList *tokens, int index) {
 	
 	Token *tk;
 	
-	if(index >= tokens->size) return index;
+	if(index >= gTokens->size) return index;
 	
-	tk = tokens->list[index];
+	tk = gTokens->list[index];
 	if(tk->type == LPAREN){
 		g_ParenInStack++;
 		index++;
 	}
 		
 	returnedAst = NULL;
-	if( (k = expressionElement(tokens, index)) > index){
+	if( (k = expressionElement(index)) > index){
 		//init rs
 		rs = (NMASTList*)malloc(sizeof(NMASTList));
 		rs->list = NULL;
@@ -355,8 +365,8 @@ int expressionWithoutParenthese(TokenList *tokens, int index) {
 		rs->size = 0;
 		
 		pushASTStack(rs, returnedAst);
-		if( k < tokens->size ) {
-			tk = tokens->list[k];
+		if( k < gTokens->size ) {
+			tk = gTokens->list[k];
 		}else{
 			//If we got a RPAREN here, maybe it belong to parent rule
 			if(index > oldIndex)
@@ -371,7 +381,7 @@ int expressionWithoutParenthese(TokenList *tokens, int index) {
 		sk->size = 0;
 		while(tk != NULL){
 			if(isAnOperatorType(tk->type) 
-					&& (  (l = expressionElement(tokens, k+1)) > (k+1) ) ){
+					&& (  (l = expressionElement(k+1)) > (k+1) ) ){
 				//Operator
 				op1 = (NMAST*)malloc(sizeof(NMAST));
 				op1->type =  tk->type;
@@ -395,7 +405,7 @@ int expressionWithoutParenthese(TokenList *tokens, int index) {
 				//expressionElement
 				pushASTStack(rs, returnedAst);
 				k = l;
-				tk = (k<tokens->size)?tokens->list[k]:NULL;
+				tk = (k<gTokens->size)?gTokens->list[k]:NULL;
 			}else if(tk->type == RPAREN) {
 				if(g_ParenInStack <= 0){
 					//TODO: need clear stack, clear rs, release stack, release rs
@@ -451,9 +461,9 @@ int expressionWithoutParenthese(TokenList *tokens, int index) {
  * expressionElement: NUMBER | VARIABLE | CONSTANT | FUNCTION_CALL
  * @return
  */
-int expressionElement(TokenList *tokens, int index) {
+int expressionElement(int index) {
 	int k;
-	Token *tk = tokens->list[index];
+	Token *tk = gTokens->list[index];
 	returnedAst = NULL;
 	if(tk->type == NUMBER){
 		returnedAst = (NMAST*)malloc(sizeof(NMAST));
@@ -484,45 +494,31 @@ int expressionElement(TokenList *tokens, int index) {
 		returnedAst->variable = tk->text[0];
 		returnedAst->parent = returnedAst->left = returnedAst->right = NULL;
 		return (index + 1);
-	}else if( (k = functionCall(tokens, index)) > index ){
+	}else if( (k = functionCall(index)) > index ){
 		return k;
 	}
 	return index;
 } //done
 	
 /**
- * functionCall: NAME LPAREN expression RPARENT
- * @return
- */
-NMAST* parseFunctionCall(TokenList *tokens){
-	int k;
-	g_ParenInStack = 0;
-	if( (k=functionCall(tokens, currentIdx))>currentIdx){
-		currentIdx = k;
-		return returnedAst;
-	}
-	return NULL;
-}//done
-	
-/**
  * functionCall: NAME LPAREN expression RPAREN;
  * @param index the start token index where we want to check if its a function call
  * @return index if its not a function call or the last token index of the function call
  */
-int functionCall(TokenList *tokens, int index){
+int functionCall(int index){
 	int k;
 	NMAST* f;
-	Token *tk = tokens->list[index];
+	Token *tk = gTokens->list[index];
 	errorCode = ERROR_BAD_TOKEN;
-	errorIdx = tokens->list[index]->column;
+	errorIdx = gTokens->list[index]->column;
 	if( /*(tk.getType() == Token.NAME) &&*/ isAFunctionType(tk->type)){
 		errorCode = ERROR_PARENTHESE_MISSING;
-		errorIdx = tokens->list[index]->column;
-		if( tokens->list[index + 1]->type == LPAREN ){
-			if( (k=expression(tokens, index + 2)) > (index+2)){
+		errorIdx = gTokens->list[index]->column;
+		if( gTokens->list[index + 1]->type == LPAREN ){
+			if( (k=expression(index + 2)) > (index+2)){
 				errorCode = ERROR_PARENTHESE_MISSING;
-				errorIdx = tokens->list[k]->column;
-				if(k<tokens->size && tokens->list[k]->type == RPAREN){
+				errorIdx = gTokens->list[k]->column;
+				if(k<gTokens->size && gTokens->list[k]->type == RPAREN){
 					errorCode = NO_ERROR;
 					errorIdx = -1;
 					return k+1;
@@ -537,13 +533,13 @@ int functionCall(TokenList *tokens, int index){
  * interval: intervalWithBoundaries | intervalElementOf | simpleInterval;
  * @return the next index token after the interval
  */
-int interval(TokenList *tokens, int idx){
+int interval(int idx){
 	int nextIdx;
-	if( (nextIdx = intervalWithBoundaries(tokens, idx)) > idx ){
+	if( (nextIdx = intervalWithBoundaries(idx)) > idx ){
 		return nextIdx;
-	}else if( (nextIdx = intervalElementOf(tokens, idx)) > idx){
+	}else if( (nextIdx = intervalElementOf(idx)) > idx){
 		return nextIdx;
-	}else if( (nextIdx = simpleInterval(tokens, idx)) > idx){
+	}else if( (nextIdx = simpleInterval(idx)) > idx){
 		return nextIdx;
 	}
 	return idx;
@@ -554,23 +550,23 @@ int interval(TokenList *tokens, int idx){
  * @param idx
  * @return
  */
-int simpleInterval(TokenList *tokens, int idx){
-	Token *tk = tokens->list[idx];
+int simpleInterval(int idx){
+	Token *tk = gTokens->list[idx];
 	int oldIdx = idx;
 	
 	if(tk->type == LPAREN){
 		g_ParenInStack++;
 		idx++;
-		tk = tokens->list[idx];
+		tk = gTokens->list[idx];
 	}
 		
 	if(tk->type == NAME || tk->type == VARIABLE){
-		if(tokens->list[idx+1]->type==LT ||
-				tokens->list[idx+1]->type==LTE || tokens->list[idx+1]->type==GT ||
-				tokens->list[idx+1]->type==GTE) {
-			if(tokens->list[idx+2]->type == NUMBER || tokens->list[idx+2]->type == PI_TYPE 
-										|| tokens->list[idx+2]->type == E_TYPE) {
-				if(tokens->list[idx + 3]->type == RPAREN){
+		if(gTokens->list[idx+1]->type==LT ||
+				gTokens->list[idx+1]->type==LTE || gTokens->list[idx+1]->type==GT ||
+				gTokens->list[idx+1]->type==GTE) {
+			if(gTokens->list[idx+2]->type == NUMBER || gTokens->list[idx+2]->type == PI_TYPE 
+										|| gTokens->list[idx+2]->type == E_TYPE) {
+				if(gTokens->list[idx + 3]->type == RPAREN){
 					if(g_ParenInStack <= 0) {
 						return oldIdx;
 					}
@@ -584,10 +580,10 @@ int simpleInterval(TokenList *tokens, int idx){
 					
 				returnedAst = (NMAST*)malloc(sizeof(NMAST));
 				returnedAst->parent = NULL;
-				returnedAst->type = tokens->list[idx+1]->type;
+				returnedAst->type = gTokens->list[idx+1]->type;
 				returnedAst->variable = 0;
 				returnedAst->value = 0;
-				returnedAst->priority = tokens->list[idx+1]->priority;
+				returnedAst->priority = gTokens->list[idx+1]->priority;
 				
 				returnedAst->left = (NMAST*)malloc(sizeof(NMAST));
 				returnedAst->left->parent = returnedAst;
@@ -598,12 +594,12 @@ int simpleInterval(TokenList *tokens, int idx){
 				
 				returnedAst->right = (NMAST*)malloc(sizeof(NMAST));
 				returnedAst->right->parent = returnedAst;
-				returnedAst->right->type = tokens->list[idx+2]->type;
+				returnedAst->right->type = gTokens->list[idx+2]->type;
 				returnedAst->right->variable = 0;
 				returnedAst->right->left = returnedAst->right->right = NULL;
-				switch(tokens->list[idx+2]->type){
+				switch(gTokens->list[idx+2]->type){
 					case NUMBER:
-						returnedAst->right->value = parseDouble(tokens->list[idx+2]->text, 0, tokens->list[idx+2]->textLength-1, &errorIdx);
+						returnedAst->right->value = parseDouble(gTokens->list[idx+2]->text, 0, gTokens->list[idx+2]->textLength-1, &errorIdx);
 					break;
 					
 					case PI_TYPE:
@@ -628,20 +624,20 @@ int simpleInterval(TokenList *tokens, int idx){
  * @param idx
  * @return
  */
-int intervalElementOf(TokenList *tokens, int idx){
+int intervalElementOf(int idx){
 	double val1, val2;
 	Token *tk, *tokenK1, *tokenK2, *tokenK3, *tokenK4, *tokenK5, *tokenK6;
 	
-	if(idx >= tokens->size) return idx;
+	if(idx >= gTokens->size) return idx;
 	
-	tk = tokens->list[idx];
+	tk = gTokens->list[idx];
 	returnedAst = NULL;
 	if(tk->type == NAME){
-		tokenK1 = tokens->list[idx + 1];
+		tokenK1 = gTokens->list[idx + 1];
 		if(tokenK1->type==ELEMENT_OF) {
-			tokenK2 = tokens->list[idx + 2];
+			tokenK2 = gTokens->list[idx + 2];
 			if(tokenK2->type == LPAREN || tokenK2->type == LPRACKET ){
-				tokenK3 = tokens->list[idx + 3];
+				tokenK3 = gTokens->list[idx + 3];
 				if(tokenK3->type == NUMBER || tokenK3->type == PI_TYPE || tokenK3->type == E_TYPE){
 					switch(tokenK3->type){
 						case NUMBER:
@@ -656,9 +652,9 @@ int intervalElementOf(TokenList *tokens, int idx){
 							val1 = E;
 							break;
 					}
-					tokenK4 = tokens->list[idx + 4];
+					tokenK4 = gTokens->list[idx + 4];
 					if(tokenK4->type == COMMA){
-						tokenK5 = tokens->list[currentIdx + 5];
+						tokenK5 = gTokens->list[currentIdx + 5];
 						if(tokenK5->type == NUMBER || tokenK5->type == PI_TYPE || tokenK5->type == E_TYPE){
 							switch(tokenK5->type){
 								case NUMBER:
@@ -673,7 +669,7 @@ int intervalElementOf(TokenList *tokens, int idx){
 									val2 = E;
 									break;
 							}
-							tokenK6 = tokens->list[idx + 6];
+							tokenK6 = gTokens->list[idx + 6];
 							if(tokenK6->type == RPAREN || tokenK6->type == RPRACKET ){
 								returnedAst = (NMAST*)malloc(sizeof(NMAST));
 								returnedAst->type = GT_LT;
@@ -707,28 +703,28 @@ int intervalElementOf(TokenList *tokens, int idx){
  * Note that the tree built in this rule as same as the one in rule intervalElementOf
  * @return
  */
-int intervalWithBoundaries(TokenList *tokens, int idx){
+int intervalWithBoundaries(int idx){
 	double val1, val2;
-	Token *tk = tokens->list[idx];
+	Token *tk = gTokens->list[idx];
 	Token *tokenK1, *tokenK2, *tokenK3, *tokenK4;
 	int oldIdx = idx, type;
 
 	if(tk->type == LPAREN){
 		g_ParenInStack++;
 		idx++;
-		tk = tokens->list[idx];
+		tk = gTokens->list[idx];
 	}
 		
 	if(tk->type == NUMBER){
-		tokenK1 = tokens->list[idx + 1];
+		tokenK1 = gTokens->list[idx + 1];
 		if(isComparationOperator(tokenK1->type)){
-			tokenK2 = tokens->list[idx + 2];
+			tokenK2 = gTokens->list[idx + 2];
 			if(tokenK2->type == NAME || tokenK2->type == VARIABLE){
-				tokenK3 = tokens->list[idx + 3];
+				tokenK3 = gTokens->list[idx + 3];
 				if(isComparationOperator(tokenK3->type)){
-					tokenK4 = tokens->list[idx + 4];
+					tokenK4 = gTokens->list[idx + 4];
 					if(tokenK4->type == NUMBER){
-						if(tokens->list[idx + 5]->type == RPAREN){
+						if(gTokens->list[idx + 5]->type == RPAREN){
 							if(g_ParenInStack <= 0)
 								return oldIdx;
 
@@ -783,7 +779,7 @@ int intervalWithBoundaries(TokenList *tokens, int idx){
 /**
  * simple_domain: LPAREN? interval ( (OR | AND) interval)* RPAREN? ;
  */
-int simpleDomain(TokenList *tokens, int index){
+int simpleDomain(int index){
 	int k, l;
 	int oldIndex = index;
 	NMASTList *rs, *sk;
@@ -793,16 +789,16 @@ int simpleDomain(TokenList *tokens, int index){
 	int poolSize = 0;
 	Token *tk;
 	
-	if(index >= tokens->size) return index;
+	if(index >= gTokens->size) return index;
 	
-	tk = tokens->list[index];
+	tk = gTokens->list[index];
 	if(tk->type == LPAREN){
 		g_ParenInStack++;
 		index++;
 	}
 		
 	returnedAst = NULL;
-	if( (k=interval(tokens, index)) > index ){
+	if( (k=interval(index)) > index ){
 		//init rs
 		rs = (NMASTList*)malloc(sizeof(NMASTList));
 		rs->list = NULL;
@@ -810,8 +806,8 @@ int simpleDomain(TokenList *tokens, int index){
 		rs->size = 0;
 		
 		pushASTStack(rs, returnedAst);
-		if( k < tokens->size ) {
-			tk = tokens->list[k];
+		if( k < gTokens->size ) {
+			tk = gTokens->list[k];
 		}else{
 			//If we got a RPAREN here, maybe it belong to parent rule
 			if(index > oldIndex)
@@ -827,10 +823,10 @@ int simpleDomain(TokenList *tokens, int index){
 
 		while( tk != NULL ){
 			if((tk->type == OR || tk->type == AND) 
-							&& ((l = interval(tokens, k+1))>(k+1))) {
+							&& ((l = interval(k+1))>(k+1))) {
 				//Logical Operator
 				op1 = (NMAST*)malloc(sizeof(NMAST));
-				op1->type = tokens->list[index]->type;
+				op1->type = gTokens->list[index]->type;
 				op1->priority = tk->priority;
 				op1->value = 0.0;
 				op1->valueType = TYPE_FLOATING_POINT;
@@ -849,7 +845,7 @@ int simpleDomain(TokenList *tokens, int index){
 				
 				pushASTStack(rs, returnedAst);
 				k = l;
-				tk = (k<tokens->size)?tokens->list[k]:NULL;
+				tk = (k<gTokens->size)?gTokens->list[k]:NULL;
 			}else if(tk->type == RPAREN){
 				//TODO: need clear stack, clear rs, release stack, release rs
 				if(g_ParenInStack <= 0){
@@ -899,13 +895,13 @@ int simpleDomain(TokenList *tokens, int index){
 	return oldIndex;
 } //done
 	
-NMAST* parseOR_AND(TokenList *tokens, int index) {
+NMAST* parseOR_AND( int index) {
 	NMAST* ast;
-	if(tokens->list[index]->type == OR || tokens->list[index]->type == AND){
+	if(gTokens->list[index]->type == OR || gTokens->list[index]->type == AND){
 		ast = (NMAST*)malloc(sizeof(NMAST)); //AST(currentToken.getType(), .getText(), currentToken.getColumn());
-		ast->type = tokens->list[index]->type;
+		ast->type = gTokens->list[index]->type;
 		ast->value = 0.0;
-		ast->priority = tokens->list[index]->priority;
+		ast->priority = gTokens->list[index]->priority;
 		ast->valueType = TYPE_FLOATING_POINT;
 		ast->sign = 1;
 		ast->parent = ast->left = ast->right = NULL;
@@ -914,10 +910,11 @@ NMAST* parseOR_AND(TokenList *tokens, int index) {
 	return NULL;
 }
 	
-NMAST* parseDomain(TokenList *tokens){
+//NOT use now, MUST fix before using
+NMAST* parseDomain(TokenList *gTokens){
 	int k;
 	g_ParenInStack = 0;
-	if( (k=domain(tokens, currentIdx))>currentIdx){
+	if( (k=domain(currentIdx))>currentIdx){
 		currentIdx = k;
 		if(g_ParenInStack==0)
 			return returnedAst;
@@ -928,7 +925,7 @@ NMAST* parseDomain(TokenList *tokens){
 /**
  * domain: LPARENT? simple_domain ( (OR | AND) simple_domain)*  RPARENT?;
  */
-int domain(TokenList *tokens, int index){
+int domain( int index){
 	int k, l;
 	int oldIndex = index;
 	NMASTList *rs, *sk;
@@ -938,16 +935,16 @@ int domain(TokenList *tokens, int index){
 	int poolSize = 0;
 	Token *tk;
 	
-	if(index >= tokens->size) return index;
+	if(index >= gTokens->size) return index;
 	
-	tk = tokens->list[index];
+	tk = gTokens->list[index];
 	if(tk->type == LPAREN){
 		g_ParenInStack++;
 		index++;
 	}
 		
 	returnedAst = NULL;
-	if( (k=simpleDomain(tokens, index)) > index ){
+	if( (k=simpleDomain(index)) > index ){
 		//init rs
 		rs = (NMASTList*)malloc(sizeof(NMASTList));
 		rs->list = NULL;
@@ -955,8 +952,8 @@ int domain(TokenList *tokens, int index){
 		rs->size = 0;
 		
 		pushASTStack(rs, returnedAst);
-		if( k < tokens->size ) {
-			tk = tokens->list[k];
+		if( k < gTokens->size ) {
+			tk = gTokens->list[k];
 		}else{
 			//If we got a RPAREN here, maybe it belong to parent rule
 			if(index > oldIndex)
@@ -971,10 +968,10 @@ int domain(TokenList *tokens, int index){
 		sk->size = 0;
 			
 		while( tk != NULL ){
-			if((tk->type==OR||tk->type==AND) && ((l = simpleDomain(tokens, k+1))>(k+1))) {
+			if((tk->type==OR||tk->type==AND) && ((l = simpleDomain(k+1))>(k+1))) {
 				//Logical Operator
 				op1 = (NMAST*)malloc(sizeof(NMAST));
-				op1->type = tokens->list[index]->type;
+				op1->type = gTokens->list[index]->type;
 				op1->priority = tk->priority;
 				op1->value = 0.0;
 				op1->valueType = TYPE_FLOATING_POINT;
@@ -993,7 +990,7 @@ int domain(TokenList *tokens, int index){
 				
 				pushASTStack(rs, returnedAst);
 				k = l;
-				tk = (k<tokens->size)?tokens->list[k]:NULL;
+				tk = (k<gTokens->size)?gTokens->list[k]:NULL;
 			}else if(tk->type == RPAREN){
 				//TODO: need clear stack, clear rs, release stack, release rs
 				if(g_ParenInStack <= 0){

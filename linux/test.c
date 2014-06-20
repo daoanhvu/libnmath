@@ -95,9 +95,10 @@ int test1(int argc, char *agr[]){
 
 int test2(int argc, char *agr[]){
 	char strF[] = "f(x,y)=x+y";
+	char s[32];
 	int len = 10;
 	TokenList lst;
-	int i, ret;
+	int i, ret=0;
 	Function *f;
 
 	lst.loggedSize = 10;
@@ -109,6 +110,10 @@ int test2(int argc, char *agr[]){
 	/* after lexer work, getLexerError() will return -1 if every ok, otherwise it return -1 */
 	
 	f = parseFunctionExpression(&lst);
+	
+	toString(f->prefix[0], s, &ret, 32);
+	
+	printf("f = %s", s);
 	
 	for(i = 0; i<lst.size; i++)
 		free(lst.list[i]);
