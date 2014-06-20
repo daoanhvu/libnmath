@@ -2,8 +2,17 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-#include <Windows.h>
-#include <process.h>
+
+
+#ifdef unix
+	#include <pthread.h>
+#else
+#ifdef _WIN32
+	#include <Windows.h>
+	#include <process.h>
+#endif
+#endif
+
 #include "nmath.h"
 
 NMAST* d_product(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
@@ -18,7 +27,6 @@ NMAST* d_cotan(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
 NMAST* d_asin(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
 NMAST* d_acos(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
 NMAST* d_atan(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
-
 
 /*
 	Check if a tree contains variable x

@@ -187,8 +187,7 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 			addToken(tokens, tk);
 			idx += 2;
 		}else if( isVariable(idx, inStr, length) ){
-			//tk = createTokenIdx(NAME, inStr, idx, idx, idx);
-			tk = createTokenIdx(VARIABLE, inStr, idx, idx, idx);
+			tk = createTokenIdx(NAME, inStr, idx, idx, idx);
 			addToken(tokens, tk);
 			idx++;
 		}else if(inStr[idx]=='o' || inStr[idx]=='O'){

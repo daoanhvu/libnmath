@@ -4,7 +4,12 @@
 #include <math.h>
 
 #ifdef unix
-#include <pthread.h>
+	#include <pthread.h>
+#else
+#ifdef _WIN32
+	#include <Windows.h>
+	#include <process.h>
+#endif
 #endif
 
 #include "nmath.h"

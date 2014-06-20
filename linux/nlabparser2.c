@@ -10,21 +10,13 @@
 
 /** Global variables those are used in parsing */
 int currentIdx = -1;
-int errorIdx = -1;
-int errorCode = 0;
 int g_ParenInStack = 0;
 Function *returnFunction = NULL;
 NMAST *returnedAst = NULL;
 
+extern int gErrorColumn;
+extern int gErrorCode;
 extern TokenList *gTokens;
-
-int getErrorColum(){
-	return currentIdx;
-}
-
-int getErrorCode(){
-	return errorCode;
-}
 
 void replaceNAMEByVARIABLE(Function *f, TokenList *tokens){
 	int i, k;
@@ -48,8 +40,8 @@ Function* parseFunctionExpression(TokenList *tokens){
 	gTokens = tokens;
 	
 	currentIdx = 0;
-	errorCode = ERROR_NOT_A_FUNCTION;
-	errorIdx = tokens->list[currentIdx]->column;
+	gErrorCode = ERROR_NOT_A_FUNCTION;
+	gErrorColumn = tokens->list[currentIdx]->column;
 	
 	if( (k=functionNotation(currentIdx)) > currentIdx ){
 		if(tokens->list[k]->type == EQ){
@@ -69,14 +61,14 @@ Function* parseFunctionExpression(TokenList *tokens){
 				}
 					
 				//Clear error status
-				errorCode = NO_ERROR;
-				errorIdx = -1;
+				gErrorCode = NO_ERROR;
+				gErrorColumn = -1;
 					
 			}
 		}
 	}
 	
-	if(errorCode != NO_ERROR && returnedAst != NULL){
+	if(gErrorCode != NO_ERROR && returnedAst != NULL){
 		if(returnFunction != NULL)
 			free(returnFunction);
 			
@@ -107,11 +99,11 @@ int functionNotation(int index){
 		return index;
 	
 	if(gTokens->list[index]->type == NAME ){
-		errorCode = ERROR_PARENTHESE_MISSING;
-		errorIdx = gTokens->list[index]->column;
+		gErrorCode = ERROR_PARENTHESE_MISSING;
+		gErrorColumn = gTokens->list[index]->column;
 		if(gTokens->list[index+1]->type == LPAREN){
-			errorCode = ERROR_MISSING_VARIABLE;
-			errorIdx = gTokens->list[index+1]->column;
+			gErrorCode = ERROR_MISSING_VARIABLE;
+			gErrorColumn = gTokens->list[index+1]->column;
 			if(gTokens->list[index+2]->type == NAME){
 				vars[varsize++] = (gTokens->list[index+2])->text[0];
 				index += 3;
@@ -120,8 +112,8 @@ int functionNotation(int index){
 					vars[varsize++] = (gTokens->list[index+1])->text[0];
 					index += 2;
 				}
-				errorCode = ERROR_PARENTHESE_MISSING;
-				errorIdx = gTokens->list[index]->column;
+				gErrorCode = ERROR_PARENTHESE_MISSING;
+				gErrorColumn = gTokens->list[index]->column;
 				if( (index<gTokens->size) && (gTokens->list[index]->type == RPAREN)){
 					returnFunction = (Function*)malloc(sizeof(Function));
 					returnFunction->prefix = NULL;
@@ -136,14 +128,14 @@ int functionNotation(int index){
 					for(i=0;i<varsize;i++)
 						returnFunction->variable[i] = vars[i];
 						
-					errorCode = NO_ERROR;
-					errorIdx = -1;
+					gErrorCode = NO_ERROR;
+					gErrorColumn = -1;
 					return (index + 1);
 				}
 			}
 		}
 	}
-	errorIdx = gTokens->list[index-2]->column;
+	gErrorColumn = gTokens->list[index-2]->column;
 	return oldIndex;
 }//done
 
@@ -468,7 +460,7 @@ int expressionElement(int index) {
 	if(tk->type == NUMBER){
 		returnedAst = (NMAST*)malloc(sizeof(NMAST));
 		returnedAst->type = tk->type;
-		returnedAst->value = parseDouble(tk->text, 0, tk->textLength-1, &errorCode);
+		returnedAst->value = parseDouble(tk->text, 0, tk->textLength-1, &gErrorCode);
 		returnedAst->parent = returnedAst->left = returnedAst->right = NULL;
 		returnedAst->variable = 0;
 		return (index + 1);
@@ -509,18 +501,18 @@ int functionCall(int index){
 	int k;
 	NMAST* f;
 	Token *tk = gTokens->list[index];
-	errorCode = ERROR_BAD_TOKEN;
-	errorIdx = gTokens->list[index]->column;
+	gErrorCode = ERROR_BAD_TOKEN;
+	gErrorColumn = gTokens->list[index]->column;
 	if( /*(tk.getType() == Token.NAME) &&*/ isAFunctionType(tk->type)){
-		errorCode = ERROR_PARENTHESE_MISSING;
-		errorIdx = gTokens->list[index]->column;
+		gErrorCode = ERROR_PARENTHESE_MISSING;
+		gErrorColumn = gTokens->list[index]->column;
 		if( gTokens->list[index + 1]->type == LPAREN ){
 			if( (k=expression(index + 2)) > (index+2)){
-				errorCode = ERROR_PARENTHESE_MISSING;
-				errorIdx = gTokens->list[k]->column;
+				gErrorCode = ERROR_PARENTHESE_MISSING;
+				gErrorColumn = gTokens->list[k]->column;
 				if(k<gTokens->size && gTokens->list[k]->type == RPAREN){
-					errorCode = NO_ERROR;
-					errorIdx = -1;
+					gErrorCode = NO_ERROR;
+					gErrorColumn = -1;
 					return k+1;
 				}
 			}
@@ -599,7 +591,7 @@ int simpleInterval(int idx){
 				returnedAst->right->left = returnedAst->right->right = NULL;
 				switch(gTokens->list[idx+2]->type){
 					case NUMBER:
-						returnedAst->right->value = parseDouble(gTokens->list[idx+2]->text, 0, gTokens->list[idx+2]->textLength-1, &errorIdx);
+						returnedAst->right->value = parseDouble(gTokens->list[idx+2]->text, 0, gTokens->list[idx+2]->textLength-1, &gErrorColumn);
 					break;
 					
 					case PI_TYPE:
@@ -641,7 +633,7 @@ int intervalElementOf(int idx){
 				if(tokenK3->type == NUMBER || tokenK3->type == PI_TYPE || tokenK3->type == E_TYPE){
 					switch(tokenK3->type){
 						case NUMBER:
-							val1 = parseDouble(tokenK3->text, 0, tokenK3->textLength-1, &errorIdx);
+							val1 = parseDouble(tokenK3->text, 0, tokenK3->textLength-1, &gErrorColumn);
 						break;
 
 						case PI_TYPE:
@@ -658,7 +650,7 @@ int intervalElementOf(int idx){
 						if(tokenK5->type == NUMBER || tokenK5->type == PI_TYPE || tokenK5->type == E_TYPE){
 							switch(tokenK5->type){
 								case NUMBER:
-									val2 = parseDouble(tokenK5->text, 0, tokenK5->textLength-1, &errorIdx);
+									val2 = parseDouble(tokenK5->text, 0, tokenK5->textLength-1, &gErrorColumn);
 								break;
 
 								case PI_TYPE:

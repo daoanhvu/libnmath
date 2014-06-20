@@ -372,7 +372,7 @@ int parseFunction(Function *f, int *idxE){
 	/* build the tokens list from the input string */
 	parseTokens(f->str, f->len, &lst);
 	/* after lexer work, getLexerError() will return -1 if every ok, otherwise it return -1 */
-	if( getLexerError() < 0 ){
+	if( getErrorCode() == NO_ERROR ){
 		ret = parseFunct(&lst, f, idxE);
 		for(i = 0; i<lst.size; i++)
 			free(lst.list[i]);

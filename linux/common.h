@@ -59,7 +59,7 @@
 #define ERROR_LOG -2
 #define ERROR_OPERAND_MISSING -3
 #define ERROR_PARSE -4
-#define ERROR_SIN -5
+#define ERROR_TOO_MANY_FLOATING_POINT -5
 #define ERROR_PARENTHESE_MISSING -6
 #define ERROR_OUT_OF_DOMAIN -7
 #define ERROR_SYNTAX -8
@@ -177,6 +177,8 @@ double parseDouble(char *str, int start, int end, int *error);
 int contains(int type, const int *aset, int len);
 double logab(double a, double b, int *error);
 double doCalculate(double val1, double val2, int type, int *error);
+int getErrorColumn();
+int getErrorCode();
 int isAFunctionType(int type);
 int isAnOperatorType(int type);
 int isFunctionOROperator(int type);

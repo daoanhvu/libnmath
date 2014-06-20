@@ -1,10 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #ifdef _WIN32
 	#include <conio.h>
 #endif
 
+#include "common.h"
 #include "nlabparser2.h"
 #include "nmath.h"
 
@@ -31,7 +33,8 @@ void printError(int col, int code){
 		case ERROR_PARSE:
 			break;
 
-		case ERROR_SIN:
+		case ERROR_TOO_MANY_FLOATING_POINT:
+			printf("Too many floating point at %d\n", col);
 			break;
 
 		case ERROR_PARENTHESE_MISSING:
@@ -48,6 +51,7 @@ void printError(int col, int code){
 			break;
 
 		case ERROR_BAD_TOKEN:
+			printf("A bad token found at %d\n", col);
 			break;
 
 		case ERROR_LEXER:
@@ -94,22 +98,44 @@ int test1(int argc, char *agr[]){
 }
 
 int test2(int argc, char *agr[]){
-	char strF[] = "f(x,y)=x+y";
+	char strF[128];
 	char s[32];
 	int len = 10;
 	TokenList lst;
 	int i, ret=0;
 	Function *f;
+	
+	if(argc < 2){
+		printf("An mathematics function must be entered.\n");
+		printf("Ex: f(x,y) = x + 2 * y\n");
+		return 0;
+	}
 
 	lst.loggedSize = 10;
 	lst.list = (Token**)malloc(sizeof(Token*) * lst.loggedSize);
 	lst.size = 0;
+	
+	len = strlen(agr[1]);
+	for(i=0; i<len; i++)
+		strF[i] = agr[1][i];
+	strF[i] = '\0';
 
 	/* build the tokens list from the input string */
 	parseTokens(strF, len, &lst);
 	/* after lexer work, getLexerError() will return -1 if every ok, otherwise it return -1 */
 	
+	if(getErrorCode() != NO_ERROR){
+		printError(getErrorColumn(), getErrorCode());
+		for(i = 0; i<lst.size; i++)
+			free(lst.list[i]);
+		free(lst.list);
+		return ERROR_LEXER;
+	}
+	
 	f = parseFunctionExpression(&lst);
+	
+	if(getErrorCode() == NO_ERROR){
+	}
 	
 	toString(f->prefix[0], s, &ret, 32);
 	
@@ -122,5 +148,5 @@ int test2(int argc, char *agr[]){
 	if(f != NULL)
 		releaseFunct(f);
 	
-	return ERROR_LEXER;
+	return NO_ERROR;
 }
