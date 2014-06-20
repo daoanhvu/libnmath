@@ -147,7 +147,7 @@ struct tagNMAST{
 	double value;
 	Fraction frValue;
 
-	//if this ast is a VARIABLE
+	//if this ast is a VARIABLE and NAME
 	char variable;
 	
 	/* this flag is just used for function cause the function cannot express its sign itself */

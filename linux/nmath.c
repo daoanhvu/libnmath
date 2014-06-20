@@ -96,6 +96,7 @@ void toString(const NMAST *t, char *str, int *curpos, int len){
 		break;
 		
 		case VARIABLE:
+		case NAME:
 			str[(*curpos)] = t->variable;
 			(*curpos)++;
 		break;

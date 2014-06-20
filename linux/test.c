@@ -132,18 +132,29 @@ int test2(int argc, char *agr[]){
 		return ERROR_LEXER;
 	}
 	
+	//Test token list 
+	printf("\n");
+	for(i = 0; i<lst.size; i++){
+		printf(" %s", lst.list[i]->text);
+	}
+	printf("\n");
+	
 	f = parseFunctionExpression(&lst);
 	
-	if(getErrorCode() == NO_ERROR){
+	for(i = 0; i<lst.size; i++)
+		free(lst.list[i]);
+	free(lst.list);
+	
+	if(getErrorCode() != NO_ERROR){
+		printError(getErrorColumn(), getErrorCode());
+		if(f != NULL)
+			releaseFunct(f);
+		return ERROR_PARSE;
 	}
 	
 	toString(f->prefix[0], s, &ret, 32);
 	
 	printf("f = %s", s);
-	
-	for(i = 0; i<lst.size; i++)
-		free(lst.list[i]);
-	free(lst.list);
 	
 	if(f != NULL)
 		releaseFunct(f);

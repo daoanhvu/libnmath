@@ -52,27 +52,47 @@ Function* parseFunctionExpression(TokenList *tokens){
 				returnFunction->prefixAllocLen = 1;
 				returnFunction->prefixLen = 1;
 				returnFunction->prefix[0] = returnedAst;
+				returnedAst = NULL;
 				
-				if( (l<tokens->size) && (tokens->list[l]->type == DOMAIN_NOTAION)){
-					l++;
-					if((k = domain(l))>l){
+				if( l<tokens->size){
+					if( (tokens->list[l]->type == DOMAIN_NOTAION) && (l+1 < tokens->size) && ((k = domain(l+1))>(l+1)) ){
 						returnFunction->domain = returnedAst;
+						returnedAst = NULL;
+						//Clear error status
+						gErrorCode = NO_ERROR;
+						gErrorColumn = -1;
+					}else{
+						//ERROR: NOT match domain rule but it has NOT reached the end of token list yet
+						gErrorCode = ERROR_BAD_TOKEN;
+						gErrorColumn = l;
 					}
+				}else{
+					//Here is the end of token list, it's OK
+					//Clear error status
+					gErrorCode = NO_ERROR;
+					gErrorColumn = -1;
 				}
-					
-				//Clear error status
-				gErrorCode = NO_ERROR;
-				gErrorColumn = -1;
-					
 			}
 		}
 	}
 	
-	if(gErrorCode != NO_ERROR && returnedAst != NULL){
-		if(returnFunction != NULL)
-			free(returnFunction);
+	if(gErrorCode != NO_ERROR){
+		if(returnFunction != NULL){
+			for(k=0;k<returnFunction->prefixLen;k++){
+				clearTree(&(returnFunction->prefix[k]));
+			}
 			
-		clearTree(*returnedAst);
+			returnFunction->prefixLen = 0;
+			returnFunction->prefixAllocLen = 0;
+			free(returnFunction->prefix);
+			free(returnFunction);
+			returnFunction = NULL;
+		}
+		
+		if(returnedAst != NULL){
+			clearTree(&returnedAst);
+			returnedAst = NULL;
+		}
 	}
 	gTokens = NULL;
 	return returnFunction;
@@ -460,7 +480,7 @@ int expressionElement(int index) {
 	if(tk->type == NUMBER){
 		returnedAst = (NMAST*)malloc(sizeof(NMAST));
 		returnedAst->type = tk->type;
-		returnedAst->value = parseDouble(tk->text, 0, tk->textLength-1, &gErrorCode);
+		returnedAst->value = parseDouble(tk->text, 0, tk->textLength, &gErrorCode);
 		returnedAst->parent = returnedAst->left = returnedAst->right = NULL;
 		returnedAst->variable = 0;
 		return (index + 1);
@@ -591,7 +611,7 @@ int simpleInterval(int idx){
 				returnedAst->right->left = returnedAst->right->right = NULL;
 				switch(gTokens->list[idx+2]->type){
 					case NUMBER:
-						returnedAst->right->value = parseDouble(gTokens->list[idx+2]->text, 0, gTokens->list[idx+2]->textLength-1, &gErrorColumn);
+						returnedAst->right->value = parseDouble(gTokens->list[idx+2]->text, 0, gTokens->list[idx+2]->textLength, &gErrorColumn);
 					break;
 					
 					case PI_TYPE:
@@ -633,7 +653,7 @@ int intervalElementOf(int idx){
 				if(tokenK3->type == NUMBER || tokenK3->type == PI_TYPE || tokenK3->type == E_TYPE){
 					switch(tokenK3->type){
 						case NUMBER:
-							val1 = parseDouble(tokenK3->text, 0, tokenK3->textLength-1, &gErrorColumn);
+							val1 = parseDouble(tokenK3->text, 0, tokenK3->textLength, &gErrorColumn);
 						break;
 
 						case PI_TYPE:
@@ -650,7 +670,7 @@ int intervalElementOf(int idx){
 						if(tokenK5->type == NUMBER || tokenK5->type == PI_TYPE || tokenK5->type == E_TYPE){
 							switch(tokenK5->type){
 								case NUMBER:
-									val2 = parseDouble(tokenK5->text, 0, tokenK5->textLength-1, &gErrorColumn);
+									val2 = parseDouble(tokenK5->text, 0, tokenK5->textLength, &gErrorColumn);
 								break;
 
 								case PI_TYPE:
