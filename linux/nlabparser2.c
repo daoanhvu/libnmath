@@ -371,7 +371,7 @@ int expression(int index){
 			while(rs->size > 1){
 				l = 2;
 				itm = rs->list[l];
-				while(!isAnOperatorType(itm->type)){
+				while((l+1)<rs->size && !isAnOperatorType(itm->type)){
 					l++;
 					itm = rs->list[l];
 				}
@@ -496,7 +496,7 @@ int expressionWithoutParenthese(int index) {
 			while(rs->size > 1){
 				l = 2;
 				itm = rs->list[l];
-				while(!isAnOperatorType(itm->type)){
+				while( (l+1)<rs->size && !isAnOperatorType(itm->type)){
 					l++;
 					itm = rs->list[l];
 				}
@@ -663,7 +663,7 @@ int simpleInterval(int idx){
 				gTokens->list[idx+1]->type==GTE) {
 			if(gTokens->list[idx+2]->type == NUMBER || gTokens->list[idx+2]->type == PI_TYPE 
 										|| gTokens->list[idx+2]->type == E_TYPE) {
-				if(gTokens->list[idx + 3]->type == RPAREN){
+				if( (idx + 3)<gTokens->size && gTokens->list[idx + 3]->type == RPAREN){
 					if(gParenTop < 0) {
 						return oldIdx;
 					}
@@ -971,7 +971,7 @@ int simpleDomain(int index){
 			while(rs->size > 1){
 				l = 2;
 				itm = rs->list[l];
-				while(itm->type != OR && itm->type != AND){
+				while( (l+1)<rs->size && itm->type != OR && itm->type != AND){
 					l++;
 					itm = rs->list[l];
 				}

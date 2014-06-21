@@ -104,7 +104,7 @@ int test1(int argc, char *agr[]){
 
 int test2(int argc, char *agr[]){
 	char strF[128];
-	char s[32];
+	char s[128];
 	int len = 10;
 	TokenList lst;
 	int i, ret=0;
@@ -157,7 +157,8 @@ int test2(int argc, char *agr[]){
 		return ERROR_PARSE;
 	}
 	
-	toString(f->prefix[0], s, &ret, 32);
+	toString(f->prefix[0], s, &ret, 128);
+	s[ret] = '\0';
 	
 	printf("f = %s", s);
 	
