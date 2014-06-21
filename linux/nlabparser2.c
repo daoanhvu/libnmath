@@ -142,7 +142,7 @@ int parseExpression() {
 	@return if
 */
 int functionNotation(int index){
-	int i, k, varsize = 0;
+	int i, varsize = 0;
 	int oldIndex = index;
 	Token *next = NULL;
 	NMAST *functionDefNode = NULL;
