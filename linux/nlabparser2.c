@@ -158,8 +158,10 @@ int functionNotation(int index){
 			gErrorCode = ERROR_MISSING_VARIABLE;
 			gErrorColumn = gTokens->list[index+1]->column;
 			
-			gParenTop++;
-			gParenStack[gParenTop] = index+1;
+			if(gParenTop<0 || gParenStack[gParenTop] != (index + 1)){
+				gParenTop++;
+				gParenStack[gParenTop] = index+1;
+			}
 			
 			if(gTokens->list[index+2]->type == NAME){
 				vars[varsize++] = (gTokens->list[index+2])->text[0];
@@ -182,6 +184,8 @@ int functionNotation(int index){
 					returnFunction->domain = NULL;
 					returnFunction->str = NULL;
 					returnFunction->len = 0;
+					returnFunction->variableNode = NULL;
+					returnFunction->numVarNode = 0;
 
 					returnFunction->valLen = varsize;
 					//Should use memcpy here
