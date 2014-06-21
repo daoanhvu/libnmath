@@ -40,6 +40,10 @@ void printError(int col, int code){
 		case ERROR_PARENTHESE_MISSING:
 			printf("Missing parenthese at %d\n", col);
 			break;
+			
+		case ERROR_TOO_MANY_PARENTHESE:
+			printf("Too many parenthese at %d\n", col);
+			break;
 
 		case ERROR_OUT_OF_DOMAIN:
 			break;
@@ -47,7 +51,8 @@ void printError(int col, int code){
 		case ERROR_SYNTAX:
 			break;
 
-		case ERROR_SIN_SQRT:
+		case ERROR_NOT_AN_EXPRESSION:
+			printf("Bad expression found at %d\n", col);
 			break;
 
 		case ERROR_BAD_TOKEN:

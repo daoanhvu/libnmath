@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-
 #ifdef unix
 	#include <pthread.h>
 #else
@@ -97,6 +96,7 @@ void toString(const NMAST *t, char *str, int *curpos, int len){
 		break;
 		
 		case VARIABLE:
+		case NAME:
 			str[(*curpos)] = t->variable;
 			(*curpos)++;
 		break;
@@ -406,9 +406,7 @@ unsigned int __stdcall reduce_t(void *param){
 		If this node is has left child, and the left child is an operator or a function then we
 		create a thread to reduce the left child.
 	*/
-	if( ((dp->t)->left) != NULL && ( isAnOperatorType(((dp->t)->left)->type) || 
-														isAFunctionType(((dp->t)->left)->type)) ){
-		/*printf(" To Left \n", (t->left)->type);*/
+	if( ((dp->t)->left) != NULL && isFunctionOROperator(((dp->t)->left)->type) ){
 		this_param_left.t = (dp->t)->left;
 		thread_1 = (HANDLE)_beginthreadex(NULL, 0, &reduce_t, (void*)&this_param_left, 0, NULL);
 	}
@@ -417,9 +415,7 @@ unsigned int __stdcall reduce_t(void *param){
 		If this node is has right child, and the right child is an operator or a function then we
 		create a thread to reduce the right child.
 	*/
-	if( ((dp->t)->right) != NULL && ( isAnOperatorType(((dp->t)->right)->type) || 
-														isAFunctionType(((dp->t)->right)->type)) ){
-		/*printf(" To Right\n", (t->right)->type);*/
+	if( ((dp->t)->right) != NULL && isFunctionOROperator(((dp->t)->right)->type) ){
 		this_param_right.t = (dp->t)->right;
 		thread_2 = (HANDLE)_beginthreadex(NULL, 0, &reduce_t, (void*)&this_param_right, 0, NULL);
 	}

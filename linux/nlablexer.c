@@ -112,7 +112,7 @@ void addToken(TokenList *lst, Token *tk){
 void parseTokens(const char *inStr, int length, TokenList *tokens){
 	int type, k = 0;
 	int idx = 0;
-	int floatingPoint = FALSE;
+	int floatingPoint;
 	Token *tk = NULL;
 		
 	gTokens = tokens;
@@ -148,6 +148,7 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 				return;
 			}
 		}else if(isDigit(inStr[idx])){
+			floatingPoint = FALSE;
 			for(k = idx+1; k < length; k++){
 				if(!isDigit(inStr[k])) {
 					if(inStr[k] == '.'){
@@ -412,6 +413,7 @@ Token* parsSubtractSign(const char *inputString, int length, int *idx){
 					if(inputString[k] == '.'){
 						//check if we got a floating point
 						if(floatingPoint){ //<- the second floating point
+							gErrorCode = ERROR_TOO_MANY_FLOATING_POINT;
 							gErrorColumn = k;
 							return NULL;
 						}
