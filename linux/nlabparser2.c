@@ -97,7 +97,7 @@ Function* parseFunctionExpression(TokenList *tokens){
 		}
 	}
 	
-	if(gParenTop >= 0){
+	if(gParenTop > -1){
 		gErrorCode = ERROR_PARENTHESE_MISSING;
 		gErrorColumn = gTokens->list[gParenStack[gParenTop]]->column;
 		if(returnFunction != NULL){
@@ -592,9 +592,7 @@ int functionCall(int index){
 					gErrorCode = ERROR_PARENTHESE_MISSING;
 					gErrorColumn = gTokens->list[k]->column;
 					if(k<gTokens->size && gTokens->list[k]->type == RPAREN){
-						if(gParenTop >= 0)
-							gParenTop--;
-						else{
+						if(gParenTop >= 0){
 							//ERROR: missing open parenthese, PLEASE CHECK MEMORY HERE
 							gErrorCode = ERROR_PARENTHESE_MISSING;
 							gErrorColumn = gTokens->list[k]->column;
@@ -605,6 +603,7 @@ int functionCall(int index){
 						}
 					}
 				}
+				gParenTop--;
 				f->right = returnedAst;
 				returnedAst = f;
 				gErrorCode = NO_ERROR;
@@ -709,7 +708,7 @@ int simpleInterval(int idx){
 		}
 	}
 		
-	return idx;
+	return oldIdx;
 }//done
 	
 /**
