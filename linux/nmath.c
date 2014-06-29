@@ -871,8 +871,7 @@ void* derivative(void *p){
 		u->type = NUMBER;
 		u->value = 1.0;
 		u->parent = NULL;
-		u->left = u->right = NULL;
-		
+		u->left = u->right = NULL;		
 		if(dp->x == t->variable){
 			u->value = 1.0;
 			return u;

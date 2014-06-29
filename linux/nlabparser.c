@@ -17,20 +17,6 @@ void addItem2Prefix(Function *f, NMAST *item){
 	f->prefixLen++;
 }
 
-void clearTree(NMAST **prf){
-	
-	if((*prf) == NULL)
-		return;
-	
-	if((*prf)->left != NULL)
-		clearTree(&(*prf)->left);
-	if((*prf)->right != NULL)
-		clearTree(&(*prf)->right);
-		
-	free(*prf);
-	(*prf) = NULL;
-}
-
 int clearStackWithoutFreeItem(Token **ls, int len){
 	int i;
 	//Token *p;
@@ -148,7 +134,7 @@ void addFunction2Tree(Function *f, Token * stItm){
 		in case error occurs, idxE will hold the position where error comes from.
 */
 int parseFunct(TokenList *tokens, Function *f, int *idxE){
-	int i=0, j =0, error, top=-1, allocLen=0;
+	int i=0, error, top=-1, allocLen=0;
 	double val;
 	Token *tk = NULL;
 	Token **stack = NULL;

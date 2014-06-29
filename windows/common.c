@@ -11,6 +11,9 @@ const int OPERATOR_COUNT = 5;
 const int COMPARING_OPERATORS[] = {LT,LTE,EQ,GT,GTE};
 const int COMPARING_OPERATORS_COUNT = 5;
 
+int gErrorColumn = -1;
+int gErrorCode = 0;
+
 int isPrime(long n){
 	long i, sq;
 	if(n<2) return 0;
@@ -76,6 +79,20 @@ double parseDouble(char *str, int start, int end, int *error){
 	}
 	(*error) = 0;
 	return val*negative;
+}
+
+void clearTree(NMAST **prf){
+	
+	if((*prf) == NULL)
+		return;
+	
+	if((*prf)->left != NULL)
+		clearTree(&(*prf)->left);
+	if((*prf)->right != NULL)
+		clearTree(&(*prf)->right);
+		
+	free(*prf);
+	(*prf) = NULL;
 }
 
 long l_cast(double val, double *fr){
@@ -175,6 +192,14 @@ double doCalculate(double val1, double val2, int type, int *error){
 			return sqrt(val2);
 	}
 	return 0;
+}
+
+int getErrorColumn(){
+	return gErrorColumn;
+}
+
+int getErrorCode(){
+	return gErrorCode;
 }
 
 int isAFunctionType(int type){

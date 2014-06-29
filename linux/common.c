@@ -81,6 +81,20 @@ double parseDouble(char *str, int start, int end, int *error){
 	return val*negative;
 }
 
+void clearTree(NMAST **prf){
+	
+	if((*prf) == NULL)
+		return;
+	
+	if((*prf)->left != NULL)
+		clearTree(&(*prf)->left);
+	if((*prf)->right != NULL)
+		clearTree(&(*prf)->right);
+		
+	free(*prf);
+	(*prf) = NULL;
+}
+
 long l_cast(double val, double *fr){
 	(*fr) = val - (long)val;
 	return (long)val;

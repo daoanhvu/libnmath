@@ -3,8 +3,6 @@
 
 #include "common.h"
 
-void clearTree(NMAST **prf);
-
 /**
 	Parse the input string in object f to NMAST tree
 	@return

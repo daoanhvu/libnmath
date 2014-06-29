@@ -2,15 +2,13 @@
 #include "nlablexer.h"
 #include "common.h"
 
+
 const int setLeadNegativeNumber[] = {LPAREN, LPRACKET,SEMI,COMMA,AND,OR,LT,LTE,GT,GTE,EQ,NE,IMPLY,RARROW};
 const int LeadNegativeNumberSize = 14;
 
 TokenList *gTokens = NULL;
-int gErrorColumn = -1;
-
-int getLexerError(){
-	return gErrorColumn;
-}
+extern int gErrorColumn;
+extern int gErrorCode;
 
 Token* createToken(int _type, const char *_text, int txtlen, int _col){
 	int i;
@@ -114,10 +112,12 @@ void addToken(TokenList *lst, Token *tk){
 void parseTokens(const char *inStr, int length, TokenList *tokens){
 	int type, k = 0;
 	int idx = 0;
-	int floatingPoint = FALSE;
+	int floatingPoint;
 	Token *tk = NULL;
 		
 	gTokens = tokens;
+	gErrorColumn = -1;
+	gErrorCode = NO_ERROR;
 	
 	while( idx < length ){
 		if( isNumericOperatorOREQ(inStr[idx])){
@@ -132,6 +132,7 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 			k = parserLogicOperator(inStr, length, idx, inStr[idx], k, inStr[k] );
 			if( k<0 ) {
 				gErrorColumn = idx;
+				gErrorCode = ERROR_BAD_TOKEN;
 				return;
 			}
 			idx = k;
@@ -141,17 +142,20 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 				tk = createToken(ELEMENT_OF, ":-", 2, idx);
 				addToken(tokens, tk);
 				idx += 2;
-			}else{
+			}else{ //ERROR: bad token found
 				gErrorColumn = idx;
+				gErrorCode = ERROR_BAD_TOKEN;
 				return;
 			}
 		}else if(isDigit(inStr[idx])){
+			floatingPoint = FALSE;
 			for(k = idx+1; k < length; k++){
 				if(!isDigit(inStr[k])) {
 					if(inStr[k] == '.'){
 						//check if we got a floating point
-						if(floatingPoint){ //<- the second floating point
+						if(floatingPoint){ //<- ERROR: the second floating point
 							gErrorColumn = k;
+							gErrorCode = ERROR_TOO_MANY_FLOATING_POINT;
 							return;
 						}
 						floatingPoint = TRUE;
@@ -168,6 +172,7 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 							//At the moment, I don't handle this case
 							//throw Exception
 							gErrorColumn = k;
+							gErrorCode = ERROR_BAD_TOKEN;
 							return;
 						}
 					}
@@ -226,7 +231,12 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 	}
 	gTokens = NULL;
 }
-	
+
+/**
+	Parse tokens to logic operator like: >, <, >=, <=, =, !=
+	If parsing OK, create a new token and return the next position after the operator,
+	otherwise, return -1
+*/	
 int parserLogicOperator(const char *inStr, int length, int i, char charAtI, int k, char charAtK) {
 	Token *tk = NULL;
 	int nextPos = -1;
@@ -403,6 +413,7 @@ Token* parsSubtractSign(const char *inputString, int length, int *idx){
 					if(inputString[k] == '.'){
 						//check if we got a floating point
 						if(floatingPoint){ //<- the second floating point
+							gErrorCode = ERROR_TOO_MANY_FLOATING_POINT;
 							gErrorColumn = k;
 							return NULL;
 						}

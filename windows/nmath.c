@@ -478,7 +478,6 @@ unsigned int __stdcall reduce_t(void *param){
 						free(p);
 						p = NULL;
 						return dp->error;
-						
 					}
 				}
 				
@@ -874,9 +873,13 @@ unsigned int __stdcall derivative(void *p){
 	if(t->type == VARIABLE){
 		u = (NMAST*)malloc(sizeof(NMAST));
 		u->type = NUMBER;
-		u->value = 1.0;
+		u->value = 0.0;
 		u->parent = NULL;
 		u->left = u->right = NULL;
+		if(dp->x == t->variable){
+			u->value = 1.0;			
+		}
+
 		dp->returnValue = u;
 		return 0;
 	}

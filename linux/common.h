@@ -178,6 +178,7 @@ double parseDouble(char *str, int start, int end, int *error);
 int contains(int type, const int *aset, int len);
 double logab(double a, double b, int *error);
 double doCalculate(double val1, double val2, int type, int *error);
+void clearTree(NMAST **prf);
 int getErrorColumn();
 int getErrorCode();
 int isAFunctionType(int type);

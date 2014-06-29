@@ -56,19 +56,20 @@
 
 #define NO_ERROR 0
 #define ERROR_DIV_BY_ZERO -1
-#define ERROR_LOG -2
+#define ERROR_TOO_MANY_PARENTHESE -2
 #define ERROR_OPERAND_MISSING -3
 #define ERROR_PARSE -4
-#define ERROR_SIN -5
+#define ERROR_TOO_MANY_FLOATING_POINT -5
 #define ERROR_PARENTHESE_MISSING -6
 #define ERROR_OUT_OF_DOMAIN -7
 #define ERROR_SYNTAX -8
-#define ERROR_SIN_SQRT -9
+#define ERROR_NOT_AN_EXPRESSION -9
 #define ERROR_NOT_A_FUNCTION -10
 #define ERROR_BAD_TOKEN -11
 #define ERROR_LEXER -12
 #define ERROR_PARSING_NUMBER -13
 #define ERROR_MISSING_VARIABLE -14
+#define ERROR_LOG -15
 
 #define MAXTEXTLEN 20
 #define INCLEN 10
@@ -177,6 +178,9 @@ double parseDouble(char *str, int start, int end, int *error);
 int contains(int type, const int *aset, int len);
 double logab(double a, double b, int *error);
 double doCalculate(double val1, double val2, int type, int *error);
+void clearTree(NMAST **prf);
+int getErrorColumn();
+int getErrorCode();
 int isAFunctionType(int type);
 int isAnOperatorType(int type);
 int isFunctionOROperator(int type);

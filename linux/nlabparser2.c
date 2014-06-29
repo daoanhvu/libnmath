@@ -20,6 +20,17 @@ extern int gErrorColumn;
 extern int gErrorCode;
 extern TokenList *gTokens;
 
+/** internal declaration */
+int functionNotation(int index);
+int domain(int index);
+int expression(int index);
+int expressionWithoutParenthese(int index);
+int simpleInterval(int idx);
+int intervalElementOf(int idx);
+int expressionElement(int index);
+int functionCall(int index);
+int intervalWithBoundaries(int idx);
+
 void replaceNAMEByVARIABLE(Function *f, TokenList *tokens){
 	int i, k;
 	for(i=0; i<tokens->size; i++){
@@ -36,7 +47,6 @@ void replaceNAMEByVARIABLE(Function *f, TokenList *tokens){
 	access right: public
 */	
 Function* parseFunctionExpression(TokenList *tokens){
-	Function* fd = NULL;
 	int k, l;
 	
 	gTokens = tokens;
@@ -144,8 +154,6 @@ int parseExpression() {
 int functionNotation(int index){
 	int i, varsize = 0;
 	int oldIndex = index;
-	Token *next = NULL;
-	NMAST *functionDefNode = NULL;
 	char vars[4];
 
 	if(index >= gTokens->size)
@@ -235,7 +243,7 @@ NMAST* removeNMASTAt(NMASTList *sk, int k){
 	int i;
 	NMAST* ele;
 	if(sk == NULL || k<0 || k >= sk->size)
-		return;
+		return NULL;
 	
 	ele = sk->list[k];
 	for(i=k+1; i<sk->size; i++){
@@ -811,7 +819,22 @@ int intervalWithBoundaries(int idx){
 		tk = gTokens->list[idx];
 	}
 		
-	if(tk->type == NUMBER){
+	if(tk->type == NUMBER || tk->type == PI_TYPE || tk->type == E_TYPE){
+	
+		switch(tk->type){
+			case NUMBER:
+				val1 = parseDouble(tk->text, 0, tk->textLength, &gErrorColumn);
+			break;
+			
+			case PI_TYPE:
+				val1 = PI;
+			break;
+			
+			case E_TYPE:
+				val1 = E;
+			break;
+		}
+		
 		tokenK1 = gTokens->list[idx + 1];
 		if(isComparationOperator(tokenK1->type)){
 			tokenK2 = gTokens->list[idx + 2];
@@ -819,7 +842,22 @@ int intervalWithBoundaries(int idx){
 				tokenK3 = gTokens->list[idx + 3];
 				if(isComparationOperator(tokenK3->type)){
 					tokenK4 = gTokens->list[idx + 4];
-					if(tokenK4->type == NUMBER){
+					if(tokenK4->type == NUMBER || tokenK4->type == PI_TYPE || tokenK4->type == E_TYPE){
+						
+						switch(tokenK4->type){
+							case NUMBER:
+								val2 = parseDouble(tokenK4->text, 0, tokenK4->textLength, &gErrorColumn);
+							break;
+							
+							case PI_TYPE:
+								val2 = PI;
+							break;
+							
+							case E_TYPE:
+								val2 = E;
+							break;
+						}
+						
 						if(gTokens->list[idx + 5]->type == RPAREN){
 							if(gParenTop < 0)
 								return oldIdx;
