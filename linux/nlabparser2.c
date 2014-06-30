@@ -609,9 +609,9 @@ int functionCall(int index){
 							returnedAst = NULL;
 							return index;
 						}
+						gParenTop--;
 					}
 				}
-				gParenTop--;
 				f->right = returnedAst;
 				returnedAst = f;
 				gErrorCode = NO_ERROR;

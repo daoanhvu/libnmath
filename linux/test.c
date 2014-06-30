@@ -12,11 +12,18 @@
 
 void printError(int col, int code);
 int test1(int argc, char *agr[]);
-int test2(int argc, char *agr[]);
+//int test2(int argc, char *agr[]);
 
 int main(int argc, char *agr[]){
-	//return test1(argc, agr);
-	return test2(argc, agr);
+
+	if(argc < 2){
+		printf("An mathematics function must be entered.\n");
+		printf("Ex: f(x,y) = x + 2 * y\n");
+		return 0;
+	}
+	
+	return test1(argc, agr);
+	//return test2(argc, agr);
 }
 
 void printError(int col, int code){
@@ -78,13 +85,13 @@ int test1(int argc, char *agr[]){
 
 	initFunct(&f);
 	printf("x+3*y^2\n");
-	resetFunction(&f, "x+3*y^2", "xy", 2, &error);
+	resetFunction(&f, agr[1], "xy", 2, &error);
 
-	error = parseFunction(&f, &l);
-	if(error != 0) {
-		printError(l, error);
+	parseFunction(&f);
+	if(getErrorCode() != NO_ERROR) {
+		printError(getErrorColumn(), getErrorCode());
 		releaseFunct(&f);
-		return error;
+		return getErrorCode();
 	}
 	l = 0;
 	ret = calc(&f, vars, 2, &error);
@@ -101,7 +108,7 @@ int test1(int argc, char *agr[]){
 	releaseFunct(&f);
 	return 0;
 }
-
+/*
 int test2(int argc, char *agr[]){
 	char strF[128];
 	char s[128];
@@ -109,12 +116,6 @@ int test2(int argc, char *agr[]){
 	TokenList lst;
 	int i, ret=0;
 	Function *f;
-	
-	if(argc < 2){
-		printf("An mathematics function must be entered.\n");
-		printf("Ex: f(x,y) = x + 2 * y\n");
-		return 0;
-	}
 
 	lst.loggedSize = 10;
 	lst.list = (Token**)malloc(sizeof(Token*) * lst.loggedSize);
@@ -125,9 +126,9 @@ int test2(int argc, char *agr[]){
 		strF[i] = agr[1][i];
 	strF[i] = '\0';
 
-	/* build the tokens list from the input string */
+	// build the tokens list from the input string
 	parseTokens(strF, len, &lst);
-	/* after lexer work, getLexerError() will return -1 if every ok, otherwise it return -1 */
+	// after lexer work, getLexerError() will return -1 if every ok, otherwise it return -1
 	
 	if(getErrorCode() != NO_ERROR){
 		printError(getErrorColumn(), getErrorCode());
@@ -166,4 +167,4 @@ int test2(int argc, char *agr[]){
 		releaseFunct(f);
 	
 	return NO_ERROR;
-}
+}*/

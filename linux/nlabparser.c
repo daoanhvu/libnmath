@@ -3,6 +3,11 @@
 #include "common.h"
 #include "nlabparser.h"
 
+extern int gErrorColumn;
+extern int gErrorCode;
+
+int functionNotation1(int index);
+
 /******************************************************************************************/
 void addItem2Prefix(Function *f, NMAST *item){
 	if(f==NULL)
@@ -126,26 +131,186 @@ void addFunction2Tree(Function *f, Token * stItm){
 	}
 }
 
+/**
+	access right: public
+*/	
+Function* parseFunctionExpression1(TokenList *tokens){
+	int k, l;
+	
+	gTokens = tokens;
+	currentIdx = 0;
+	gParenTop = -1;
+	gErrorCode = ERROR_NOT_A_FUNCTION;
+	gErrorColumn = tokens->list[currentIdx]->column;
+	
+	if( (k=functionNotation(currentIdx)) > currentIdx ){
+		if(tokens->list[k]->type == EQ){
+			replaceNAMEByVARIABLE(returnFunction, tokens);
+			k++;
+			if( (l = expression(k))>k){
+				returnFunction->prefix = (NMAST**)malloc(sizeof(NMAST*));
+				returnFunction->prefixAllocLen = 1;
+				returnFunction->prefixLen = 1;
+				returnFunction->prefix[0] = returnedAst;
+				returnedAst = NULL;
+				
+				if( l<tokens->size){
+					if( (tokens->list[l]->type == DOMAIN_NOTAION) && (l+1 < tokens->size) && ((k = domain(l+1))>(l+1)) ){
+						returnFunction->domain = returnedAst;
+						returnedAst = NULL;
+						//Clear error status
+						gErrorCode = NO_ERROR;
+						gErrorColumn = -1;
+					}else{
+						//ERROR: NOT match domain rule but it has NOT reached the end of token list yet
+						gErrorCode = ERROR_BAD_TOKEN;
+						gErrorColumn = l;
+					}
+				}else{
+					//Here is the end of token list, it's OK
+					//Clear error status
+					gErrorCode = NO_ERROR;
+					gErrorColumn = -1;
+				}
+			}
+		}
+	}
+	
+	if(gErrorCode != NO_ERROR){
+		if(returnFunction != NULL){
+			for(k=0;k<returnFunction->prefixLen;k++){
+				clearTree(&(returnFunction->prefix[k]));
+			}
+			
+			returnFunction->prefixLen = 0;
+			returnFunction->prefixAllocLen = 0;
+			free(returnFunction->prefix);
+			free(returnFunction);
+			returnFunction = NULL;
+		}
+		
+		if(returnedAst != NULL){
+			clearTree(&returnedAst);
+			returnedAst = NULL;
+		}
+	}
+	
+	if(gParenTop > -1){
+		gErrorCode = ERROR_PARENTHESE_MISSING;
+		gErrorColumn = gTokens->list[gParenStack[gParenTop]]->column;
+		if(returnFunction != NULL){
+			for(k=0;k<returnFunction->prefixLen;k++){
+				clearTree(&(returnFunction->prefix[k]));
+			}
+			
+			returnFunction->prefixLen = 0;
+			returnFunction->prefixAllocLen = 0;
+			free(returnFunction->prefix);
+			free(returnFunction);
+			returnFunction = NULL;
+		}
+	}else if(gParenTop<-1){
+		gErrorCode = ERROR_TOO_MANY_PARENTHESE;
+		gErrorColumn = gTokens->list[gParenStack[gParenTop]]->column;
+		if(returnFunction != NULL){
+			for(k=0;k<returnFunction->prefixLen;k++){
+				clearTree(&(returnFunction->prefix[k]));
+			}
+			
+			returnFunction->prefixLen = 0;
+			returnFunction->prefixAllocLen = 0;
+			free(returnFunction->prefix);
+			free(returnFunction);
+			returnFunction = NULL;
+		}
+	}
+	
+	gTokens = NULL;
+	return returnFunction;
+}
+
+/**
+	functionNotation: NAME LPAREN NAME (COMA NAME)* PRARENT;
+	@return if
+*/
+int functionNotation1(int index){
+	int i, varsize = 0;
+	int oldIndex = index;
+	char vars[4];
+
+	if(index >= gTokens->size)
+		return index;
+	
+	if(gTokens->list[index]->type == NAME ){
+		gErrorCode = ERROR_PARENTHESE_MISSING;
+		gErrorColumn = gTokens->list[index]->column;
+		if(gTokens->list[index+1]->type == LPAREN){
+			gErrorCode = ERROR_MISSING_VARIABLE;
+			gErrorColumn = gTokens->list[index+1]->column;
+			
+			if(gParenTop<0 || gParenStack[gParenTop] != (index + 1)){
+				gParenTop++;
+				gParenStack[gParenTop] = index+1;
+			}
+			
+			if(gTokens->list[index+2]->type == NAME){
+				vars[varsize++] = (gTokens->list[index+2])->text[0];
+				index += 3;
+				while( (index+1<gTokens->size) && (gTokens->list[index]->type == COMMA)
+							&& (gTokens->list[index+1]->type == NAME ) ){
+					vars[varsize++] = (gTokens->list[index+1])->text[0];
+					index += 2;
+				}
+				gErrorCode = ERROR_PARENTHESE_MISSING;
+				gErrorColumn = gTokens->list[index]->column;
+				if( (index<gTokens->size) && (gTokens->list[index]->type == RPAREN)){
+				
+					gParenTop--;
+				
+					returnFunction = (Function*)malloc(sizeof(Function));
+					returnFunction->prefix = NULL;
+					returnFunction->prefixAllocLen = 0;
+					returnFunction->prefixLen = 0;
+					returnFunction->domain = NULL;
+					returnFunction->str = NULL;
+					returnFunction->len = 0;
+					returnFunction->variableNode = NULL;
+					returnFunction->numVarNode = 0;
+
+					returnFunction->valLen = varsize;
+					//Should use memcpy here
+					for(i=0;i<varsize;i++)
+						returnFunction->variable[i] = vars[i];
+						
+					gErrorCode = NO_ERROR;
+					gErrorColumn = -1;
+					return (index + 1);
+				}
+			}
+		}
+	}
+	gErrorColumn = gTokens->list[index-2]->column;
+	return oldIndex;
+}//done
+
 /******************************************************************************************/
 /**
 	Parse the input string in object f to NMAST tree
-	@return
-		0 if everything ok otherwise it returns a value != 0
-		in case error occurs, idxE will hold the position where error comes from.
 */
-int parseFunct(TokenList *tokens, Function *f, int *idxE){
-	int i=0, error, top=-1, allocLen=0;
+void parseFunct(TokenList *tokens, int *start, Function *f){
+	int i, error, top=-1, allocLen=0, isEndExp = FALSE;
 	double val;
 	Token *tk = NULL;
 	Token **stack = NULL;
 	Token *stItm = NULL;
 	NMAST *ast = NULL;
-
 	//NMAST* varNodes[50];
 
-	*idxE = 0;
-	if(tokens == NULL)
-		return ERROR_BAD_TOKEN;
+	if(tokens == NULL){
+		gErrorColumn = 0;
+		gErrorCode = ERROR_BAD_TOKEN;
+		return ;
+	}
 
 	/* Clear prefix tree if any*/
 	if(f->prefixLen > 0){
@@ -155,9 +320,8 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 	}
 
 	f->numVarNode = 0;
-
-	while(i < tokens->size){
-		*idxE = i;
+	i = (*start);
+	while(i < tokens->size && !isEndExp){
 		tk = tokens->list[i];
 		switch(tk->type){
 			case NUMBER:
@@ -165,8 +329,9 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 				if(val == 0 && error < 0){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
-					*idxE = tk->column;
-					return ERROR_PARSING_NUMBER;
+					gErrorColumn = tk->column;
+					gErrorCode = ERROR_PARSING_NUMBER;
+					return;
 				}
 
 				ast = (NMAST*)malloc(sizeof(NMAST));
@@ -213,7 +378,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 						ast = (NMAST*)malloc(sizeof(NMAST));
 						ast->left = ast->right = NULL;
 						ast->type = stItm->type;
-						//ast->priority = stItm->priority;
+						ast->priority = stItm->priority;
 						ast->left = f->prefix[f->prefixLen-2];
 						ast->right = f->prefix[f->prefixLen-1];
 						
@@ -225,7 +390,7 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 						f->prefix[f->prefixLen-2] = ast;
 						f->prefix[f->prefixLen-1] = NULL;
 						f->prefixLen--;
-						//free(stItm);
+						
 						if(top < 0)
 							break;
 
@@ -249,8 +414,9 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 				if(stItm == NULL){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
-					*idxE = tk->column;
-					return ERROR_PARENTHESE_MISSING;
+					gErrorColumn = tk->column;
+					gErrorCode = ERROR_PARENTHESE_MISSING;
+					return ;
 				}
 
 				/*  */
@@ -263,8 +429,9 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 				/* got an opening-parenthese but can not find a closing-parenthese */
 				if(stItm==NULL){
 					free(stack);
-					*idxE = tk->column;
-					return ERROR_PARENTHESE_MISSING;
+					gErrorColumn = tk->column;
+					gErrorCode = ERROR_PARENTHESE_MISSING;
+					return;
 				}
 
 				if(isAFunctionType(stItm->type)  == TRUE){
@@ -306,12 +473,21 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 
 				i++;
 				break;
+				
+			case SEMI:
+				/** 	End of this expression, kindly stop the while loop, consume this expression and start processing
+						the next expression.
+				*/
+				i++;
+				isEndExp = TRUE;
+				break;
 
 			default:
 				clearStackWithoutFreeItem(stack, top+1);
 				free(stack);
-				*idxE = tk->column;
-				return ERROR_BAD_TOKEN;
+				gErrorColumn = tk->column;
+				gErrorCode = ERROR_BAD_TOKEN;
+				return;
 		}//end switch
 	}//end while
 
@@ -322,14 +498,14 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 			free(stItm);
 			clearStackWithoutFreeItem(stack, top+1);
 			free(stack);
-			*idxE = tk->column;
-			return ERROR_PARENTHESE_MISSING; 
+			gErrorColumn = tk->column;
+			gErrorCode = ERROR_PARENTHESE_MISSING;
+			return; 
 		}
-		
 		addFunction2Tree(f, stItm);
-		//free(stItm);
 	}
 	free(stack);
+	*start = i;
 
 	//if(f->numVarNode > 0) {
 	//	f->variableNode = (NMAST**)malloc(sizeof(NMAST*) * f->numVarNode);
@@ -337,19 +513,14 @@ int parseFunct(TokenList *tokens, Function *f, int *idxE){
 	//		f->variableNode[i] = varNodes[i];
 	//	}
 	//}
-
-	return 0;
 }
 
 /*
 	Parse the input string in object f to NMAST tree
-	@return
-		0 if everything ok otherwise it returns a value != 0
-		in case error occurs, idxE will hold the position where error comes from.
 */
-int parseFunction(Function *f, int *idxE){
+void parseFunction(Function *f){
 	TokenList lst;
-	int i, ret;
+	int i, start = 0;
 
 	lst.loggedSize = 10;
 	lst.list = (Token**)malloc(sizeof(Token*) * lst.loggedSize);
@@ -358,13 +529,10 @@ int parseFunction(Function *f, int *idxE){
 	/* build the tokens list from the input string */
 	parseTokens(f->str, f->len, &lst);
 	/* after lexer work, getLexerError() will return -1 if every ok, otherwise it return -1 */
-	if( getErrorCode() == NO_ERROR ){
-		ret = parseFunct(&lst, f, idxE);
+	if( gErrorCode == NO_ERROR ){
+		parseFunct(&lst, &start, f);
 		for(i = 0; i<lst.size; i++)
 			free(lst.list[i]);
-		free(lst.list);
-		return ret;
 	}
-
-	return ERROR_LEXER;
+	free(lst.list);
 }

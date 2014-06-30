@@ -15,14 +15,10 @@ nmath:
 	$(AR) -rc -o ../build/lib/libnmath32.a bin/common.o bin/nlablexer.o bin/nlabparser.o bin/nmath.o
 	
 m64:
-	$(CC) -m64 -Wall -Werror -c -o bin/common64.o common.c -lm
-	$(CC) -m64 -Wall -Werror -c -o bin/nlablexer64.o nlablexer.c
-	$(CC) -m64 -Wall -Werror -c -o bin/nlabparser64.o nlabparser2.c -lm
-	$(CC) -m64 -Wall -Werror -c -o bin/nmath64.o nmath.c $(LDFLAGS)
-	$(AR) -rc -o ../build/lib/libnmath64.a bin/common64.o bin/nlablexer64.o bin/nlabparser64.o bin/nmath64.o
+	$(CC) -m64 -Wall -Werror $(nocyg) -static -c $(SRC)
 	
 test:
-	gcc -g -Wall -Werror -o bin/test test.c common.c nlablexer.c nlabparser.c nmath.c $(LDFLAGS)
+	gcc -Wall -Werror -o bin/test test.c common.c nlablexer.c nlabparser2.c nmath.c $(LDFLAGS)
 	
 test2:
 	gcc -Wall -Werror -o bin/test test2.c libfunct.a -lm -lpthread

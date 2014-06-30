@@ -26,7 +26,7 @@ typedef struct tagRParam{
 }RParam;
 
 void initFunct(Function *);
-
+void toString(const NMAST *t, char *str, int *curpos, int len);
 void resetFunction(Function *f, const char *str, const char *vars, int varCount, int *error);
 double calc(Function *f, double *values, int numOfValue, int *);
 int reduce(Function *f, int *);
