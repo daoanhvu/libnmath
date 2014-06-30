@@ -75,7 +75,7 @@ void printError(int col, int code){
 }
 
 int test1(int argc, char *agr[]){
-	Function f;
+	Function *f;
 	DParam d;
 	int error;
 	double vars[] = {4, 1};
@@ -83,20 +83,19 @@ int test1(int argc, char *agr[]){
 	char dstr[32];
 	int l = 0;
 
-	initFunct(&f);
-	printf("x+3*y^2\n");
-	resetFunction(&f, agr[1], "xy", 2, &error);
-
-	parseFunction(&f);
+	printf("%s\n", agr[1]);
+	//resetFunction(&f, agr[1], "xy", 2, &error);
+	l = strlen(agr[1]);
+	f = parseFunction(agr[1], l);
 	if(getErrorCode() != NO_ERROR) {
 		printError(getErrorColumn(), getErrorCode());
-		releaseFunct(&f);
+		releaseFunct(f);
 		return getErrorCode();
 	}
 	l = 0;
-	ret = calc(&f, vars, 2, &error);
+	ret = calc(f, vars, 2, &error);
 	printf("Ret = %lf", ret );
-	d.t = *(f.prefix);
+	d.t = *(f->prefix->list);
 	d.error = 0;
 	d.returnValue = NULL;
 	d.x = 'x';
@@ -105,7 +104,8 @@ int test1(int argc, char *agr[]){
 	toString(d.returnValue, dstr, &l, 32);
 	clearTree(&(d.returnValue));
 
-	releaseFunct(&f);
+	releaseFunct(f);
+	free(f);
 	return 0;
 }
 /*

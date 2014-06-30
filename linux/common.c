@@ -14,6 +14,36 @@ const int COMPARING_OPERATORS_COUNT = 5;
 int gErrorColumn = -1;
 int gErrorCode = 0;
 
+/** internal use */
+void pushASTStack(NMASTList *sk, NMAST* ele){
+	if(sk == NULL)
+		return;
+		
+	if(sk->size >= sk->loggedSize){
+		sk->loggedSize += INCLEN;
+		/**
+			IMPORTANT: It may not secure here
+		*/
+		sk->list = (NMAST**)realloc(sk->list, sizeof(NMAST*) * sk->loggedSize);
+		
+		//if(lst != NULL)
+		//	sk->list = lst;
+	}
+	sk->list[sk->size] = ele;
+	(sk->size)++;
+}
+
+/** internal use */
+NMAST* popASTStack(NMASTList *sk){
+	NMAST* ele;
+	if(sk == NULL || sk->size == 0)
+		return NULL;
+	ele = sk->list[sk->size-1];
+	(sk->size)--;
+	return ele;
+}
+
+
 int isPrime(long n){
 	long i, sq;
 	if(n<2) return 0;

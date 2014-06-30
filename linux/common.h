@@ -39,7 +39,7 @@
 #define PI_TYPE 		36
 #define E_TYPE 			37
 #define SEC 			38
-#define DOMAIN_NOTAION	39
+#define DOMAIN_NOTATION	39
 #define GT_LT			40
 #define GTE_LT			41
 #define GT_LTE			42
@@ -109,14 +109,11 @@ typedef struct tagFunct{
 	char variable[3];
 	char valLen;
 
-	NMAST **prefix;
-	int prefixLen;
-	int prefixAllocLen;
+	NMASTList *prefix;
+	NMASTList *domain;
 
 	NMAST **variableNode;
 	int numVarNode;
-	
-	NMAST *domain;
 } Function;
 
 struct tagToken{
@@ -165,6 +162,8 @@ struct tagNMASTList{
 	struct tagNMAST **list;
 };
 
+void pushASTStack(NMASTList *sk, NMAST* ele);
+NMAST* popASTStack(NMASTList *sk);
 /* 
  * This do the primity test
  * return 1: if n is prime

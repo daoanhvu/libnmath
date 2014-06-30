@@ -6,6 +6,6 @@
 /**
 	Parse the input string in object f to NMAST tree
 */
-void parseFunction(Function *f);
+Function* parseFunction(char *str, int len);
 
 #endif

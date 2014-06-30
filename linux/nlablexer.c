@@ -188,7 +188,7 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 			addToken(tokens, tk);
 			idx = k;
 		}else if(idx>0 && (inStr[idx-1]==' ') && (inStr[idx]=='D') && (inStr[idx+1]==':') ){
-			tk = createToken(DOMAIN_NOTAION, "DOMAIN_NOTAION", 14, idx);
+			tk = createToken(DOMAIN_NOTATION, "DOMAIN_NOTATION", 14, idx);
 			addToken(tokens, tk);
 			idx += 2;
 		}else if( isVariable(idx, inStr, length) ){

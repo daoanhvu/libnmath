@@ -302,40 +302,48 @@ void initFunct(Function *f){
 	f->valLen = 0;
 
 	f->prefix = NULL;
-	f->prefixLen = 0;
-	f->prefixAllocLen = 0;
+	f->domain = 0;
+	
 
 	f->variableNode = NULL;
 	f->numVarNode = 0;
-	
-	f->domain = NULL;
 }
 
 void releaseFunct(Function *f){
 	int i;
-	NMAST **temp;
+	
 	if(f==NULL) return;
 
 	if(f->str != NULL)
 		free(f->str);
 	f->len = 0;
 
-	for(i=0;i<f->prefixLen;i++){
-		clearTree(&(f->prefix[i]));
+	if(f->prefix != NULL){
+		for(i=0; i<f->prefix->size; i++){
+			clearTree(&(f->prefix->list[i]));
+		}
+		if(f->prefix->list != NULL)
+			free(f->prefix->list);
+		f->prefix->size = 0;
+		f->prefix->loggedSize = 0;
+		free(f->prefix);
+		f->prefix = NULL;
 	}
-	f->prefixLen = 0;
-	f->prefixAllocLen = 0;
-	temp = f->prefix;
-	free(temp);
-	f->prefix = NULL;
 	
 	if(f->domain != NULL){
-		clearTree(&(f->domain));
+		for(i=0; i<f->domain->size; i++){
+			clearTree(&(f->domain->list[i]));
+		}
+		if(f->domain->list != NULL)
+			free(f->domain->list);
+		f->domain->size = 0;
+		f->domain->loggedSize = 0;
+		free(f->domain);
+		f->domain = NULL;
 	}
 
 	if(f->numVarNode > 0){
-		temp = f->variableNode;
-		free(temp);
+		free(f->variableNode);
 		f->variableNode = NULL;
 	}
 }
@@ -384,9 +392,11 @@ void resetFunction(Function *f, const char *str, const char *vars, int varCount,
 		f->variable[i] = vars[i];
 	f->valLen = varCount;
 
-	for(i=0; i<f->prefixLen; i++)
-		clearTree(&(f->prefix[i]));
-	f->prefixLen = 0;
+	if(f->prefix != NULL){
+		for(i=0; i<f->prefix->size; i++)
+			clearTree(&(f->prefix->list[i]));
+		f->prefix->size = 0;
+	}
 	(*error) = 0;
 }
 
@@ -731,7 +741,7 @@ void* reduce_t(void *param){
 
 int reduce(Function *f, int *error){
 	RParam dp;
-	dp.t = *(f->prefix);
+	dp.t = *(f->prefix->list);
 	dp.error = 0;
 	reduce_t(&dp);
 	return 0;
@@ -800,7 +810,7 @@ double calc(Function *f, double *values, int numOfValue, int *error){
 	//int i;
 
 	rp.error = 0;
-	rp.t = *(f->prefix);
+	rp.t = *(f->prefix->list);
 	rp.values = values;
 	rp.variables = f->variable;
 

@@ -211,33 +211,8 @@ int functionNotation(int index){
 	return oldIndex;
 }//done
 
-NMAST* popASTStack(NMASTList *sk){
-	NMAST* ele;
-	if(sk == NULL || sk->size == 0)
-		return NULL;
-	ele = sk->list[sk->size-1];
-	(sk->size)--;
-	return ele;
-}
 
-void pushASTStack(NMASTList *sk, NMAST* ele){
-	//NMAST **lst;
-	if(sk == NULL)
-		return;
-		
-	if(sk->size == sk->loggedSize){
-		sk->loggedSize += INCLEN;
-		/**
-			IMPORTANT: It may not secure here
-		*/
-		sk->list = (NMAST**)realloc(sk->list, sizeof(NMAST*) * sk->loggedSize);
-		
-		//if(lst != NULL)
-		//	sk->list = lst;
-	}
-	sk->list[sk->size] = ele;
-	(sk->size)++;
-}
+
 
 NMAST* removeNMASTAt(NMASTList *sk, int k){
 	int i;
@@ -257,7 +232,6 @@ NMAST* removeNMASTAt(NMASTList *sk, int k){
 
 /**
 	Special routine used for PRN, just use internally please
-	
 */
 void removeFromNMASTList(NMASTList *sk, int fromIdx, int len){
 	int i;
