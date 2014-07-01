@@ -1,4 +1,9 @@
 #include <stdlib.h>
+
+#ifdef DEBUG
+	#include <stdio.h>
+#endif
+
 #include "nlablexer.h"
 #include "common.h"
 #include "nlabparser.h"
@@ -535,18 +540,30 @@ Function* parseFunction(char *str, int len){
 	lst.loggedSize = 10;
 	lst.list = (Token**)malloc(sizeof(Token*) * lst.loggedSize);
 	lst.size = 0;
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 
 	/* build the tokens list from the input string */
 	parseTokens(str, len, &lst);
-	/* after lexer work, getLexerError() will return -1 if every ok, otherwise it return -1 */
+	
+#ifdef DEBUG
+	printf("\n[NLabParser] Number of dynamic objects after parsing tokens: %d \n", numberOfDynamicObject() );
+#endif
 	
 	if( gErrorCode == NO_ERROR ){
 		f = parseFunctionExpression1(&lst);
-		for(i = 0; i<lst.size; i++)
+		for(i = 0; i<lst.size; i++){
 			free(lst.list[i]);
+#ifdef DEBUG
+			descNumberOfDynamicObject();
+#endif
+		}
 	}
 	free(lst.list);
-	
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 	return f;
 }
 

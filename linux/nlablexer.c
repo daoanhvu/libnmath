@@ -15,6 +15,9 @@ Token* createToken(int _type, const char *_text, int txtlen, int _col){
 	Token *tk = (Token*)malloc(sizeof(Token));
 	tk->type = _type;
 	tk->column = _col;
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 
 	switch(_type){
 		case PLUS:
@@ -54,7 +57,10 @@ Token* createTokenIdx(int _type, const char *_text, int frIdx, int toIdx, int _c
 	Token *tk = (Token*)malloc(sizeof(Token));
 	tk->type = _type;
 	tk->column = _col;
-	
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+
 	switch(_type){
 		case PLUS:
 		case MINUS:
@@ -95,6 +101,9 @@ void addToken(TokenList *lst, Token *tk){
 	if(lst->size >= lst->loggedSize){
 		newLoggedSize = lst->loggedSize + INCLEN;
 		tmp = (Token**)malloc(sizeof(Token*) * newLoggedSize);
+#ifdef DEBUG
+		incNumberOfDynamicObject();
+#endif
 		lst->loggedSize = newLoggedSize;
 
 		for(i = 0; i<lst->size; i++)
@@ -102,6 +111,9 @@ void addToken(TokenList *lst, Token *tk){
 
 		//release list
 		free(lst->list);
+#ifdef DEBUG
+		descNumberOfDynamicObject();
+#endif
 		lst->list = tmp;
 	}
 	lst->list[lst->size] = tk;

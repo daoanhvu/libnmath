@@ -14,18 +14,41 @@ const int COMPARING_OPERATORS_COUNT = 5;
 int gErrorColumn = -1;
 int gErrorCode = 0;
 
+#ifdef DEBUG
+int gNumberOfDynamicObject = 0;
+int numberOfDynamicObject(){
+	return gNumberOfDynamicObject;
+}
+void incNumberOfDynamicObject(){
+	gNumberOfDynamicObject++;
+}
+void descNumberOfDynamicObject(){
+	gNumberOfDynamicObject--;
+}
+#endif
+
 /** internal use */
 void pushASTStack(NMASTList *sk, NMAST* ele){
+
+#ifdef DEBUG
+	int isFirtTime = (sk==NULL || sk->loggedSize<=0)?TRUE:FALSE;
+#endif
+
 	if(sk == NULL)
 		return;
 		
 	if(sk->size >= sk->loggedSize){
 		sk->loggedSize += INCLEN;
 		/**
-			IMPORTANT: It may not secure here
+			IMPORTANT: It may not secure here, if the realloc is failed it will return NULL
+			and assign back to sk->list and finaly, the sk->list will be NULL accidentally
 		*/
 		sk->list = (NMAST**)realloc(sk->list, sizeof(NMAST*) * sk->loggedSize);
-		
+
+#ifdef DEBUG
+		if(isFirtTime)
+			incNumberOfDynamicObject();
+#endif
 		//if(lst != NULL)
 		//	sk->list = lst;
 	}

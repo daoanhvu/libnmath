@@ -22,8 +22,12 @@ int main(int argc, char *agr[]){
 		return 0;
 	}
 	
-	return test1(argc, agr);
-	//return test2(argc, agr);
+	test1(argc, agr);
+#ifdef DEBUG
+	printf("\n[EndOfProgram] Number of dynamic object alive: %d \n", numberOfDynamicObject());
+#endif
+
+	return 0;
 }
 
 void printError(int col, int code){
@@ -108,63 +112,3 @@ int test1(int argc, char *agr[]){
 	free(f);
 	return 0;
 }
-/*
-int test2(int argc, char *agr[]){
-	char strF[128];
-	char s[128];
-	int len = 10;
-	TokenList lst;
-	int i, ret=0;
-	Function *f;
-
-	lst.loggedSize = 10;
-	lst.list = (Token**)malloc(sizeof(Token*) * lst.loggedSize);
-	lst.size = 0;
-	
-	len = strlen(agr[1]);
-	for(i=0; i<len; i++)
-		strF[i] = agr[1][i];
-	strF[i] = '\0';
-
-	// build the tokens list from the input string
-	parseTokens(strF, len, &lst);
-	// after lexer work, getLexerError() will return -1 if every ok, otherwise it return -1
-	
-	if(getErrorCode() != NO_ERROR){
-		printError(getErrorColumn(), getErrorCode());
-		for(i = 0; i<lst.size; i++)
-			free(lst.list[i]);
-		free(lst.list);
-		return ERROR_LEXER;
-	}
-	
-	//Test token list 
-	printf("\n");
-	for(i = 0; i<lst.size; i++){
-		printf(" %s", lst.list[i]->text);
-	}
-	printf("\n");
-	
-	f = parseFunctionExpression(&lst);
-	
-	for(i = 0; i<lst.size; i++)
-		free(lst.list[i]);
-	free(lst.list);
-	
-	if(getErrorCode() != NO_ERROR){
-		printError(getErrorColumn(), getErrorCode());
-		if(f != NULL)
-			releaseFunct(f);
-		return ERROR_PARSE;
-	}
-	
-	toString(f->prefix[0], s, &ret, 128);
-	s[ret] = '\0';
-	
-	printf("f = %s", s);
-	
-	if(f != NULL)
-		releaseFunct(f);
-	
-	return NO_ERROR;
-}*/

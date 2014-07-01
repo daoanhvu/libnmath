@@ -187,6 +187,12 @@ int isComparationOperator(int type);
 int isConstant(int type);
 int isLetter(char c);
 
+#ifdef DEBUG
+int numberOfDynamicObject();
+void incNumberOfDynamicObject();
+void descNumberOfDynamicObject();
+#endif
+
 #ifdef __cplusplus
 }
 #endif

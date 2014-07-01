@@ -9,7 +9,7 @@ x86:
 	$(CC) -Wall -Werror -c -o bin/plotter32.exe plotter.cpp $(nocyg) $(CFLAGS) $(LIBDIR) -lnmath32  $(LDFLAGS)
 	
 m64:
-	$(CC) -m64 -Wall -Werror -c -o bin/plotter64.exe plotter.cpp $(nocyg) $(CFLAGS) $(LIBDIR) -lnmath64  $(LDFLAGS)
+	$(CC) -m64 -Wall -Werror -c -o bin/plotter64 plotter.cpp $(CFLAGS) $(LIBDIR) -lnmath64  $(LDFLAGS)
 
 clean:
 	rm ./bin/*.*
