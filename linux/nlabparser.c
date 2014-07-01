@@ -15,13 +15,7 @@ NMAST *returnedAst = NULL;
 
 int functionNotation1(int index);
 void parseFunct(TokenList *tokens, int *start, Function *f);
-int domain(int index);
-int interval(int idx);
-int simpleInterval(int idx);
-NMAST* parseOR_AND( int index);
-int simpleDomain(int index);
-int intervalElementOf(int idx);
-int intervalWithBoundaries(int idx);
+void domain(int *start, Function *f);
 
 /******************************************************************************************/
 /**
@@ -181,14 +175,14 @@ Function* parseFunctionExpression1(TokenList *tokens){
 				
 				if(k >= tokens->size) break;
 				
-				if( (tokens->list[k]->type == DOMAIN_NOTATION) 
-							&& (k+1 < tokens->size) && ((l = domain(k+1))>(k+1)) ){
-					pushASTStack(d, returnedAst);
-					returnedAst = NULL;
-					//Clear error status
-					gErrorCode = NO_ERROR;
-					gErrorColumn = -1;
-					k = l;
+				if(tokens->list[k]->type == DOMAIN_NOTATION){
+					if(k+1 < tokens->size){
+						l = k + 1;
+						domain(&l, returnFunction);
+						k = l;
+					} else{
+						//Here, we got a DOMAIN_NOTATION but it's at the end of the token list
+					}
 				}
 			}while( gErrorCode==NO_ERROR && k < tokens->size );
 		}
@@ -201,6 +195,13 @@ Function* parseFunctionExpression1(TokenList *tokens){
 			}
 			returnFunction->prefix->size = 0;
 			free(returnFunction->prefix);
+			
+			for(k=0; k<returnFunction->domain->size; k++){
+				clearTree(&(returnFunction->domain->list[k]));
+			}
+			returnFunction->domain->size = 0;
+			free(returnFunction->domain);
+			
 			free(returnFunction);
 			returnFunction = NULL;
 		}
@@ -292,6 +293,9 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 	prefix->size = 0;
 	prefix->loggedSize = 0;
 	prefix->list = NULL;
+	
+	gErrorColumn = -1;
+	gErrorCode = NO_ERROR;
 	
 	f->numVarNode = 0;
 	i = (*start);
@@ -410,6 +414,7 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 
 				/* got an opening-parenthese but can not find a closing-parenthese */
 				if(stItm==NULL){
+					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
 					for(i=0;i<prefix->size;i++)
 						clearTree(&(prefix->list[i]));
@@ -485,7 +490,6 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 		stItm = popFromStack(stack, &top);
 		
 		if(stItm->type == LPAREN || isAFunctionType(stItm->type)==TRUE){
-			free(stItm);
 			clearStackWithoutFreeItem(stack, top+1);
 			free(stack);
 			for(i=0;i<prefix->size;i++)
@@ -546,528 +550,17 @@ Function* parseFunction(char *str, int len){
 	return f;
 }
 
-/**
- * interval: intervalWithBoundaries | intervalElementOf | simpleInterval;
- * @return the next index token after the interval
- */
-int interval(int idx){
-	int nextIdx;
-	if( (nextIdx = intervalWithBoundaries(idx)) > idx ){
-		return nextIdx;
-	}else if( (nextIdx = intervalElementOf(idx)) > idx){
-		return nextIdx;
-	}else if( (nextIdx = simpleInterval(idx)) > idx){
-		return nextIdx;
-	}
-	return idx;
-}//done
-	
-/**
- * simpleInterval : LPAREN? (NAME|VARIABLE) (LT | LTE | GT | GTE) (NUMBER|PI_TYPE|E_TYPE) RPARENT?
- * @param idx
- * @return
- */
-int simpleInterval(int idx){
-	Token *tk;
-	int oldIdx = idx;
-	
-	if(idx >= gTokens->size) return idx;
-	
-	tk = gTokens->list[idx];
-	if(tk->type == LPAREN && ( gParenTop<0 || gParenStack[gParenTop]!=idx )){
-		gParenTop++;
-		gParenStack[gParenTop]=idx;
-		idx++;
-		tk = gTokens->list[idx];
-	}
-		
-	if(tk->type == NAME || tk->type == VARIABLE){
-		if(gTokens->list[idx+1]->type==LT ||
-				gTokens->list[idx+1]->type==LTE || gTokens->list[idx+1]->type==GT ||
-				gTokens->list[idx+1]->type==GTE) {
-			if(gTokens->list[idx+2]->type == NUMBER || gTokens->list[idx+2]->type == PI_TYPE 
-										|| gTokens->list[idx+2]->type == E_TYPE) {
-				if( (idx + 3)<gTokens->size && gTokens->list[idx + 3]->type == RPAREN){
-					if(gParenTop < 0) {
-						return oldIdx;
-					}
-					gParenTop--;
-					idx++;
-				}
-					
-				returnedAst = (NMAST*)malloc(sizeof(NMAST));
-				returnedAst->parent = NULL;
-				returnedAst->type = gTokens->list[idx+1]->type;
-				returnedAst->variable = 0;
-				returnedAst->value = 0;
-				returnedAst->priority = gTokens->list[idx+1]->priority;
-				
-				returnedAst->left = (NMAST*)malloc(sizeof(NMAST));
-				returnedAst->left->parent = returnedAst;
-				returnedAst->left->type = tk->type;
-				returnedAst->left->variable = tk->text[0];
-				returnedAst->left->value = 0;
-				returnedAst->left->left = returnedAst->left->right = NULL;
-				
-				returnedAst->right = (NMAST*)malloc(sizeof(NMAST));
-				returnedAst->right->parent = returnedAst;
-				returnedAst->right->type = gTokens->list[idx+2]->type;
-				returnedAst->right->variable = 0;
-				returnedAst->right->left = returnedAst->right->right = NULL;
-				switch(gTokens->list[idx+2]->type){
-					case NUMBER:
-						returnedAst->right->value = parseDouble(gTokens->list[idx+2]->text, 0, gTokens->list[idx+2]->textLength, &gErrorColumn);
-					break;
-					
-					case PI_TYPE:
-						returnedAst->right->value = PI;
-					break;
-					
-					case E_TYPE:
-						returnedAst->right->value = E;
-					break;
-				}
-				
-				return (idx+3);
-			}
-		}
-	}
-		
-	return oldIdx;
-}//done
-	
-/**
- * intervalElementOf: NAME ELEMENT_OF (LPAREN | LPRACKET) NUMBER COMMA NUMBER (RPAREN | RPRACKET);
- * @param idx
- * @return
- */
-int intervalElementOf(int idx){
-	double val1, val2;
-	Token *tk, *tokenK1, *tokenK2, *tokenK3, *tokenK4, *tokenK5, *tokenK6;
-	
-	if(idx >= gTokens->size) return idx;
-	
-	tk = gTokens->list[idx];
-	returnedAst = NULL;
-	if(tk->type == NAME){
-		tokenK1 = gTokens->list[idx + 1];
-		if(tokenK1->type==ELEMENT_OF) {
-			tokenK2 = gTokens->list[idx + 2];
-			if(tokenK2->type == LPAREN || tokenK2->type == LPRACKET ){
-				tokenK3 = gTokens->list[idx + 3];
-				if(tokenK3->type == NUMBER || tokenK3->type == PI_TYPE || tokenK3->type == E_TYPE){
-					switch(tokenK3->type){
-						case NUMBER:
-							val1 = parseDouble(tokenK3->text, 0, tokenK3->textLength, &gErrorColumn);
-						break;
-
-						case PI_TYPE:
-							val1 = PI;
-							break;
-
-						case E_TYPE:
-							val1 = E;
-							break;
-					}
-					tokenK4 = gTokens->list[idx + 4];
-					if(tokenK4->type == COMMA){
-						tokenK5 = gTokens->list[idx + 5];
-						if(tokenK5->type == NUMBER || tokenK5->type == PI_TYPE || tokenK5->type == E_TYPE){
-							switch(tokenK5->type){
-								case NUMBER:
-									val2 = parseDouble(tokenK5->text, 0, tokenK5->textLength, &gErrorColumn);
-								break;
-
-								case PI_TYPE:
-									val2 = PI;
-									break;
-
-								case E_TYPE:
-									val2 = E;
-									break;
-							}
-							tokenK6 = gTokens->list[idx + 6];
-							if(tokenK6->type == RPAREN || tokenK6->type == RPRACKET ){
-								returnedAst = (NMAST*)malloc(sizeof(NMAST));
-								returnedAst->type = GT_LT;
-								returnedAst->variable = tk->text[0];
-								returnedAst->parent = NULL;
-
-								returnedAst->left = (NMAST*)malloc(sizeof(NMAST));
-								returnedAst->left->type = tokenK3->type;
-								returnedAst->left->value = val1;
-								returnedAst->left->parent = returnedAst;
-
-								returnedAst->right = (NMAST*)malloc(sizeof(NMAST));
-								returnedAst->right->type = tokenK5->type;;
-								returnedAst->right->value = val2;
-								returnedAst->right->parent = returnedAst;
-
-								return (idx + 7);
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	return idx;
-}
-	
-/**
- * intervalWithLowerAndUpper: LPAREN? NUMBER (LT | LTE | GT | GTE) (NAME|VARIABLE) (LT | LTE | GT | GTE) NUMBER RPARENT? ;
- *	<br>
- * Note that the tree built in this rule as same as the one in rule intervalElementOf
- * @return
- */
-int intervalWithBoundaries(int idx){
-	double val1, val2;
-	Token *tk;
-	Token *tokenK1, *tokenK2, *tokenK3, *tokenK4;
-	int oldIdx = idx, type;
-	
-	if(idx >= gTokens->size) return idx;
-
-	tk = gTokens->list[idx];
-	if(tk->type == LPAREN && ( gParenTop<0 || gParenStack[gParenTop] != idx ) ){
-		gParenTop++;
-		gParenStack[gParenTop] = idx;
-		idx++;
-		tk = gTokens->list[idx];
-	}
-		
-	if(tk->type == NUMBER || tk->type == PI_TYPE || tk->type == E_TYPE){
-	
-		switch(tk->type){
-			case NUMBER:
-				val1 = parseDouble(tk->text, 0, tk->textLength, &gErrorColumn);
-			break;
-			
-			case PI_TYPE:
-				val1 = PI;
-			break;
-			
-			case E_TYPE:
-				val1 = E;
-			break;
-		}
-		
-		tokenK1 = gTokens->list[idx + 1];
-		if(isComparationOperator(tokenK1->type)){
-			tokenK2 = gTokens->list[idx + 2];
-			if(tokenK2->type == NAME || tokenK2->type == VARIABLE){
-				tokenK3 = gTokens->list[idx + 3];
-				if(isComparationOperator(tokenK3->type)){
-					tokenK4 = gTokens->list[idx + 4];
-					if(tokenK4->type == NUMBER || tokenK4->type == PI_TYPE || tokenK4->type == E_TYPE){
-						
-						switch(tokenK4->type){
-							case NUMBER:
-								val2 = parseDouble(tokenK4->text, 0, tokenK4->textLength, &gErrorColumn);
-							break;
-							
-							case PI_TYPE:
-								val2 = PI;
-							break;
-							
-							case E_TYPE:
-								val2 = E;
-							break;
-						}
-						
-						if(gTokens->list[idx + 5]->type == RPAREN){
-							if(gParenTop < 0)
-								return oldIdx;
-
-							gParenTop--;
-							idx++;
-						}
-							
-						/**
-							The reason for doing this is that we always
-							read the comparation in the order that 
-							variable comes first.
-							Example: -1 < x < 3
-								x is greater than -1 and x is less than 3
-						*/
-						if(tokenK1->type == GT && tokenK3->type == LT)
-							type = GT_LT;
-						else if(tokenK1->type == GTE && tokenK3->type == LT)
-							type = GTE_LT;
-						else if(tokenK1->type == GT && tokenK3->type == LTE)
-							type = GT_LTE;
-						else if(tokenK1->type == GTE && tokenK3->type == LTE)
-							type = GTE_LTE;
-							
-						returnedAst = (NMAST*)malloc(sizeof(NMAST));
-						returnedAst->type = type;
-						returnedAst->variable = tokenK2->text[0];
-						returnedAst->parent = NULL;
-						
-						returnedAst->left = (NMAST*)malloc(sizeof(NMAST));
-						returnedAst->left->type = NUMBER;
-						returnedAst->left->value = val1;
-						returnedAst->left->parent = returnedAst;
-
-						returnedAst->right = (NMAST*)malloc(sizeof(NMAST));
-						returnedAst->right->type = NUMBER;
-						returnedAst->right->value = val2;
-						returnedAst->right->parent = returnedAst;
-						
-						return idx + 5;
-					}
-				}
-			}
-		}
-	}
-	return oldIdx;
-}
-	
-/**
- * simple_domain: LPAREN? interval ( (OR | AND) interval)* RPAREN? ;
- */
-int simpleDomain(int index){
-	int k, l;
-	int oldIndex = index;
-	NMASTList *rs, *sk;
-	NMAST *itm, *op1, *op2;
-	Token *tk;
-	
-	if(index >= gTokens->size) return index;
-	
-	tk = gTokens->list[index];
-	if(tk->type == LPAREN && ( gParenTop<0 || gParenStack[gParenTop]!=index ) ){
-		gParenTop++;
-		gParenStack[gParenTop] = index;
-		index++;
-	}
-		
-	returnedAst = NULL;
-	if( (k=interval(index)) > index ){
-		//init rs
-		rs = (NMASTList*)malloc(sizeof(NMASTList));
-		rs->list = NULL;
-		rs->loggedSize = 0;
-		rs->size = 0;
-		
-		pushASTStack(rs, returnedAst);
-		if( k < gTokens->size ) {
-			tk = gTokens->list[k];
-		}else{
-			//If we got a RPAREN here, maybe it belong to parent rule
-			//if(index > oldIndex && gParenTop > 0)
-			//	gParenTop--;
-					
-			free(rs);
-			return k;
-		}
-		sk = (NMASTList*)malloc(sizeof(NMASTList));
-		sk->list = NULL;
-		sk->loggedSize = 0;
-		sk->size = 0;
-
-		while( tk != NULL ){
-			if((tk->type == OR || tk->type == AND) 
-							&& ((l = interval(k+1))>(k+1))) {
-				//Logical Operator
-				op1 = (NMAST*)malloc(sizeof(NMAST));
-				op1->type = gTokens->list[index]->type;
-				op1->priority = tk->priority;
-				op1->value = 0.0;
-				op1->valueType = TYPE_FLOATING_POINT;
-				op1->sign = 1;
-				op1->parent = op1->left = op1->right = NULL;
-				
-				while(sk->size>0 && (sk->list[sk->size-1]->type==OR||sk->list[sk->size-1]->type==AND)
-						&&(sk->list[sk->size-1]->priority >= op1->priority)){
-					op2 = popASTStack(sk);
-					pushASTStack(rs, op2);
-				}
-				pushASTStack(sk, op1);
-				
-				pushASTStack(rs, returnedAst);
-				k = l;
-				tk = (k<gTokens->size)?gTokens->list[k]:NULL;
-			}else if(tk->type == RPAREN){
-				//TODO: need clear stack, clear rs, release stack, release rs
-				if(gParenTop < 0){ //ERROR: got RPAREN but there is not any LPAREN
-					free(sk);
-					free(rs);
-					return oldIndex;
-				}
-				/**
-				 * it's is possible that this RPAREN comes from parent rule
-				 */
-				gParenTop--;
-				k++;
-				tk = NULL;
-			}else{
-				tk = NULL;
-			}
-		}
-			
-		while(sk->size > 0){
-			pushASTStack(rs, popASTStack(sk));
-		}
-		//release stack
-		free(sk);
-			
-		if(rs->size > 0){
-			//Build tree from infix
-			while(rs->size > 1){
-				l = 2;
-				itm = rs->list[l];
-				while( (l+1)<rs->size && itm->type != OR && itm->type != AND){
-					l++;
-					itm = rs->list[l];
-				}
-				itm->left = rs->list[l-2];
-				itm->right = rs->list[l-1];
-				removeFromNMASTList(rs, l-2, 2);
-			}
-			returnedAst = rs->list[0];
-		}
-		free(rs);	
-		return k;
-	}
-	return oldIndex;
-} //done
-	
-NMAST* parseOR_AND( int index) {
-	NMAST* ast;
-	if(gTokens->list[index]->type == OR || gTokens->list[index]->type == AND){
-		ast = (NMAST*)malloc(sizeof(NMAST)); //AST(currentToken.getType(), .getText(), currentToken.getColumn());
-		ast->type = gTokens->list[index]->type;
-		ast->value = 0.0;
-		ast->priority = gTokens->list[index]->priority;
-		ast->valueType = TYPE_FLOATING_POINT;
-		ast->sign = 1;
-		ast->parent = ast->left = ast->right = NULL;
-		return ast;
-	}
-	return NULL;
-}
-
-/**
- * domain: LPARENT? simple_domain ( (OR | AND) simple_domain)*  RPARENT?;
- */
-int domain(int index){
-	int k, l;
-	int oldIndex = index;
-	NMASTList *rs, *sk;
-	NMAST *itm, *op1, *op2;
-	Token *tk;
-	
-	if(index >= gTokens->size) return index;
-	
-	tk = gTokens->list[index];
-	if(tk->type == LPAREN && ( gParenTop<0 || gParenStack[gParenTop]!=index ) ){
-		gParenTop++;
-		gParenStack[gParenTop] = index;
-		index++;
-	}
-		
-	returnedAst = NULL;
-	if( (k=simpleDomain(index)) > index ){
-		//init rs
-		rs = (NMASTList*)malloc(sizeof(NMASTList));
-		rs->list = NULL;
-		rs->loggedSize = 0;
-		rs->size = 0;
-		
-		pushASTStack(rs, returnedAst);
-		if( k < gTokens->size ) {
-			tk = gTokens->list[k];
-		}else{
-			//If we got a RPAREN here, maybe it belong to parent rule
-			//if(index > oldIndex)
-			//	g_ParenInStack--;
-					
-			free(rs);
-			return k;
-		}
-		sk = (NMASTList*)malloc(sizeof(NMASTList));
-		sk->list = NULL;
-		sk->loggedSize = 0;
-		sk->size = 0;
-			
-		while( tk != NULL ){
-			if((tk->type==OR||tk->type==AND) && ((l = simpleDomain(k+1))>(k+1))) {
-				//Logical Operator
-				op1 = (NMAST*)malloc(sizeof(NMAST));
-				op1->type = gTokens->list[index]->type;
-				op1->priority = tk->priority;
-				op1->value = 0.0;
-				op1->valueType = TYPE_FLOATING_POINT;
-				op1->sign = 1;
-				op1->parent = op1->left = op1->right = NULL;
-				
-				while(sk->size>0 && (sk->list[sk->size-1]->type==OR||sk->list[sk->size-1]->type==AND)
-						&&(sk->list[sk->size-1]->priority >= tk->priority)){
-					op2 = popASTStack(sk);
-					pushASTStack(rs, op2);
-				}
-				pushASTStack(sk, op1);
-				
-				pushASTStack(rs, returnedAst);
-				k = l;
-				tk = (k<gTokens->size)?gTokens->list[k]:NULL;
-			}else if(tk->type == RPAREN){
-				//TODO: need clear stack, clear rs, release stack, release rs
-				if(gParenTop < 0){ //ERROR:
-					free(sk);
-					free(rs);
-					return oldIndex;
-				}
-				/**
-				 * it's is possible that this RPAREN comes from parent rule
-				 */
-				gParenTop--;
-				k++;
-				tk = NULL;
-			}else{
-				tk = NULL;
-			}
-		}
-			
-		while(sk->size > 0){
-			pushASTStack(rs, popASTStack(sk));
-		}
-		//release stack
-		free(sk);
-			
-		if(rs->size > 0){
-			//Build tree from infix
-			while(rs->size > 1){
-				l = 2;
-				itm = rs->list[l];
-				while(itm->type != OR && itm->type != AND){
-					l++;
-					itm = rs->list[l];
-				}
-				itm->left = rs->list[l-2];
-				itm->right = rs->list[l-1];
-				removeFromNMASTList(rs, l-2, 2);
-			}
-			returnedAst = rs->list[0];
-		}
-		free(rs);	
-		return k;
-	}
-	return oldIndex;
-}
-
-int domain2(int index){
+void domain(int *start, Function *f){
 	int isEndExp = FALSE;
-	int top = -1;
+	int i, index, top = -1, allocLen=0;
 	Token* tk;
 	double val;
 	Token **stack = NULL;
 	NMASTList *d;
-	Token *stItm = NULL;
-	NMAST *ast = NULL;
+	Token *tokenItm = NULL;
+	NMAST *ast, *astTmp;
 
-	if(tokens == NULL){
+	if(gTokens == NULL){
 		gErrorColumn = 0;
 		gErrorCode = ERROR_BAD_TOKEN;
 		return ;
@@ -1077,16 +570,19 @@ int domain2(int index){
 	d->loggedSize = 0;
 	d->list = NULL;
 	
+	gErrorColumn = -1;
+	gErrorCode = NO_ERROR;
+	
+	index = *start;
 	while(index < gTokens->size && !isEndExp){
 		tk = gTokens->list[index];
-		
 		switch(tk->type){
 			case NUMBER:
 			case PI_TYPE:
 			case E_TYPE:
 				ast = (NMAST*)malloc(sizeof(NMAST));
 				val = parseDouble(tk->text, 0, tk->textLength, &gErrorCode);
-				if(val == 0 && error < 0){
+				if(val == 0 && gErrorCode != NO_ERROR){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
 					for(i=0;i<d->size;i++)
@@ -1094,7 +590,6 @@ int domain2(int index){
 					free(d->list);
 					free(d);
 					gErrorColumn = tk->column;
-					gErrorCode = ERROR_PARSING_NUMBER;
 					return;
 				}
 
@@ -1115,14 +610,14 @@ int domain2(int index){
 			case AND:
 			case OR:
 			if(top >= 0){
-					stItm = stack[top];
-					while((isAnOperatorType(stItm->type)==TRUE) && (stItm->priority) >= tk->priority){
-						stItm = popFromStack(stack, &top);
+					tokenItm = stack[top];
+					while((isAnOperatorType(tokenItm->type)==TRUE) && (tokenItm->priority) >= tk->priority){
+						tokenItm = popFromStack(stack, &top);
 
 						ast = (NMAST*)malloc(sizeof(NMAST));
 						ast->left = ast->right = NULL;
-						ast->type = stItm->type;
-						ast->priority = stItm->priority;
+						ast->type = tokenItm->type;
+						ast->priority = tokenItm->priority;
 						ast->left = d->list[d->size-2];
 						ast->right = d->list[d->size-1];
 						
@@ -1138,19 +633,19 @@ int domain2(int index){
 						if(top < 0)
 							break;
 
-						stItm = stack[top];
+						tokenItm = stack[top];
 					}
 				}
 				//push operation o1 (tk) into stack
 				pushItem2Stack(&stack, &top, &allocLen, tk);
-				i++;
+				index++;
 			break;
 
 			case RPAREN:
-				stItm = popFromStack(stack, &top);
+				tokenItm = popFromStack(stack, &top);
 
 				/* got an opening-parenthese but can not find a closing-parenthese */
-				if(stItm == NULL){
+				if(tokenItm == NULL){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
 					for(i=0;i<d->size;i++)
@@ -1163,13 +658,14 @@ int domain2(int index){
 				}
 
 				/*  */
-				while(stItm!=NULL && (stItm->type != LPAREN) && isAFunctionType(stItm->type)  != TRUE){
-					addFunction2Tree(d, stItm);
-					stItm = popFromStack(stack, &top);
+				while(tokenItm!=NULL && (tokenItm->type != LPAREN) && isAFunctionType(tokenItm->type)  != TRUE){
+					addFunction2Tree(d, tokenItm);
+					tokenItm = popFromStack(stack, &top);
 				}
 
-				/* got an opening-parenthese but can not find a closing-parenthese */
-				if(stItm==NULL){
+				if(tokenItm==NULL){
+					/** ERROR: got an opening-parenthese but can not find a closing-parenthese */
+					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
 					for(i=0;i<d->size;i++)
 						clearTree(&(d->list[i]));
@@ -1180,8 +676,8 @@ int domain2(int index){
 					return;
 				}
 
-				if(isAFunctionType(stItm->type)  == TRUE){
-					addFunction2Tree(d, stItm);
+				if(isAFunctionType(tokenItm->type)  == TRUE){
+					addFunction2Tree(d, tokenItm);
 				}
 				
 				index++;
@@ -1193,9 +689,167 @@ int domain2(int index){
 			break;
 			
 			case VARIABLE:
+				if(( (index+1) < gTokens->size) && gTokens->list[index+1]->type == ELEMENT_OF){
+					/*
+						VARIABLE ELEMENT_OF [NUMBER,NUMBER]
+						VARIABLE ELEMENT_OF (NUMBER,NUMBER]
+						VARIABLE ELEMENT_OF [NUMBER,NUMBER)
+						VARIABLE ELEMENT_OF (NUMBER,NUMBER)
+					*/
+					if( ( index+6 < gTokens->size) && (gTokens->list[index+2]->type == LPRACKET || gTokens->list[index+2]->type == LPAREN)
+								&& (gTokens->list[index+3]->type == NUMBER || gTokens->list[index+3]->type == PI_TYPE || gTokens->list[index+3]->type == E_TYPE)
+								&& gTokens->list[index+4]->type == COMMA 
+								&& (gTokens->list[index+5]->type == NUMBER || gTokens->list[index+5]->type == PI_TYPE || gTokens->list[index+5]->type == E_TYPE) 
+								&& (gTokens->list[index+6]->type == RPRACKET || gTokens->list[index+6]->type == RPAREN )){
+								
+						ast = (NMAST*)malloc(sizeof(NMAST));
+						ast->valueType = TYPE_FLOATING_POINT;
+						ast->sign = 1;
+						ast->left = ast->right = ast->parent = NULL;
+						ast->value = val;
+						ast->type = AND;
+						
+						//Left GTE or GT
+						astTmp = (NMAST*)malloc(sizeof(NMAST));
+						astTmp->valueType = TYPE_FLOATING_POINT;
+						astTmp->sign = 1;
+						astTmp->left = astTmp->right = NULL;
+						astTmp->parent = ast;
+						astTmp->value = val;
+						astTmp->type = (gTokens->list[index+2]->type == LPRACKET)?GTE:GT;
+						ast->left = astTmp;
+						
+						//Left->Left VARIABLE
+						astTmp->left = (NMAST*)malloc(sizeof(NMAST));
+						astTmp->left->valueType = TYPE_FLOATING_POINT;
+						astTmp->left->sign = 1;
+						astTmp->left->left = astTmp->left->right = NULL;
+						astTmp->left->parent = astTmp;
+						astTmp->left->value = 0.0;
+						astTmp->left->type = VARIABLE;
+						
+						//Left->Right NUMBER or PI_TYPE or E_TYPE
+						astTmp->right = (NMAST*)malloc(sizeof(NMAST));
+						astTmp->right->valueType = TYPE_FLOATING_POINT;
+						astTmp->right->sign = 1;
+						astTmp->right->left = astTmp->right->right = NULL;
+						astTmp->right->parent = astTmp;
+						switch(gTokens->list[index+3]->type){
+							case NUMBER:
+								astTmp->right->value = parseDouble(gTokens->list[index+3]->text, 0, gTokens->list[index+3]->textLength, &gErrorCode);
+							break;
+							
+							case PI_TYPE:
+								astTmp->right->value = PI;
+							break;
+							
+							case E_TYPE:
+								astTmp->right->value = E;
+							break;
+						}
+						astTmp->right->type = gTokens->list[index+3]->type;
+						
+						
+						//Right
+						astTmp = (NMAST*)malloc(sizeof(NMAST));
+						astTmp->valueType = TYPE_FLOATING_POINT;
+						astTmp->sign = 1;
+						astTmp->left = astTmp->right = NULL;
+						astTmp->parent = ast;
+						astTmp->value = val;
+						astTmp->type = (gTokens->list[index+6]->type == RPRACKET)?LTE:LT;
+						ast->right = astTmp;
+						
+						//Right->Left VARIABLE
+						astTmp->left = (NMAST*)malloc(sizeof(NMAST));
+						astTmp->left->valueType = TYPE_FLOATING_POINT;
+						astTmp->left->sign = 1;
+						astTmp->left->left = astTmp->left->right = NULL;
+						astTmp->left->parent = astTmp;
+						astTmp->left->value = 0.0;
+						astTmp->left->type = VARIABLE;
+						
+						//Right->Right NUMBER or PI_TYPE or E_TYPE
+						astTmp->right = (NMAST*)malloc(sizeof(NMAST));
+						astTmp->right->valueType = TYPE_FLOATING_POINT;
+						astTmp->right->sign = 1;
+						astTmp->right->left = astTmp->right->right = NULL;
+						astTmp->right->parent = astTmp;
+						switch(gTokens->list[index+5]->type){
+							case NUMBER:
+								astTmp->right->value = parseDouble(gTokens->list[index+3]->text, 0, gTokens->list[index+3]->textLength, &gErrorCode);
+							break;
+							
+							case PI_TYPE:
+								astTmp->right->value = PI;
+							break;
+							
+							case E_TYPE:
+								astTmp->right->value = E;
+							break;
+						}
+						astTmp->right->type = gTokens->list[index+5]->type;
+						
+						pushASTStack(d, ast);
+						index += 7;		
+					}else{
+						/**
+							ERROR:After ELEMENT_OF is not a right syntax
+						*/
+						clearStackWithoutFreeItem(stack, top+1);
+						free(stack);
+						for(i=0;i<d->size;i++)
+							clearTree(&(d->list[i]));
+						free(d->list);
+						free(d);
+						gErrorColumn = tk->column;
+						gErrorCode = ERROR_SYNTAX;
+						return; 
+					}
+				}else {
+					ast = (NMAST*)malloc(sizeof(NMAST));
+					ast->valueType = TYPE_FLOATING_POINT;
+					ast->sign = 1;
+					ast->left = ast->right = ast->parent = NULL;
+					ast->value = val;
+					ast->type = tk->type;
+					pushASTStack(d, ast);
+					index++;
+				}
+			break;
+			
+			case SEMI:
+				isEndExp = TRUE;
 			break;
 		}
 	}
 	
-	return 0;
+	while(top >= 0){
+		tokenItm = popFromStack(stack, &top);
+		
+		if(tokenItm->type == LPAREN || isAFunctionType(tokenItm->type)==TRUE){
+			clearStackWithoutFreeItem(stack, top+1);
+			free(stack);
+			for(i=0;i<d->size;i++)
+				clearTree(&(d->list[i]));
+			free(d->list);
+			free(d);
+			gErrorColumn = tk->column;
+			gErrorCode = ERROR_PARENTHESE_MISSING;
+			return; 
+		}
+		addFunction2Tree(d, tokenItm);
+	}
+	*start = index;
+	/**
+		If we make sure that the function f is initialized 
+		ok we do not need to check here. Actually, we SHOULD initialize it completely
+	*/
+	if(f->domain == NULL)
+		f->domain = (NMASTList*)malloc(sizeof(NMASTList));
+		
+	pushASTStack(f->domain, d->list[0]);
+	
+	free(stack);
+	free(d);
 }
