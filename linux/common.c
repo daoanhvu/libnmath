@@ -146,6 +146,11 @@ void clearTree(NMAST **prf){
 		
 	free(*prf);
 	(*prf) = NULL;
+	
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+	
 }
 
 long l_cast(double val, double *fr){

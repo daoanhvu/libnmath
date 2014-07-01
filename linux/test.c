@@ -84,7 +84,7 @@ int test1(int argc, char *agr[]){
 	int error;
 	double vars[] = {4, 1};
 	double ret;
-	char dstr[32];
+	char dstr[64];
 	int l = 0;
 
 	printf("%s\n", agr[1]);
@@ -98,17 +98,26 @@ int test1(int argc, char *agr[]){
 	}
 	l = 0;
 	ret = calc(f, vars, 2, &error);
-	printf("Ret = %lf", ret );
-	d.t = *(f->prefix->list);
+	printf("Ret = %lf \n", ret );
+	d.t = f->prefix->list[0];
 	d.error = 0;
 	d.returnValue = NULL;
 	d.x = 'x';
-	derivative(&d);
 
-	toString(d.returnValue, dstr, &l, 32);
+//#ifdef __unix
+	d.returnValue = derivative(&d);
+//#else
+//	derivative(&d);
+//#endif
+
+	toString(d.returnValue, dstr, &l, 64);
+	printf("f' = %s\n", dstr);
 	clearTree(&(d.returnValue));
 
 	releaseFunct(f);
 	free(f);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 	return 0;
 }

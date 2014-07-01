@@ -82,6 +82,9 @@ void addFunction2Tree(NMASTList *t, Token * stItm){
 		case DIVIDE:
 		case POWER:
 			ast = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+			incNumberOfDynamicObject();
+#endif
 			ast->valueType = TYPE_FLOATING_POINT;
 			ast->sign = 1;
 			ast->type = stItm->type;
@@ -109,6 +112,9 @@ void addFunction2Tree(NMASTList *t, Token * stItm){
 		case SQRT:
 		case LN:
 			ast = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+			incNumberOfDynamicObject();
+#endif
 			ast->valueType = TYPE_FLOATING_POINT;
 			ast->sign = 1;
 			ast->type = stItm->type;
@@ -126,6 +132,9 @@ void addFunction2Tree(NMASTList *t, Token * stItm){
 										
 		case LOG:
 			ast = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+			incNumberOfDynamicObject();
+#endif
 			ast->valueType = TYPE_FLOATING_POINT;
 			ast->sign = 1;
 			ast->type = stItm->type;
@@ -157,6 +166,9 @@ Function* parseFunctionExpression1(TokenList *tokens){
 	gErrorCode = ERROR_NOT_A_FUNCTION;
 	gErrorColumn = tokens->list[idx]->column;
 	d = (NMASTList*)malloc(sizeof(NMASTList));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	d->size = 0;
 	d->loggedSize = 0;
 	d->list = NULL;
@@ -200,14 +212,22 @@ Function* parseFunctionExpression1(TokenList *tokens){
 			}
 			returnFunction->prefix->size = 0;
 			free(returnFunction->prefix);
-			
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 			for(k=0; k<returnFunction->domain->size; k++){
 				clearTree(&(returnFunction->domain->list[k]));
 			}
 			returnFunction->domain->size = 0;
 			free(returnFunction->domain);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 			
 			free(returnFunction);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 			returnFunction = NULL;
 		}
 		
@@ -252,6 +272,9 @@ int functionNotation1(int index){
 				gErrorColumn = gTokens->list[index]->column;
 				if( (index<gTokens->size) && (gTokens->list[index]->type == RPAREN)){
 					returnFunction = (Function*)malloc(sizeof(Function));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 					returnFunction->prefix = NULL;
 					returnFunction->domain = NULL;
 					returnFunction->str = NULL;
@@ -295,6 +318,9 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 		return ;
 	}
 	prefix = (NMASTList*)malloc(sizeof(NMASTList));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	prefix->size = 0;
 	prefix->loggedSize = 0;
 	prefix->list = NULL;
@@ -312,16 +338,26 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 				if(val == 0 && error < 0){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 					for(i=0;i<prefix->size;i++)
 						clearTree(&(prefix->list[i]));
 					free(prefix->list);
 					free(prefix);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+	descNumberOfDynamicObject();
+#endif
 					gErrorColumn = tk->column;
 					gErrorCode = ERROR_PARSING_NUMBER;
 					return;
 				}
 
 				ast = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 				ast->valueType = TYPE_FLOATING_POINT;
 				ast->sign = 1;
 				ast->left = ast->right = ast->parent = NULL;
@@ -333,6 +369,9 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 
 			case E_TYPE:
 				ast = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 				ast->left = ast->right = ast->parent = NULL;
 				ast->valueType = 0;
 				ast->value = E;
@@ -343,6 +382,9 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 
 			case PI_TYPE:
 				ast = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 				ast->left = ast->right = ast->parent = NULL;
 				ast->value = PI;
 				ast->type = PI_TYPE;
@@ -363,6 +405,9 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 						stItm = popFromStack(stack, &top);
 
 						ast = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 						ast->left = ast->right = NULL;
 						ast->type = stItm->type;
 						ast->priority = stItm->priority;
@@ -401,10 +446,17 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 				if(stItm == NULL){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 					for(i=0;i<prefix->size;i++)
 						clearTree(&(prefix->list[i]));
 					free(prefix->list);
 					free(prefix);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+	descNumberOfDynamicObject();
+#endif
 					gErrorColumn = tk->column;
 					gErrorCode = ERROR_PARENTHESE_MISSING;
 					return ;
@@ -421,10 +473,17 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 				if(stItm==NULL){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 					for(i=0;i<prefix->size;i++)
 						clearTree(&(prefix->list[i]));
 					free(prefix->list);
 					free(prefix);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+	descNumberOfDynamicObject();
+#endif
 					gErrorColumn = tk->column;
 					gErrorCode = ERROR_PARENTHESE_MISSING;
 					return;
@@ -433,7 +492,6 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 				if(isAFunctionType(stItm->type)  == TRUE){
 					addFunction2Tree(prefix, stItm);
 				}
-				//free(stItm);
 				i++;
 				break;
 
@@ -458,6 +516,9 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 			//case NAME:
 			case VARIABLE:
 				ast = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 				ast->parent = ast->left = ast->right = NULL;
 				ast->type = tk->type;
 				ast->variable = tk->text[0];
@@ -481,10 +542,17 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 			default:
 				clearStackWithoutFreeItem(stack, top+1);
 				free(stack);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 				for(i=0;i<prefix->size;i++)
 					clearTree(&(prefix->list[i]));
 				free(prefix->list);
 				free(prefix);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+	descNumberOfDynamicObject();
+#endif
 				gErrorColumn = tk->column;
 				gErrorCode = ERROR_BAD_TOKEN;
 				return;
@@ -497,10 +565,17 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 		if(stItm->type == LPAREN || isAFunctionType(stItm->type)==TRUE){
 			clearStackWithoutFreeItem(stack, top+1);
 			free(stack);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 			for(i=0;i<prefix->size;i++)
 				clearTree(&(prefix->list[i]));
 			free(prefix->list);
 			free(prefix);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+	descNumberOfDynamicObject();
+#endif
 			gErrorColumn = tk->column;
 			gErrorCode = ERROR_PARENTHESE_MISSING;
 			return; 
@@ -512,13 +587,21 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 		If we make sure that the function f is initialized 
 		ok we do not need to check here. Actually, we SHOULD initialize it completely
 	*/
-	if(f->prefix == NULL)
+	if(f->prefix == NULL){
 		f->prefix = (NMASTList*)malloc(sizeof(NMASTList));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+	}
 		
 	pushASTStack(f->prefix, prefix->list[0]);
 	
 	free(stack);
 	free(prefix);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+	descNumberOfDynamicObject();
+#endif
 	*start = i;
 
 	//if(f->numVarNode > 0) {
@@ -583,6 +666,9 @@ void domain(int *start, Function *f){
 		return ;
 	}
 	d = (NMASTList*)malloc(sizeof(NMASTList));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	d->size = 0;
 	d->loggedSize = 0;
 	d->list = NULL;
@@ -598,19 +684,32 @@ void domain(int *start, Function *f){
 			case PI_TYPE:
 			case E_TYPE:
 				ast = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 				val = parseDouble(tk->text, 0, tk->textLength, &gErrorCode);
 				if(val == 0 && gErrorCode != NO_ERROR){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 					for(i=0;i<d->size;i++)
 						clearTree(&(d->list[i]));
 					free(d->list);
 					free(d);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+	descNumberOfDynamicObject();
+#endif
 					gErrorColumn = tk->column;
 					return;
 				}
 
 				ast = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 				ast->valueType = TYPE_FLOATING_POINT;
 				ast->sign = 1;
 				ast->left = ast->right = ast->parent = NULL;
@@ -632,6 +731,9 @@ void domain(int *start, Function *f){
 						tokenItm = popFromStack(stack, &top);
 
 						ast = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 						ast->left = ast->right = NULL;
 						ast->type = tokenItm->type;
 						ast->priority = tokenItm->priority;
@@ -665,10 +767,17 @@ void domain(int *start, Function *f){
 				if(tokenItm == NULL){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 					for(i=0;i<d->size;i++)
 						clearTree(&(d->list[i]));
 					free(d->list);
 					free(d);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+	descNumberOfDynamicObject();
+#endif
 					gErrorColumn = tk->column;
 					gErrorCode = ERROR_PARENTHESE_MISSING;
 					return ;
@@ -684,10 +793,17 @@ void domain(int *start, Function *f){
 					/** ERROR: got an opening-parenthese but can not find a closing-parenthese */
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 					for(i=0;i<d->size;i++)
 						clearTree(&(d->list[i]));
 					free(d->list);
 					free(d);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+	descNumberOfDynamicObject();
+#endif
 					gErrorColumn = tk->column;
 					gErrorCode = ERROR_PARENTHESE_MISSING;
 					return;
@@ -720,6 +836,9 @@ void domain(int *start, Function *f){
 								&& (gTokens->list[index+6]->type == RPRACKET || gTokens->list[index+6]->type == RPAREN )){
 								
 						ast = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 						ast->valueType = TYPE_FLOATING_POINT;
 						ast->sign = 1;
 						ast->left = ast->right = ast->parent = NULL;
@@ -728,6 +847,9 @@ void domain(int *start, Function *f){
 						
 						//Left GTE or GT
 						astTmp = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 						astTmp->valueType = TYPE_FLOATING_POINT;
 						astTmp->sign = 1;
 						astTmp->left = astTmp->right = NULL;
@@ -738,6 +860,9 @@ void domain(int *start, Function *f){
 						
 						//Left->Left VARIABLE
 						astTmp->left = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 						astTmp->left->valueType = TYPE_FLOATING_POINT;
 						astTmp->left->sign = 1;
 						astTmp->left->left = astTmp->left->right = NULL;
@@ -747,6 +872,9 @@ void domain(int *start, Function *f){
 						
 						//Left->Right NUMBER or PI_TYPE or E_TYPE
 						astTmp->right = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 						astTmp->right->valueType = TYPE_FLOATING_POINT;
 						astTmp->right->sign = 1;
 						astTmp->right->left = astTmp->right->right = NULL;
@@ -769,6 +897,9 @@ void domain(int *start, Function *f){
 						
 						//Right
 						astTmp = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 						astTmp->valueType = TYPE_FLOATING_POINT;
 						astTmp->sign = 1;
 						astTmp->left = astTmp->right = NULL;
@@ -779,6 +910,9 @@ void domain(int *start, Function *f){
 						
 						//Right->Left VARIABLE
 						astTmp->left = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 						astTmp->left->valueType = TYPE_FLOATING_POINT;
 						astTmp->left->sign = 1;
 						astTmp->left->left = astTmp->left->right = NULL;
@@ -788,6 +922,9 @@ void domain(int *start, Function *f){
 						
 						//Right->Right NUMBER or PI_TYPE or E_TYPE
 						astTmp->right = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 						astTmp->right->valueType = TYPE_FLOATING_POINT;
 						astTmp->right->sign = 1;
 						astTmp->right->left = astTmp->right->right = NULL;
@@ -815,16 +952,26 @@ void domain(int *start, Function *f){
 						*/
 						clearStackWithoutFreeItem(stack, top+1);
 						free(stack);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 						for(i=0;i<d->size;i++)
 							clearTree(&(d->list[i]));
 						free(d->list);
 						free(d);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+	descNumberOfDynamicObject();
+#endif
 						gErrorColumn = tk->column;
 						gErrorCode = ERROR_SYNTAX;
 						return; 
 					}
 				}else {
 					ast = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 					ast->valueType = TYPE_FLOATING_POINT;
 					ast->sign = 1;
 					ast->left = ast->right = ast->parent = NULL;
@@ -847,10 +994,17 @@ void domain(int *start, Function *f){
 		if(tokenItm->type == LPAREN || isAFunctionType(tokenItm->type)==TRUE){
 			clearStackWithoutFreeItem(stack, top+1);
 			free(stack);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 			for(i=0;i<d->size;i++)
 				clearTree(&(d->list[i]));
 			free(d->list);
 			free(d);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+	descNumberOfDynamicObject();
+#endif
 			gErrorColumn = tk->column;
 			gErrorCode = ERROR_PARENTHESE_MISSING;
 			return; 
@@ -862,11 +1016,19 @@ void domain(int *start, Function *f){
 		If we make sure that the function f is initialized 
 		ok we do not need to check here. Actually, we SHOULD initialize it completely
 	*/
-	if(f->domain == NULL)
+	if(f->domain == NULL){
 		f->domain = (NMASTList*)malloc(sizeof(NMASTList));
+#ifdef DEBUG
+		incNumberOfDynamicObject();
+#endif
+	}
 		
 	pushASTStack(f->domain, d->list[0]);
 	
 	free(stack);
 	free(d);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+	descNumberOfDynamicObject();
+#endif
 }

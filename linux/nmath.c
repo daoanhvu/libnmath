@@ -322,11 +322,18 @@ void releaseFunct(Function *f){
 		for(i=0; i<f->prefix->size; i++){
 			clearTree(&(f->prefix->list[i]));
 		}
-		if(f->prefix->list != NULL)
+		if(f->prefix->list != NULL){
 			free(f->prefix->list);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+		}
 		f->prefix->size = 0;
 		f->prefix->loggedSize = 0;
 		free(f->prefix);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 		f->prefix = NULL;
 	}
 	
@@ -334,16 +341,26 @@ void releaseFunct(Function *f){
 		for(i=0; i<f->domain->size; i++){
 			clearTree(&(f->domain->list[i]));
 		}
-		if(f->domain->list != NULL)
+		if(f->domain->list != NULL){
 			free(f->domain->list);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+		}
 		f->domain->size = 0;
 		f->domain->loggedSize = 0;
 		free(f->domain);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 		f->domain = NULL;
 	}
 
 	if(f->numVarNode > 0){
 		free(f->variableNode);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 		f->variableNode = NULL;
 	}
 }
