@@ -1056,3 +1056,146 @@ int domain(int index){
 	}
 	return oldIndex;
 }
+
+int domain2(int index){
+	int isEndExp = FALSE;
+	int top = -1;
+	Token* tk;
+	double val;
+	Token **stack = NULL;
+	NMASTList *d;
+	Token *stItm = NULL;
+	NMAST *ast = NULL;
+
+	if(tokens == NULL){
+		gErrorColumn = 0;
+		gErrorCode = ERROR_BAD_TOKEN;
+		return ;
+	}
+	d = (NMASTList*)malloc(sizeof(NMASTList));
+	d->size = 0;
+	d->loggedSize = 0;
+	d->list = NULL;
+	
+	while(index < gTokens->size && !isEndExp){
+		tk = gTokens->list[index];
+		
+		switch(tk->type){
+			case NUMBER:
+			case PI_TYPE:
+			case E_TYPE:
+				ast = (NMAST*)malloc(sizeof(NMAST));
+				val = parseDouble(tk->text, 0, tk->textLength, &gErrorCode);
+				if(val == 0 && error < 0){
+					clearStackWithoutFreeItem(stack, top+1);
+					free(stack);
+					for(i=0;i<d->size;i++)
+						clearTree(&(d->list[i]));
+					free(d->list);
+					free(d);
+					gErrorColumn = tk->column;
+					gErrorCode = ERROR_PARSING_NUMBER;
+					return;
+				}
+
+				ast = (NMAST*)malloc(sizeof(NMAST));
+				ast->valueType = TYPE_FLOATING_POINT;
+				ast->sign = 1;
+				ast->left = ast->right = ast->parent = NULL;
+				ast->value = val;
+				ast->type = tk->type;
+				pushASTStack(d, ast);
+				index++;
+			break;
+			
+			case LT:
+			case LTE:
+			case GT:
+			case GTE:
+			case AND:
+			case OR:
+			if(top >= 0){
+					stItm = stack[top];
+					while((isAnOperatorType(stItm->type)==TRUE) && (stItm->priority) >= tk->priority){
+						stItm = popFromStack(stack, &top);
+
+						ast = (NMAST*)malloc(sizeof(NMAST));
+						ast->left = ast->right = NULL;
+						ast->type = stItm->type;
+						ast->priority = stItm->priority;
+						ast->left = d->list[d->size-2];
+						ast->right = d->list[d->size-1];
+						
+						if((ast->left)!=NULL)
+							(ast->left)->parent = ast;
+						if((ast->right)!=NULL)
+							(ast->right)->parent = ast;
+						
+						d->list[d->size-2] = ast;
+						d->list[d->size-1] = NULL;
+						d->size--;
+						
+						if(top < 0)
+							break;
+
+						stItm = stack[top];
+					}
+				}
+				//push operation o1 (tk) into stack
+				pushItem2Stack(&stack, &top, &allocLen, tk);
+				i++;
+			break;
+
+			case RPAREN:
+				stItm = popFromStack(stack, &top);
+
+				/* got an opening-parenthese but can not find a closing-parenthese */
+				if(stItm == NULL){
+					clearStackWithoutFreeItem(stack, top+1);
+					free(stack);
+					for(i=0;i<d->size;i++)
+						clearTree(&(d->list[i]));
+					free(d->list);
+					free(d);
+					gErrorColumn = tk->column;
+					gErrorCode = ERROR_PARENTHESE_MISSING;
+					return ;
+				}
+
+				/*  */
+				while(stItm!=NULL && (stItm->type != LPAREN) && isAFunctionType(stItm->type)  != TRUE){
+					addFunction2Tree(d, stItm);
+					stItm = popFromStack(stack, &top);
+				}
+
+				/* got an opening-parenthese but can not find a closing-parenthese */
+				if(stItm==NULL){
+					free(stack);
+					for(i=0;i<d->size;i++)
+						clearTree(&(d->list[i]));
+					free(d->list);
+					free(d);
+					gErrorColumn = tk->column;
+					gErrorCode = ERROR_PARENTHESE_MISSING;
+					return;
+				}
+
+				if(isAFunctionType(stItm->type)  == TRUE){
+					addFunction2Tree(d, stItm);
+				}
+				
+				index++;
+			break;
+				
+			case LPAREN:
+				pushItem2Stack(&stack, &top, &allocLen, tk);
+				index++;
+			break;
+			
+			case VARIABLE:
+			break;
+		}
+	}
+	
+	return 0;
+}
