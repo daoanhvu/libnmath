@@ -59,7 +59,7 @@ void getOperatorChar(int operatorType, char *opCh){
 }
 
 void toString(const NMAST *t, char *str, int *curpos, int len){
-	double fr;
+	DATA_TYPE_FP fr;
 	long lval;
 	int i, l;
 	char operatorChar = 0;
@@ -822,7 +822,7 @@ void* calc_t(void *param){
 	return &(dp->error);
 }
 
-double calc(Function *f, double *values, int numOfValue, int *error){
+DATA_TYPE_FP calc(Function *f, DATA_TYPE_FP *values, int numOfValue, int *error){
 	RParam rp;
 	//int i;
 

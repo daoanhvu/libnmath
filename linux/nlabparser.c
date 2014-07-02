@@ -300,7 +300,7 @@ int functionNotation1(int index){
 */
 void parseFunct(TokenList *tokens, int *start, Function *f){
 	int i, error, top=-1, allocLen=0, isEndExp = FALSE;
-	double val;
+	DATA_TYPE_FP val;
 	Token *tk = NULL;
 	Token **stack = NULL;
 	NMASTList *prefix;
@@ -330,7 +330,7 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 		tk = tokens->list[i];
 		switch(tk->type){
 			case NUMBER:
-				val = parseDouble(tk->text, 0, tk->textLength, &error);
+				val = parseFloatingPoint(tk->text, 0, tk->textLength, &error);
 				if(val == 0 && error < 0){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
@@ -671,7 +671,7 @@ void domain(int *start, Function *f){
 	int isEndExp = FALSE;
 	int i, index, top = -1, allocLen=0;
 	Token* tk;
-	double val;
+	DATA_TYPE_FP val;
 	Token **stack = NULL;
 	NMASTList *d;
 	Token *tokenItm = NULL;
@@ -704,7 +704,7 @@ void domain(int *start, Function *f){
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
-				val = parseDouble(tk->text, 0, tk->textLength, &gErrorCode);
+				val = parseFloatingPoint(tk->text, 0, tk->textLength, &gErrorCode);
 				if(val == 0 && gErrorCode != NO_ERROR){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
@@ -898,7 +898,7 @@ void domain(int *start, Function *f){
 						astTmp->right->parent = astTmp;
 						switch(gTokens->list[index+3]->type){
 							case NUMBER:
-								astTmp->right->value = parseDouble(gTokens->list[index+3]->text, 0, gTokens->list[index+3]->textLength, &gErrorCode);
+								astTmp->right->value = parseFloatingPoint(gTokens->list[index+3]->text, 0, gTokens->list[index+3]->textLength, &gErrorCode);
 							break;
 							
 							case PI_TYPE:
@@ -948,7 +948,7 @@ void domain(int *start, Function *f){
 						astTmp->right->parent = astTmp;
 						switch(gTokens->list[index+5]->type){
 							case NUMBER:
-								astTmp->right->value = parseDouble(gTokens->list[index+3]->text, 0, gTokens->list[index+3]->textLength, &gErrorCode);
+								astTmp->right->value = parseFloatingPoint(gTokens->list[index+3]->text, 0, gTokens->list[index+3]->textLength, &gErrorCode);
 							break;
 							
 							case PI_TYPE:

@@ -1,16 +1,17 @@
 #include <stdlib.h>
 #include "interval.h"
 
-Interval *newInterval(char var, double lval, double rval) {
+Interval *newInterval(int type, char var, DATA_TYPE_FP lval, DATA_TYPE_FP rval, 
+										int leftInfinity, int rightInfinity) {
 	Interval *result = (Interval *)malloc(sizeof(Interval));
-	result->type = 0;
+	result->type = type;
 	result->variable = var;
 	result->leftVal = lval;
 	result->rightVal = rval;
 	result->fcheck = isInInterval;
 	result->fgetInterval = getInterval;
-	result->isLeftInfinity = FALSE;
-	result->isRightInfinity = FALSE;
+	result->isLeftInfinity = leftInfinity;
+	result->isRightInfinity = rightInfinity;
 	return result;
 }
 
@@ -28,7 +29,7 @@ CompositeInterval *newCompositeInterval() {
 	return result;
 }
 
-int isInInterval(void *interval, double *values, int varCount) {
+int isInInterval(void *interval, DATA_TYPE_FP *values, int varCount) {
 	int result = FALSE;
 	Interval *criteria = (Interval*)interval;
 	if(criteria->isLeftInfinity && criteria->isRightInfinity)
@@ -100,7 +101,7 @@ int isInInterval(void *interval, double *values, int varCount) {
 }
 
 //AND Interval
-int isInCombinedInterval(void *interval, double *values, int varCount) {
+int isInCombinedInterval(void *interval, DATA_TYPE_FP *values, int varCount) {
 	CombinedInterval *criteria = (CombinedInterval*)interval;
 	int i;
 	
@@ -114,7 +115,7 @@ int isInCombinedInterval(void *interval, double *values, int varCount) {
 
 
 //OR CombinedInterval
-int isInCompositeInterval(void *interval, double *values, int varCount) {
+int isInCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount) {
 	CompositeInterval *criteria = (CompositeInterval*)interval;
 	int i;
 	
@@ -126,7 +127,7 @@ int isInCompositeInterval(void *interval, double *values, int varCount) {
 	return FALSE;
 }
 
-void getInterval(void *interval, double *values, int varCount, double **outInterval, int *outlen){
+void getInterval(void *interval, DATA_TYPE_FP *values, int varCount, DATA_TYPE_FP **outInterval, int *outlen){
 	Interval *criteria = (Interval*)interval;
 	
 	*outlen = 2;
@@ -245,7 +246,7 @@ void getInterval(void *interval, double *values, int varCount, double **outInter
 		This output parameter, it's a matrix N row and 2 columns which each row is for each continuous interval of a single variable
 		It means that N = varCount
 */
-void getCombinedInterval(void *interval, double *values, int varCount, double **outInterval, int *outlen){
+void getCombinedInterval(void *interval, DATA_TYPE_FP *values, int varCount, DATA_TYPE_FP **outInterval, int *outlen){
 	CombinedInterval *criteria = (CombinedInterval*)interval;
 	int i;
 	
@@ -259,6 +260,6 @@ void getCombinedInterval(void *interval, double *values, int varCount, double **
 		This output parameter, it's a matrix N row and M columns which each row is for each continuous space for the expression
 		It means that each row will hold a combined-interval for n-tule variables
 */
-void getCompositeInterval(void *interval, double *values, int varCount, double **outInterval, int *outlen){
+void getCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount, DATA_TYPE_FP **outInterval, int *outlen){
 	//CompositeInterval *criteria = (CompositeInterval*)interval;
 }

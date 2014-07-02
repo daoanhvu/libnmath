@@ -86,6 +86,21 @@
 	#define NULL ((void*)0)
 #endif
 
+/** Redirect building target */
+#ifdef _TARGET_HOST_ANDROID
+	#define DATA_TYPE_FP float
+	#define ZERO_FP	0.0f
+	#define ONE_FP	1.0f
+	#define PI		3.141592653f
+	#define E			2.718281828f
+#else
+	#define DATA_TYPE_FP double
+	#define ZERO_FP	0.0
+	#define ONE_FP	1.0
+	#define PI		3.14159265358979323846
+	#define E			2.718281828
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -142,7 +157,7 @@ struct tagNMAST{
 	 1: Fraction value
 	 * */
 	char valueType;
-	double value;
+	DATA_TYPE_FP value;
 	Fraction frValue;
 
 	//if this ast is a VARIABLE and NAME
@@ -172,11 +187,11 @@ int isPrime(long n);
 /* Greatest Common Divisor*/
 long gcd(long a, long b);
 long lcm(long a, long b);
-long l_cast(double val, double *fr);
-double parseDouble(char *str, int start, int end, int *error);
+long l_cast(DATA_TYPE_FP val, DATA_TYPE_FP *fr);
+DATA_TYPE_FP parseFloatingPoint(char *str, int start, int end, int *error);
 int contains(int type, const int *aset, int len);
-double logab(double a, double b, int *error);
-double doCalculate(double val1, double val2, int type, int *error);
+DATA_TYPE_FP logab(DATA_TYPE_FP a, DATA_TYPE_FP b, int *error);
+DATA_TYPE_FP doCalculate(DATA_TYPE_FP val1, DATA_TYPE_FP val2, int type, int *error);
 void clearTree(NMAST **prf);
 int getErrorColumn();
 int getErrorCode();

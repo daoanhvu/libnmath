@@ -20,15 +20,15 @@ typedef struct tagDParam{
 typedef struct tagRParam{
 	NMAST *t;
 	char *variables;
-	double *values;
-	double retv;
+	DATA_TYPE_FP *values;
+	DATA_TYPE_FP retv;
 	int error;
 }RParam;
 
 void initFunct(Function *);
 void toString(const NMAST *t, char *str, int *curpos, int len);
 void resetFunction(Function *f, const char *str, const char *vars, int varCount, int *error);
-double calc(Function *f, double *values, int numOfValue, int *);
+DATA_TYPE_FP calc(Function *f, DATA_TYPE_FP *values, int numOfValue, int *);
 int reduce(Function *f, int *);
 void* reduce_t(void *);
 void* calc_t(void *);
