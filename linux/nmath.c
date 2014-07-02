@@ -843,6 +843,9 @@ double calc(Function *f, double *values, int numOfValue, int *error){
 
 NMAST *createTreeNode(){
 	NMAST *p = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	p->valueType = TYPE_FLOATING_POINT;
 	p->value = 0.0f;
 	(p->frValue).numerator = 0;
@@ -859,6 +862,9 @@ NMAST * cloneTree(NMAST *t, NMAST *cloneParent){
 		return NULL;
 	
 	c = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	memcpy(c, t, sizeof(NMAST));
 	c->parent = cloneParent;
 	c->left = cloneTree(t->left, c);
@@ -881,6 +887,9 @@ void* derivative(void *p){
 	
 	if(t->type == NUMBER || t->type == PI_TYPE|| t->type == E_TYPE ){
 		u = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 		u->type = NUMBER;
 		u->value = 0.0;
 		u->parent = NULL;
@@ -895,6 +904,9 @@ void* derivative(void *p){
 	*/
 	if(t->type == VARIABLE){
 		u = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 		u->type = NUMBER;
 		u->value = 1.0;
 		u->parent = NULL;
@@ -979,10 +991,16 @@ NMAST* d_product(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 	NMAST *r = NULL;
 	
 	r = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	r->type = PLUS;
 	r->parent = NULL;
 	
 	r->left = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	r->left->type = MULTIPLY;
 	r->left->parent = r;
 	r->left->left = cloneTree(u, r->left);
@@ -991,6 +1009,9 @@ NMAST* d_product(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 		dv->parent = r->left;
 		
 	r->right = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	r->right->type = MULTIPLY;
 	r->right->parent = r;
 	r->right->left = du;
@@ -1066,6 +1087,9 @@ NMAST* d_sum_subtract(NMAST *t, int type, NMAST *u, NMAST *du, NMAST *v, NMAST *
 	NMAST *r;
 	
 	r = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	r->type = type;
 	r->value = 0.0;
 	r->parent = NULL;
@@ -1258,12 +1282,18 @@ NMAST* d_sqrt(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 NMAST* d_sin(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 	NMAST *r;
 	/* (cos(v))' = -sin(v)*dv */
-	r = (NMAST *)malloc(sizeof(NMAST));	
+	r = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	r->type = MULTIPLY;
 	r->sign = 1;
 	r->parent = NULL;
 	
 	r->left = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	r->left->type = COS;
 	r->left->sign = 1;
 	r->left->parent = r;
@@ -1282,11 +1312,17 @@ NMAST* d_cos(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 	NMAST *r;
 	/* (cos(v))' = -sin(v)*dv */
 	r = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	r->type = MULTIPLY;
 	r->sign = 1;
 	r->parent = NULL;
 	
 	r->left = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	r->left->type = SIN; /* <== negative here */
 	r->left->sign = -1;
 	r->left->parent = r;

@@ -22,7 +22,7 @@ m64:
 	$(AR) -rc -o ../build/lib/libnmath64.a bin/common64.o bin/nlablexer64.o bin/nlabparser64.o bin/nmath64.o
 	
 test:
-	gcc -g -Wall -Werror -DDEBUG -o bin/test test.c common.c nlablexer.c nlabparser.c nmath.c $(LDFLAGS)
+	gcc -g -Wall -Werror -DDEBUG -o bin/test test.c common.c nlablexer.c nlabparser.c interval.c nmath.c $(LDFLAGS)
 	
 test2:
 	gcc -Wall -Werror -o bin/test test2.c libfunct.a -lm -lpthread

@@ -161,17 +161,9 @@ void addFunction2Tree(NMASTList *t, Token * stItm){
 */	
 Function* parseFunctionExpression1(TokenList *tokens){
 	int k, l, i, idx = 0;
-	NMASTList *d;
 	gTokens = tokens;
 	gErrorCode = ERROR_NOT_A_FUNCTION;
 	gErrorColumn = tokens->list[idx]->column;
-	d = (NMASTList*)malloc(sizeof(NMASTList));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-	d->size = 0;
-	d->loggedSize = 0;
-	d->list = NULL;
 	
 	if( (k=functionNotation1(idx)) > idx ){
 		if(tokens->list[k]->type == EQ){
@@ -190,7 +182,8 @@ Function* parseFunctionExpression1(TokenList *tokens){
 			do{
 				parseFunct(tokens, &k, returnFunction);
 				
-				if(k >= tokens->size) break;
+				/** after parseFunct, we may get error, so MUST check if it's OK here */
+				if( (gErrorCode!=NO_ERROR) || (k >= tokens->size) ) break;
 				
 				if(tokens->list[k]->type == DOMAIN_NOTATION){
 					if(k+1 < tokens->size){
@@ -207,23 +200,27 @@ Function* parseFunctionExpression1(TokenList *tokens){
 	
 	if(gErrorCode != NO_ERROR){
 		if(returnFunction != NULL){
-			for(k=0; k<returnFunction->prefix->size; k++){
-				clearTree(&(returnFunction->prefix->list[k]));
-			}
-			returnFunction->prefix->size = 0;
-			free(returnFunction->prefix);
+			if(returnFunction->prefix != NULL) {
+				for(k=0; k<returnFunction->prefix->size; k++){
+					clearTree(&(returnFunction->prefix->list[k]));
+				}
+				returnFunction->prefix->size = 0;
+				free(returnFunction->prefix);
 #ifdef DEBUG
 	descNumberOfDynamicObject();
 #endif
-			for(k=0; k<returnFunction->domain->size; k++){
-				clearTree(&(returnFunction->domain->list[k]));
 			}
-			returnFunction->domain->size = 0;
-			free(returnFunction->domain);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
 			
+			if(returnFunction->domain != NULL) {
+				for(k=0; k<returnFunction->domain->size; k++){
+					clearTree(&(returnFunction->domain->list[k]));
+				}
+				returnFunction->domain->size = 0;
+				free(returnFunction->domain);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+			}
 			free(returnFunction);
 #ifdef DEBUG
 	descNumberOfDynamicObject();
@@ -234,10 +231,9 @@ Function* parseFunctionExpression1(TokenList *tokens){
 		if(returnedAst != NULL){
 			clearTree(&returnedAst);
 			returnedAst = NULL;
-		}
+		}	
 	}
 	gTokens = NULL;
-	returnFunction->domain = d;
 	return returnFunction;
 }
 
@@ -506,6 +502,27 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 			case SQRT:
 			case LN:
 			case LOG:
+			
+				if( (i+2)>=tokens->size || tokens->list[i+1]->type != LPAREN){
+					//After function name token is not a LPAREN
+					clearStackWithoutFreeItem(stack, top+1);
+					free(stack);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+					for(i=0;i<prefix->size;i++)
+						clearTree(&(prefix->list[i]));
+					free(prefix->list);
+					free(prefix);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+	descNumberOfDynamicObject();
+#endif
+					gErrorColumn = tk->column;
+					gErrorCode = ERROR_PARENTHESE_MISSING;
+					return;
+				}
+				
 				pushItem2Stack(&stack, &top, &allocLen, tk);
 				/**
 					After a function name must be a LPAREN, and we just ignore that LPAREN token
