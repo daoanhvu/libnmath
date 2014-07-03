@@ -5,7 +5,7 @@ LIBS=-lm -lpthread
 LDFLAGS=-lm -lpthread
 nocyg=-mwindows
 
-SRC=common.c nlablexer.c nlabparser2.c nmath.c
+SRC=test.c common.c nlablexer.c nlabparser.c interval.c nmath.c
 
 nmath:
 	$(CC) -Wall -Werror -c -o bin/common.o common.c -lm
@@ -24,8 +24,8 @@ m64:
 test:
 	gcc -g -Wall -Werror -DDEBUG -o bin/test test.c common.c nlablexer.c nlabparser.c interval.c nmath.c $(LDFLAGS)
 	
-test2:
-	gcc -Wall -Werror -o bin/test test2.c libfunct.a -lm -lpthread
+andr:
+	gcc -Wall -Werror -D_TARGET_HOST_ANDROID -o bin/test_android $(SRC) $(LDFLAGS)
 	
 install:
 	#rm ../build/include/*.*
