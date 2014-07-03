@@ -5,7 +5,7 @@ LIBS=-lm -lpthread
 LDFLAGS=-lm -lpthread
 nocyg=-mwindows
 
-SRC=test.c common.c nlablexer.c nlabparser.c interval.c nmath.c
+SRC=test.c common.c nlablexer.c nlabparser.c criteria.c nmath.c
 
 nmath:
 	$(CC) -Wall -Werror -c -o bin/common.o common.c -lm
@@ -22,7 +22,7 @@ m64:
 	$(AR) -rc -o ../build/lib/libnmath64.a bin/common64.o bin/nlablexer64.o bin/nlabparser64.o bin/nmath64.o
 	
 test:
-	gcc -g -Wall -Werror -DDEBUG -o bin/test test.c common.c nlablexer.c nlabparser.c interval.c nmath.c $(LDFLAGS)
+	gcc -g -Wall -Werror -DDEBUG -o bin/test test.c common.c nlablexer.c nlabparser.c criteria.c nmath.c $(LDFLAGS)
 	
 andr:
 	gcc -Wall -Werror -D_TARGET_HOST_ANDROID -o bin/test_android $(SRC) $(LDFLAGS)
