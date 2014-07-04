@@ -21,6 +21,7 @@ NMAST *returnedAst = NULL;
 int functionNotation1(int index);
 void parseFunct(TokenList *tokens, int *start, Function *f);
 void domain(int *start, Function *f);
+NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, Token* valtk2);
 
 /******************************************************************************************/
 /**
@@ -675,7 +676,7 @@ void domain(int *start, Function *f){
 	Token **stack = NULL;
 	NMASTList *d;
 	Token *tokenItm = NULL;
-	NMAST *ast, *astTmp;
+	NMAST *ast;
 
 	if(gTokens == NULL){
 		gErrorColumn = 0;
@@ -703,7 +704,7 @@ void domain(int *start, Function *f){
 				if( (index+4)<gTokens->size && isComparationOperator(gTokens->list[index+1]->type) 
 									&& gTokens->list[index+2]->type==VARIABLE 
 									&& isComparationOperator(gTokens->list[index+3]->type)
-									&& (gTokens->list[index+4]->type==NUMBER || gTokens->list[index+4]->type==PI_TYPE || gTokens->list[index+4]->type==ETYP )) {
+									&& (gTokens->list[index+4]->type==NUMBER || gTokens->list[index+4]->type==PI_TYPE || gTokens->list[index+4]->type==E_TYPE )) {
 					/**
 						HERE, I missed the case that NUMBER < VARIABLE < NUMBER or
 						NUMBER <= VARIABLE < NUMBER or NUMBER < VARIABLE <= NUMBER or 
@@ -711,95 +712,26 @@ void domain(int *start, Function *f){
 						
 						Build an AND tree to hold the case
 					*/
-					
-					switch(tk->type){
-						case NUMBER:
-							val = parseFloatingPoint(tk->text, 0, tk->textLength, &gErrorCode);
-							if(val == 0 && gErrorCode != NO_ERROR){
-								clearStackWithoutFreeItem(stack, top+1);
-								free(stack);
+					ast = buildIntervalTree(tk, gTokens->list[index+1], gTokens->list[index+2], gTokens->list[index+3], gTokens->list[index+4]);
+					if(tokenItm == NULL){
+						clearStackWithoutFreeItem(stack, top+1);
+						free(stack);
 #ifdef DEBUG
 	descNumberOfDynamicObject();
 #endif
-								for(i=0;i<d->size;i++)
-									clearTree(&(d->list[i]));
-								free(d->list);
-								free(d);
+						for(i=0;i<d->size;i++)
+							clearTree(&(d->list[i]));
+						free(d->list);
+						free(d);
 #ifdef DEBUG
 	descNumberOfDynamicObject();
 	descNumberOfDynamicObject();
 #endif
-								gErrorColumn = tk->column;
-								return;
-							}
-						break;
-						
-						case PI_TYPE:
-							val = PI;
-						break;
-						case E_TYPE:
-							val = E;
-						break;
+						return ;
 					}
-					
-					switch(gTokens->list[index+4]->type){
-						case NUMBER:
-							val2 = parseFloatingPoint(gTokens->list[index+4]->text, 0, gTokens->list[index+4]->textLength, &gErrorCode);
-							if(val2 == 0 && gErrorCode != NO_ERROR){
-								clearStackWithoutFreeItem(stack, top+1);
-								free(stack);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-								for(i=0;i<d->size;i++)
-									clearTree(&(d->list[i]));
-								free(d->list);
-								free(d);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-	descNumberOfDynamicObject();
-#endif
-								gErrorColumn = gTokens->list[index+4]->column;
-								return;
-							}
-						break;
-						
-						case PI_TYPE:
-							val2 = PI;
-						break;
-						case E_TYPE:
-							val2 = E;
-						break;
-					}
-
-					
-					ast = (NMAST*)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif					
-					ast->type = AND;
-					ast-parent = NULL;
-					
-					ast->left = (NMAST*)malloc(sizeof(NMAST));
-					ast->left->type = gTokens->list[index+1]->type;
-					ast->left->parent = ast;
-					ast->left->left = (NMAST*)malloc(sizeof(NMAST));
-					ast->left->left->type = tk->type;
-					ast->left->left->value = val;
-					ast->left->right = (NMAST*)malloc(sizeof(NMAST));
-					ast->left->right->type = tk->type;
-					
-					ast->right = (NMAST*)malloc(sizeof(NMAST));
-					ast->right->type = gTokens->list[index+3]->type;
-					ast->right->parent = ast;
-					ast->right->left = (NMAST*)malloc(sizeof(NMAST));
-					ast->right->left->type = gTokens->list[index+4]->type;
-					ast->right->left->value = val2;
-					
 					pushASTStack(d, ast);
 					index += 5;
-					break;
-				}
+				}// end if
 				
 				ast = (NMAST*)malloc(sizeof(NMAST));
 #ifdef DEBUG
@@ -964,115 +896,110 @@ void domain(int *start, Function *f){
 								&& (gTokens->list[index+5]->type == NUMBER || gTokens->list[index+5]->type == PI_TYPE || gTokens->list[index+5]->type == E_TYPE) 
 								&& (gTokens->list[index+6]->type == RPRACKET || gTokens->list[index+6]->type == RPAREN )){
 								
-						ast = (NMAST*)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-						ast->valueType = TYPE_FLOATING_POINT;
-						ast->sign = 1;
-						ast->left = ast->right = ast->parent = NULL;
-						ast->value = val;
-						ast->type = AND;
 						
-						//Left GTE or GT
-						astTmp = (NMAST*)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-						astTmp->valueType = TYPE_FLOATING_POINT;
-						astTmp->sign = 1;
-						astTmp->left = astTmp->right = NULL;
-						astTmp->parent = ast;
-						astTmp->value = val;
-						astTmp->type = (gTokens->list[index+2]->type == LPRACKET)?GTE:GT;
-						ast->left = astTmp;
-						
-						//Left->Left VARIABLE
-						astTmp->left = (NMAST*)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-						astTmp->left->valueType = TYPE_FLOATING_POINT;
-						astTmp->left->sign = 1;
-						astTmp->left->left = astTmp->left->right = NULL;
-						astTmp->left->parent = astTmp;
-						astTmp->left->value = 0.0;
-						astTmp->left->type = VARIABLE;
-						
-						//Left->Right NUMBER or PI_TYPE or E_TYPE
-						astTmp->right = (NMAST*)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-						astTmp->right->valueType = TYPE_FLOATING_POINT;
-						astTmp->right->sign = 1;
-						astTmp->right->left = astTmp->right->right = NULL;
-						astTmp->right->parent = astTmp;
+						/** ========START Parse floating point values======= */
 						switch(gTokens->list[index+3]->type){
 							case NUMBER:
-								astTmp->right->value = parseFloatingPoint(gTokens->list[index+3]->text, 0, gTokens->list[index+3]->textLength, &gErrorCode);
+								val = parseFloatingPoint(gTokens->list[index+3]->text, 0, gTokens->list[index+3]->textLength, &gErrorCode);
+								if(val == 0 && gErrorCode != NO_ERROR){
+									clearStackWithoutFreeItem(stack, top+1);
+									free(stack);
+	#ifdef DEBUG
+		descNumberOfDynamicObject();
+	#endif
+									for(i=0;i<d->size;i++)
+										clearTree(&(d->list[i]));
+									free(d->list);
+									free(d);
+	#ifdef DEBUG
+		descNumberOfDynamicObject();
+		descNumberOfDynamicObject();
+	#endif
+									gErrorColumn = tk->column;
+									return;
+								}
 							break;
 							
 							case PI_TYPE:
-								astTmp->right->value = PI;
+								val = PI;
 							break;
-							
 							case E_TYPE:
-								astTmp->right->value = E;
+								val = E;
 							break;
 						}
-						astTmp->right->type = gTokens->list[index+3]->type;
 						
-						
-						//Right
-						astTmp = (NMAST*)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-						astTmp->valueType = TYPE_FLOATING_POINT;
-						astTmp->sign = 1;
-						astTmp->left = astTmp->right = NULL;
-						astTmp->parent = ast;
-						astTmp->value = val;
-						astTmp->type = (gTokens->list[index+6]->type == RPRACKET)?LTE:LT;
-						ast->right = astTmp;
-						
-						//Right->Left VARIABLE
-						astTmp->left = (NMAST*)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-						astTmp->left->valueType = TYPE_FLOATING_POINT;
-						astTmp->left->sign = 1;
-						astTmp->left->left = astTmp->left->right = NULL;
-						astTmp->left->parent = astTmp;
-						astTmp->left->value = 0.0;
-						astTmp->left->type = VARIABLE;
-						
-						//Right->Right NUMBER or PI_TYPE or E_TYPE
-						astTmp->right = (NMAST*)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-						astTmp->right->valueType = TYPE_FLOATING_POINT;
-						astTmp->right->sign = 1;
-						astTmp->right->left = astTmp->right->right = NULL;
-						astTmp->right->parent = astTmp;
 						switch(gTokens->list[index+5]->type){
 							case NUMBER:
-								astTmp->right->value = parseFloatingPoint(gTokens->list[index+3]->text, 0, gTokens->list[index+3]->textLength, &gErrorCode);
+								val2 = parseFloatingPoint(gTokens->list[index+5]->text, 0, gTokens->list[index+5]->textLength, &gErrorCode);
+								if(val2 == 0 && gErrorCode != NO_ERROR){
+									clearStackWithoutFreeItem(stack, top+1);
+									free(stack);
+	#ifdef DEBUG
+		descNumberOfDynamicObject();
+	#endif
+									for(i=0;i<d->size;i++)
+										clearTree(&(d->list[i]));
+									free(d->list);
+									free(d);
+	#ifdef DEBUG
+		descNumberOfDynamicObject();
+		descNumberOfDynamicObject();
+	#endif
+									gErrorColumn = gTokens->list[index+4]->column;
+									return;
+								}
 							break;
 							
 							case PI_TYPE:
-								astTmp->right->value = PI;
+								val2 = PI;
 							break;
-							
 							case E_TYPE:
-								astTmp->right->value = E;
+								val2 = E;
 							break;
 						}
-						astTmp->right->type = gTokens->list[index+5]->type;
+						/** ========END parsing floating point values=====*/
 						
+						ast = (NMAST*)malloc(sizeof(NMAST));
+						ast->valueType = TYPE_FLOATING_POINT;
+						ast->sign = 1;
+						ast->value = 0;
+						ast->parent = NULL;
+						ast->variable = tk->text[0];
+						
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+						if((gTokens->list[index+2]->type == LPAREN ) && (gTokens->list[index+6]->type == RPAREN))
+							ast->type = GT_LT;
+						else if((gTokens->list[index+2]->type == LPRACKET ) && (gTokens->list[index+6]->type == RPAREN))
+							ast->type = GTE_LT;
+						else if((gTokens->list[index+2]->type == LPAREN ) && (gTokens->list[index+6]->type == RPRACKET))
+							ast->type = GT_LTE;
+						else if((gTokens->list[index+2]->type == LPRACKET ) && (gTokens->list[index+6]->type == RPRACKET))
+							ast->type = GTE_LTE;
+						
+						//ast->Left number 1
+						ast->left = (NMAST*)malloc(sizeof(NMAST));
+						ast->left->valueType = TYPE_FLOATING_POINT;
+						ast->left->sign = 1;
+						ast->left->left = ast->left->right = NULL;
+						ast->left->parent = ast;
+						ast->left->value = val;
+						ast->left->type = gTokens->list[index+3]->type;
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+						//Left->Right NUMBER or PI_TYPE or E_TYPE
+						ast->right = (NMAST*)malloc(sizeof(NMAST));
+						ast->right->valueType = TYPE_FLOATING_POINT;
+						ast->right->sign = 1;
+						ast->right->left = ast->right->right = NULL;
+						ast->right->parent = ast;
+						ast->right->value = val2;
+						ast->right->type = gTokens->list[index+5]->type;
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 						pushASTStack(d, ast);
 						index += 7;		
 					}else{
@@ -1098,14 +1025,15 @@ void domain(int *start, Function *f){
 					}
 				}else {
 					ast = (NMAST*)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
 					ast->valueType = TYPE_FLOATING_POINT;
 					ast->sign = 1;
 					ast->left = ast->right = ast->parent = NULL;
 					ast->value = val;
 					ast->type = tk->type;
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif					
+					
 					pushASTStack(d, ast);
 					index++;
 				}
@@ -1160,4 +1088,117 @@ void domain(int *start, Function *f){
 	descNumberOfDynamicObject();
 	descNumberOfDynamicObject();
 #endif
+}
+
+NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, Token* valtk2){
+	NMAST* ast = NULL;
+	NMAST *valNode1, *valNode2;
+	DATA_TYPE_FP val1, val2;
+	int type, isSwap = FALSE;
+	
+	/** ERROR cases: -3 < x > 3 or -3 > x < 3  */
+	if( ((o1->type == LT || o1->type == LTE) && (o2->type == GT || o2->type == GTE))
+				|| ((o1->type == GT || o1->type == GTE) && (o2->type == LT || o2->type == LTE)) ) {
+		gErrorCode = ERROR_SYNTAX;
+		gErrorColumn = o2->column;
+		return NULL;
+	}
+	
+	/** ======================================================================== */
+	switch(valtk1->type){
+		case NUMBER:
+			val1 = parseFloatingPoint(valtk1->text, 0, valtk1->textLength, &gErrorCode);
+			if(val1 == 0 && gErrorCode != NO_ERROR){
+				gErrorColumn = valtk1->column;
+				return NULL;
+			}
+		break;
+						
+		case PI_TYPE:
+			val1 = PI;
+		break;
+		case E_TYPE:
+			val1 = E;
+		break;
+	}
+					
+	switch(valtk2->type){
+		case NUMBER:
+			val2 = parseFloatingPoint(valtk2->text, 0, valtk2->textLength, &gErrorCode);
+			if(val2 == 0 && gErrorCode != NO_ERROR){
+				gErrorColumn = valtk2->column;
+				return NULL;
+			}
+		break;
+						
+		case PI_TYPE:
+			val2 = PI;
+		break;
+		case E_TYPE:
+			val2 = E;
+		break;
+	}
+	
+	valNode1 = (NMAST*)malloc(sizeof(NMAST));
+	valNode1->type = valtk1->type;
+	valNode1->value = val1;
+	valNode1->valueType = TYPE_FLOATING_POINT;
+	valNode1->left = valNode1->right = NULL;
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif	
+	valNode2 = (NMAST*)malloc(sizeof(NMAST));
+	valNode2->type = valtk2->type;
+	valNode2->value = val2;
+	valNode2->valueType = TYPE_FLOATING_POINT;
+	valNode2->left = valNode2->right = NULL;
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+	
+	/** ================================================================ */
+	if((o1->type == LT ) && (o2->type == LT))
+		type = GT_LT;
+	else if((o1->type == LTE ) && (o2->type == LT))
+		type = GTE_LT;
+	else if((o1->type == LT ) && (o2->type == LTE))
+		type = GT_LTE;
+	else if((o1->type == LTE ) && (o2->type == LTE))
+		type = GTE_LTE;
+	else{
+		isSwap = TRUE;
+		if((o1->type == GT ) && (o2->type == GT))
+			type = GT_LT;
+		else if((o1->type == GTE ) && (o2->type == GT))
+			type = GT_LTE;
+		else if((o1->type == GT ) && (o2->type == GTE))
+			type = GTE_LT;
+		else if((o1->type == GTE ) && (o2->type == GTE))
+			type = GTE_LTE;
+	}
+
+	//ast: GTE_LT | GT_TL
+	ast = (NMAST*)malloc(sizeof(NMAST));
+	ast->type = type;
+	ast->priority = 0;
+	ast->variable = variable->text[0];
+	ast->parent = NULL;
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+
+	if(isSwap){
+		ast->left = valNode2;
+		valNode2->parent = ast;
+		
+		ast->right = valNode1;
+		valNode1->parent = ast;
+	}else{
+		ast->left = valNode1;
+		valNode1->parent = ast;
+		
+		ast->right = valNode2;
+		valNode2->parent = ast;
+	}
+	return ast;
 }

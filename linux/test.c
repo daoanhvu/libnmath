@@ -39,8 +39,8 @@ void testCriteria(int argc, char *agr[]){
 	
 	int i, j, error, outlen, chk;
 	DATA_TYPE_FP *vals;
-	ListInterval *outIntList;
-	Domain *outDomain;
+	CombinedCriteria *outIntList;
+	CompositeCriteria *outDomain;
 	
 	//Test -1 < x  < 2.1
 	ci1 = newCriteria(GT_LT, 'x', -1.0, 2.1, FALSE, FALSE);
@@ -65,10 +65,7 @@ void testCriteria(int argc, char *agr[]){
 	vals[2] = -0.9f;
 	vals[3] = 1.2f;
 	
-	outIntList = (ListInterval*)malloc(sizeof(ListInterval));
-	outIntList->list = NULL;
-	outIntList->loggedSize = 0;
-	outIntList->size = 0;
+	outIntList = newCombinedInterval();
 	
 	ci1->type = GT_LT;
 	ci1->variable = 'x';
@@ -87,7 +84,7 @@ void testCriteria(int argc, char *agr[]){
 	cc1->size = 2;
 	
 	outlen = -1;
-	cc1->fgetInterval(cc1, vals, 2, outIntList, &outlen);
+	cc1->fgetInterval(cc1, vals, 2, (void*)outIntList);
 	if(outlen >= 0){
 		printf("\nOut of space\n");
 	}else{
@@ -147,12 +144,9 @@ void testCriteria(int argc, char *agr[]){
 	cp1->loggedSize = 2;
 	cp1->size = 2;
 	
-	outDomain = (Domain*)malloc(sizeof(Domain));
-	outDomain->list = NULL;
-	outDomain->loggedSize = 0;
-	outDomain->size = 0;
+	outDomain = newCompositeInterval();
 	
-	cp1->fgetInterval(cp1, vals, 1, outDomain, &outlen);
+	cp1->fgetInterval(cp1, vals, 1, (void*)outDomain);
 	
 	printf("\n");
 	for(i=0; i<outDomain->size; i++){

@@ -3,23 +3,31 @@
 
 #include "common.h"
 
-typedef struct tagInterval Interval;
 typedef struct tagCriteria Criteria;
 typedef struct tagCombinedCriteria CombinedCriteria;
 typedef struct tagCompositeCriteria CompositeCriteria;
-typedef struct tagListInterval ListInterval;
-typedef struct tagDomain Domain;
 
 //Function poiters
 typedef void (*FPGetIntervalF)(void *, DATA_TYPE_FP *, int, void *);
 typedef int (*FPCheck)(void *, DATA_TYPE_FP *, int);
 
-/** This is a single continuous interval for one variable */
+#define SIMPLE_CRITERIA 	0
+#define COMBINED_CRITERIA 	1
+#define COMPOSITE_CRITERIA 	2
+
+/**
+	This is a single continuous interval for one variable
+	Example:
+		variable = 'x' and type=GT_LT we read it out like this:
+		x is greater than leftVal and x is less than rightValue
+*/
 struct tagCriteria{
+	int objectType;
 	FPCheck fcheck;
 	FPGetIntervalF fgetInterval;
+	
 	/** GT_LT, GTE_LT, GT_LTE, GTE_LTE */
-	int type;
+	int type, available;
 	char variable;
 	DATA_TYPE_FP leftVal;
 	DATA_TYPE_FP rightVal;
@@ -34,6 +42,7 @@ struct tagCriteria{
 	For example: 0<x<=5 AND y>3
  */
 struct tagCombinedCriteria{
+	int objectType;
 	FPCheck fcheck;
 	FPGetIntervalF fgetInterval;
 	Criteria **list;
@@ -43,27 +52,10 @@ struct tagCombinedCriteria{
 
 //OR
 struct tagCompositeCriteria{
+	int objectType;
 	FPCheck fcheck;
 	FPGetIntervalF fgetInterval;
 	CombinedCriteria **list;
-	int loggedSize;
-	int size;
-};
-
-struct tagInterval{
-	int available;
-	DATA_TYPE_FP leftVal;
-	DATA_TYPE_FP rightVal;
-};
-
-struct tagListInterval{
-	Interval **list;
-	int loggedSize;
-	int size;
-};
-
-struct tagDomain{
-	ListInterval **list;
 	int loggedSize;
 	int size;
 };
@@ -80,15 +72,13 @@ int isInCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount);
 void getInterval(void *interval, DATA_TYPE_FP *values, int varCount, void *outInterval);
 
 /**
-	outInterval
-		This output parameter, it's a matrix N row and 2 columns which each row is for each continuous interval of a single variable
+	outListInterval [OUT] CombinedCriteria
 */
 void getCombinedInterval(void *interval, DATA_TYPE_FP *values, int varCount, void *outListInterval);
 
 /**
-	outInterval
-		This output parameter, it's a matrix N row and M columns which each row is for each continuous space for the expression
-		It means that each row will hold a combined-interval for n-tule variables
+	outDomain [OUT] 
+		it's a CompositeCriteria
 */
 void getCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount, void *outDomain);
 
