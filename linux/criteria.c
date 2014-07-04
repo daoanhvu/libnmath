@@ -1,6 +1,10 @@
 #include <stdlib.h>
 #include "criteria.h"
 
+int andTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out);
+int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out);
+int andTwoCriteria(void *c1, void *c2, void **out);
+
 Criteria *newCriteria(int type, char var, DATA_TYPE_FP lval, DATA_TYPE_FP rval, 
 										int leftInfinity, int rightInfinity) {
 	Criteria *result = (Criteria *)malloc(sizeof(Criteria));
@@ -374,7 +378,7 @@ void getCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount, vo
 /**
 	obj [OUT] MUST an level-2 NULL pointer
 */
-void buildCompositeCriteria(NMAST *ast, void **obj){
+void buildCompositeCriteria(NMAST *ast, void **outCriteria){
 	void **leftResult = NULL;
 	void **rightResult = NULL;
 	int objTypeLeft, objTypeRight /*, type*/;
@@ -388,36 +392,31 @@ void buildCompositeCriteria(NMAST *ast, void **obj){
 		case GTE_LT:
 		case GT_LTE:
 		case GTE_LTE:
-			*obj = newCriteria(ast->type, ast->variable, ast->left->value, ast->right->value, FALSE, FALSE);
+			*outCriteria = newCriteria(ast->type, ast->variable, ast->left->value, ast->right->value, FALSE, FALSE);
 		break;
 		
 		case LT:
+			*outCriteria = newCriteria(GT_LT, ast->left->variable, 99999, ast->right->value, TRUE, FALSE);
 		break;
 		
 		case LTE:
+			*outCriteria = newCriteria(GT_LTE, ast->left->variable, 99999, ast->right->value, TRUE, FALSE);
 		break;
 		
 		case GT:
+			*outCriteria = newCriteria(GT_LT, ast->left->variable, ast->right->value, 99999, FALSE, TRUE);
 		break;
 		
 		case GTE:
+			*outCriteria = newCriteria(GTE_LT, ast->left->variable, ast->right->value, 99999, FALSE, TRUE);
 		break;
 		
 		case AND:
 			if(ast->left == NULL || ast->right == NULL) //Do we need check NULL here?
 				return;
-			
-			if(isComparationOperator(ast->left->type) && isComparationOperator(ast->right->type)){
-				/*
-				if(ast->left->type == LT)
-					type = ast->right->type==LT?LT_LT:LTE_LTE;
-				else if (ast->left->type == LTE)
-					type = ast->right->type==LT?GT_LT:GT_LTE;
-				*/	
-				
-				return;
-			}
-			
+			buildCompositeCriteria(ast->left, leftResult);
+			buildCompositeCriteria(ast->right, rightResult);
+			andTwoCriteria(*leftResult, *rightResult, outCriteria);
 		break;
 		
 		case OR:
@@ -468,19 +467,93 @@ int andTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
 		*out = interval;
 	}else{
 		*out = newCombinedInterval();
-		(*out)->list = (Criteria**)malloc(sizeof(Criteria*)*2);
-		(*out)->loggedSize = 2;
-		(*out)->size = 2;
-		(*out)->list[0] = c1;
-		(*out)->list[1] = c2;
+		((CombinedCriteria*)(*out))->list = (Criteria**)malloc(sizeof(Criteria*)*2);
+		((CombinedCriteria*)(*out))->loggedSize = 2;
+		((CombinedCriteria*)(*out))->size = 2;
+		((CombinedCriteria*)(*out))->list[0] = c1;
+		((CombinedCriteria*)(*out))->list[1] = c2;
 	}
 	
 	return TRUE;
+}
+
+int andTwoCriteria(void *c1, void *c2, void **out){
+	int objTypeLeft = *((int*)c1);
+	int objTypeRight = *((int*)c2);
+	int result = FALSE;
+			
+	if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
+		result = andTwoSimpleCriteria(c1, c2, out);
+	} else if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == COMBINED_CRITERIA ) {
+	} else if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
+			
+	} else if( objTypeLeft == COMBINED_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
+	} else if( objTypeLeft == COMBINED_CRITERIA && objTypeRight == COMBINED_CRITERIA ) {
+	} else if( objTypeLeft == COMBINED_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
+			
+	} else if( objTypeLeft == COMPOSITE_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
+	} else if( objTypeLeft == COMPOSITE_CRITERIA && objTypeRight == COMBINED_CRITERIA ) {
+	} else if( objTypeLeft == COMPOSITE_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
+			
+	}
+	return result;
 }
 
 /**
 	Need to implement
 */
 int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
-	return FALSE;
+	double d[2];
+	Criteria *interval;
+	if(c1->variable == c2->variable){
+		interval = newCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
+		d[0] = c2->leftVal;
+		d[1] = c2->rightVal;
+		c1->fgetInterval(c1, d, 1, (void*)interval);
+		if(interval->available == FALSE){
+			free(interval);
+			
+			*out = newCompositeInterval();
+			((CompositeCriteria*)(*out))->list = (CombinedCriteria**)malloc(sizeof(CombinedCriteria*)*2);
+			((CompositeCriteria*)(*out))->loggedSize = 2;
+			((CompositeCriteria*)(*out))->size = 2;
+			
+			((CompositeCriteria*)(*out))->list[0] = newCombinedInterval();
+			((CompositeCriteria*)(*out))->list[0]->list = (Criteria**)malloc(sizeof(Criteria*));
+			((CompositeCriteria*)(*out))->list[0]->loggedSize = 1;
+			((CompositeCriteria*)(*out))->list[0]->size = 1;
+			((CompositeCriteria*)(*out))->list[0]->list[0] = c1;
+			
+			((CompositeCriteria*)(*out))->list[1] = newCombinedInterval();
+			((CompositeCriteria*)(*out))->list[1]->list = (Criteria**)malloc(sizeof(Criteria*));
+			((CompositeCriteria*)(*out))->list[1]->loggedSize = 1;
+			((CompositeCriteria*)(*out))->list[1]->size = 1;
+			((CompositeCriteria*)(*out))->list[1]->list[0] = c2;
+			return TRUE;
+		}
+		
+		interval->leftVal = (c1->leftVal < c2->leftVal)?c1->leftVal:c2->leftVal;
+		interval->rightVal = (c1->rightVal < c2->rightVal)?c2->rightVal:c1->rightVal;
+		
+		*out = interval;
+	}else{
+		*out = newCompositeInterval();
+		((CompositeCriteria*)(*out))->list = (CombinedCriteria**)malloc(sizeof(CombinedCriteria*)*2);
+		((CompositeCriteria*)(*out))->loggedSize = 2;
+		((CompositeCriteria*)(*out))->size = 2;
+		
+		((CompositeCriteria*)(*out))->list[0] = newCombinedInterval();
+		((CompositeCriteria*)(*out))->list[0]->list = (Criteria**)malloc(sizeof(Criteria*));
+		((CompositeCriteria*)(*out))->list[0]->loggedSize = 1;
+		((CompositeCriteria*)(*out))->list[0]->size = 1;
+		((CompositeCriteria*)(*out))->list[0]->list[0] = c1;
+			
+		((CompositeCriteria*)(*out))->list[1] = newCombinedInterval();
+		((CompositeCriteria*)(*out))->list[1]->list = (Criteria**)malloc(sizeof(Criteria*));
+		((CompositeCriteria*)(*out))->list[1]->loggedSize = 1;
+		((CompositeCriteria*)(*out))->list[1]->size = 1;
+		((CompositeCriteria*)(*out))->list[1]->list[0] = c2;
+	}
+	
+	return TRUE;
 }
