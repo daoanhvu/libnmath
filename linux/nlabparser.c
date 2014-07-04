@@ -700,27 +700,94 @@ void domain(int *start, Function *f){
 			case NUMBER:
 			case PI_TYPE:
 			case E_TYPE:
+				if( (index+4)<gTokens->size && isComparationOperator(gTokens->list[index+1]->type) 
+									&& gTokens->list[index+2]->type==VARIABLE 
+									&& isComparationOperator(gTokens->list[index+3]->type)
+									&& (gTokens->list[index+4]->type==NUMBER || gTokens->list[index+4]->type==PI_TYPE || gTokens->list[index+4]->type==ETYP )) {
+					/**
+						HERE, I missed the case that NUMBER < VARIABLE < NUMBER or
+						NUMBER <= VARIABLE < NUMBER or NUMBER < VARIABLE <= NUMBER or 
+						NUMBER <= VARIABLE <= NUMBER	
+						
+						Build an AND tree to hold the case
+					*/
+					ast = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif					
+					ast->type = AND;
+					ast-parent = NULL;
+					
+					ast->left = (NMAST*)malloc(sizeof(NMAST));
+					ast->left->type = gTokens->list[index+1]->type;
+					ast->left->parent = ast;
+					ast->left->left = (NMAST*)malloc(sizeof(NMAST));
+					ast->left->left->type = tk->type;
+				switch(tk->type){
+					case NUMBER:
+						val = parseFloatingPoint(tk->text, 0, tk->textLength, &gErrorCode);
+						if(val == 0 && gErrorCode != NO_ERROR){
+							clearStackWithoutFreeItem(stack, top+1);
+							free(stack);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+							for(i=0;i<d->size;i++)
+								clearTree(&(d->list[i]));
+							free(d->list);
+							free(d);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+	descNumberOfDynamicObject();
+#endif
+							gErrorColumn = tk->column;
+							return;
+						}					
+					
+					
+					ast->left->right = (NMAST*)malloc(sizeof(NMAST));
+					ast->left->right->type = tk->type;
+					
+					ast->right = (NMAST*)malloc(sizeof(NMAST));
+					ast->right->type = gTokens->list[index+3]->type;
+					ast->right->parent = ast;
+					
+					pushASTStack(d, ast);
+					index += 5;
+					break;
+				}
+				
 				ast = (NMAST*)malloc(sizeof(NMAST));
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
-				val = parseFloatingPoint(tk->text, 0, tk->textLength, &gErrorCode);
-				if(val == 0 && gErrorCode != NO_ERROR){
-					clearStackWithoutFreeItem(stack, top+1);
-					free(stack);
+				switch(tk->type){
+					case NUMBER:
+						val = parseFloatingPoint(tk->text, 0, tk->textLength, &gErrorCode);
+						if(val == 0 && gErrorCode != NO_ERROR){
+							clearStackWithoutFreeItem(stack, top+1);
+							free(stack);
 #ifdef DEBUG
 	descNumberOfDynamicObject();
 #endif
-					for(i=0;i<d->size;i++)
-						clearTree(&(d->list[i]));
-					free(d->list);
-					free(d);
+							for(i=0;i<d->size;i++)
+								clearTree(&(d->list[i]));
+							free(d->list);
+							free(d);
 #ifdef DEBUG
 	descNumberOfDynamicObject();
 	descNumberOfDynamicObject();
 #endif
-					gErrorColumn = tk->column;
-					return;
+							gErrorColumn = tk->column;
+							return;
+						}
+						break;
+						case PI_TYPE:
+							val = PI;
+						break;
+						case E_TYPE:
+							val = E;
+						break;
 				}
 
 				ast = (NMAST*)malloc(sizeof(NMAST));
@@ -841,6 +908,7 @@ void domain(int *start, Function *f){
 			case VARIABLE:
 				if(( (index+1) < gTokens->size) && gTokens->list[index+1]->type == ELEMENT_OF){
 					/*
+						
 						VARIABLE ELEMENT_OF [NUMBER,NUMBER]
 						VARIABLE ELEMENT_OF (NUMBER,NUMBER]
 						VARIABLE ELEMENT_OF [NUMBER,NUMBER)

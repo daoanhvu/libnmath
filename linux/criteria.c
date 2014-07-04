@@ -133,8 +133,9 @@ int isInCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount) {
 	return FALSE;
 }
 
-void getInterval(void *interval, DATA_TYPE_FP *values, int varCount, Interval *outInterval){
+void getInterval(void *interval, DATA_TYPE_FP *values, int varCount, void *outIntervalObj){
 	Criteria *criteria = (Criteria*)interval;
+	Interval *outInterval = (Interval*)outIntervalObj;
 	
 	if(criteria->isLeftInfinity && criteria->isRightInfinity){
 		outInterval->leftVal = values[0];
@@ -303,16 +304,17 @@ void getInterval(void *interval, DATA_TYPE_FP *values, int varCount, Interval *o
 		This is a matrix N row and 2 columns which each row is for each continuous interval of a single variable
 		It means that N = varCount
 */
-void getCombinedInterval(void *intervalObj, DATA_TYPE_FP *values, int varCount, ListInterval *outListInterval, int *outlen){
+void getCombinedInterval(void *intervalObj, DATA_TYPE_FP *values, int varCount, void *outListIntervalObj){
 	CombinedCriteria *criteria = (CombinedCriteria*)intervalObj;
+	ListInterval *outListInterval = (ListInterval *)outListIntervalObj;
 	Interval *interval;
-	int i;
+	int i, k;
 	
-	for((*outlen)=0; (*outlen)<varCount; (*outlen)++){
+	for(k=0; k<varCount; k++){
 		interval = (Interval*)malloc(sizeof(Interval));
 		interval->available = TRUE;
 		
-		((Criteria*)(criteria->list[*outlen]))->fgetInterval(criteria->list[*outlen], values + (*outlen)*2, varCount, interval);
+		((Criteria*)(criteria->list[k]))->fgetInterval(criteria->list[k], values + k*2, varCount, interval);
 		if( interval->available == FALSE ){
 			free(interval);
 			for(i=0; i<outListInterval->size; i++)
@@ -330,7 +332,6 @@ void getCombinedInterval(void *intervalObj, DATA_TYPE_FP *values, int varCount, 
 		}
 		outListInterval->list[outListInterval->size++] = interval;
 	}
-	*outlen = -1;
 }
 
 /**
@@ -341,8 +342,9 @@ void getCombinedInterval(void *intervalObj, DATA_TYPE_FP *values, int varCount, 
 		This output parameter, it's a matrix N row and M columns which each row is for each continuous space for the expression
 		It means that each row will hold a combined-interval for n-tule variables and M equal varCount * 2
 */
-void getCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount, Domain *outDomain, int *outlen){
+void getCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount, void *outDomainObj){
 	CompositeCriteria *criteria = (CompositeCriteria*)interval;
+	Domain *outDomain = (Domain *)outDomainObj;
 	ListInterval *listIn;
 	int i, k;
 	
@@ -352,19 +354,56 @@ void getCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount, Do
 		listIn->loggedSize = 0;
 		listIn->size = 0;
 		
-		((CombinedCriteria*)(criteria->list[i]))->fgetInterval(criteria->list[i], values, varCount, listIn, outlen);
-		if(*outlen < 0 ){
+		((CombinedCriteria*)(criteria->list[i]))->fgetInterval(criteria->list[i], values, varCount, listIn);
+		if(listIn->size > 0 ){
 			if(outDomain->size >= outDomain->loggedSize){
 				outDomain->loggedSize += INCLEN;
 				outDomain->list = (ListInterval**)realloc(outDomain->list, sizeof(ListInterval*) * outDomain->loggedSize);
 			}
 			outDomain->list[outDomain->size++] = listIn;
 		}else{
-			for(k=0; k<listIn->size; k++)
-				free(listIn->list[k]);
-				
-			free(listIn->list);
 			free(listIn);
 		}
+	}
+}
+
+void buildCompositeCriteria(NMAST *ast, void **obj){
+	switch(ast->type){
+		case GT_LT:
+			*obj = (Interval*)malloc(sizeof(Interval));
+		break;
+		
+		case GTE_LT:
+			*obj = (Interval*)malloc(sizeof(Interval));
+		break;
+		
+		case GT_LTE:
+			*obj = (Interval*)malloc(sizeof(Interval));
+		break;
+		
+		case GTE_LTE:
+		break;
+		
+		case LT:
+			*obj = (Interval*)malloc(sizeof(Interval));
+		break;
+		
+		case LTE:
+		break;
+		
+		case GT:
+		break;
+		
+		case GTE:
+		break;
+		
+		case AND:
+		break;
+		
+		case OR:
+		break;
+		
+		default:
+		break;
 	}
 }

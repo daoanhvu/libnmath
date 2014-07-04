@@ -11,9 +11,7 @@ typedef struct tagListInterval ListInterval;
 typedef struct tagDomain Domain;
 
 //Function poiters
-typedef void (*FPGetIntervalF)(void *, DATA_TYPE_FP *, int, Interval *);
-typedef void (*FPGetListIntervalF)(void *, DATA_TYPE_FP *, int, ListInterval *, int *);
-typedef void (*FPGetDomainF)(void *, DATA_TYPE_FP *, int, Domain *, int *);
+typedef void (*FPGetIntervalF)(void *, DATA_TYPE_FP *, int, void *);
 typedef int (*FPCheck)(void *, DATA_TYPE_FP *, int);
 
 /** This is a single continuous interval for one variable */
@@ -37,7 +35,7 @@ struct tagCriteria{
  */
 struct tagCombinedCriteria{
 	FPCheck fcheck;
-	FPGetListIntervalF fgetInterval;
+	FPGetIntervalF fgetInterval;
 	Criteria **list;
 	int loggedSize;
 	int size;
@@ -46,7 +44,7 @@ struct tagCombinedCriteria{
 //OR
 struct tagCompositeCriteria{
 	FPCheck fcheck;
-	FPGetDomainF fgetInterval;
+	FPGetIntervalF fgetInterval;
 	CombinedCriteria **list;
 	int loggedSize;
 	int size;
@@ -79,19 +77,19 @@ int isInInterval(void *interval, DATA_TYPE_FP *values, int varCount);
 int isInCombinedInterval(void *interval, DATA_TYPE_FP *values, int varCount);
 int isInCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount);
 
-void getInterval(void *interval, DATA_TYPE_FP *values, int varCount, Interval *outInterval);
+void getInterval(void *interval, DATA_TYPE_FP *values, int varCount, void *outInterval);
 
 /**
 	outInterval
 		This output parameter, it's a matrix N row and 2 columns which each row is for each continuous interval of a single variable
 */
-void getCombinedInterval(void *interval, DATA_TYPE_FP *values, int varCount, ListInterval *outListInterval, int *outlen);
+void getCombinedInterval(void *interval, DATA_TYPE_FP *values, int varCount, void *outListInterval);
 
 /**
 	outInterval
 		This output parameter, it's a matrix N row and M columns which each row is for each continuous space for the expression
 		It means that each row will hold a combined-interval for n-tule variables
 */
-void getCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount, Domain *outDomain, int *outlen);
+void getCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount, void *outDomain);
 
 #endif
