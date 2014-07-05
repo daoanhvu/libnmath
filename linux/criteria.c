@@ -5,6 +5,24 @@ int andTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out);
 int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out);
 int andTwoCriteria(void *c1, void *c2, void **out);
 
+void copyCombinedCriteria(CombinedCriteria *from, CombinedCriteria *target){
+	int i;
+	
+	target->loggedSize = from->loggedSize;
+	target->size = from->size;
+	target->list = (Criteria**)malloc(sizeof(Criteria*) * target->loggedSize);
+	
+	for(i=0; i<target->size; i++){
+		target->list[i] = newCriteria(from->list[i]->type, 
+											from->list[i]->variable,
+											from->list[i]->leftVal,
+											from->list[i]->rightVal, 
+											from->list[i]->isLeftInfinity,
+											from->list[i]->isRightInfinity);
+	}
+	
+}
+
 Criteria *newCriteria(int type, char var, DATA_TYPE_FP lval, DATA_TYPE_FP rval, 
 										int leftInfinity, int rightInfinity) {
 	Criteria *result = (Criteria *)malloc(sizeof(Criteria));
@@ -453,7 +471,7 @@ void buildCompositeCriteria(NMAST *ast, void **outCriteria){
 	Need to test here
 */
 int andTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
-	double d[2];
+	DATA_TYPE_FP d[2];
 	Criteria *interval;
 	if(c1->variable == c2->variable){
 		interval = newCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
@@ -470,21 +488,57 @@ int andTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
 		((CombinedCriteria*)(*out))->list = (Criteria**)malloc(sizeof(Criteria*)*2);
 		((CombinedCriteria*)(*out))->loggedSize = 2;
 		((CombinedCriteria*)(*out))->size = 2;
-		((CombinedCriteria*)(*out))->list[0] = c1;
-		((CombinedCriteria*)(*out))->list[1] = c2;
+		((CombinedCriteria*)(*out))->list[0] = newCriteria(c1->type, c1->variable, c1->leftVal, c1->rightVal, c1->isLeftInfinity, c1->isRightInfinity);
+		((CombinedCriteria*)(*out))->list[1] = newCriteria(c2->type, c2->variable, c2->leftVal, c2->rightVal, c2->isLeftInfinity, c2->isRightInfinity);
 	}
 	
 	return TRUE;
 }
 
+/**
+	@return 
+		FALSE: if it is contradiction
+		TRUE: 
+*/
 int andTwoCriteria(void *c1, void *c2, void **out){
 	int objTypeLeft = *((int*)c1);
 	int objTypeRight = *((int*)c2);
-	int result = FALSE;
+	int i, result = FALSE;
+	DATA_TYPE_FP d[2];
+	Criteria *interval;
+	CombinedCriteria* cb;
+	
 			
 	if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
 		result = andTwoSimpleCriteria(c1, c2, out);
 	} else if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == COMBINED_CRITERIA ) {
+		cb = (CombinedCriteria*)c2;
+		i = 0;
+		while(i<cb->size){
+			if( ((Criteria*)c1)->variable == cb->list[i]->variable ){
+				interval = newCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
+				d[0] = cb->list[i]->leftVal;
+				d[1] = cb->list[i]->rightVal;
+				((Criteria*)c1)->fgetInterval(c1, d, 1, (void*)interval);
+				if(interval->available == TRUE){
+					*out = newCombinedInterval();
+					copyCombinedCriteria(cb, *out);
+					((CombinedCriteria*)(*out))->list[i]->variable = interval->variable;
+					((CombinedCriteria*)(*out))->list[i]->leftVal = interval->leftVal;
+					((CombinedCriteria*)(*out))->list[i]->rightVal = interval->rightVal;
+					((CombinedCriteria*)(*out))->list[i]->isLeftInfinity = interval->isLeftInfinity;
+					((CombinedCriteria*)(*out))->list[i]->isRightInfinity = interval->isRightInfinity;
+					free(interval);
+					return TRUE;
+				}else{
+					/** ERROR: AND two contracting criteria */
+					return FALSE;
+				}
+				break;
+			}
+			i++;
+		}
+		
 	} else if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
 			
 	} else if( objTypeLeft == COMBINED_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
