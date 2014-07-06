@@ -6,13 +6,15 @@
 typedef struct tagCriteria Criteria;
 typedef struct tagCombinedCriteria CombinedCriteria;
 typedef struct tagCompositeCriteria CompositeCriteria;
+typedef struct tagFData FData;
+typedef struct tagListFData ListFData;
 
 //Function poiters
 typedef void (*FPGetIntervalF)(void *, DATA_TYPE_FP *, int, void *);
 typedef int (*FPCheck)(void *, DATA_TYPE_FP *, int);
 
-#define SIMPLE_CRITERIA 	0
-#define COMBINED_CRITERIA 	1
+#define SIMPLE_CRITERIA 		0
+#define COMBINED_CRITERIA 		1
 #define COMPOSITE_CRITERIA 	2
 
 /**
@@ -60,6 +62,22 @@ struct tagCompositeCriteria{
 	int size;
 };
 
+struct tagFData{
+	DATA_TYPE_FP *data;
+	int dataSize;
+	int loggedSize;
+	
+	int *rowInfo;
+	int rowCount;
+	int loggedRowCount;
+};
+
+struct tagListFData{
+	FData **list;
+	int loggedSize;
+	int size;
+};
+
 Criteria *newCriteria(int type, char var, DATA_TYPE_FP lval, DATA_TYPE_FP rval, 
 										int leftInfinity, int rightInfinity);
 CombinedCriteria *newCombinedInterval();
@@ -81,5 +99,10 @@ void getCombinedInterval(void *interval, DATA_TYPE_FP *values, int varCount, voi
 		it's a CompositeCriteria
 */
 void getCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount, void *outDomain);
+
+/**
+
+*/
+void buildCompositeCriteria(NMAST *ast, void **outCriteria);
 
 #endif

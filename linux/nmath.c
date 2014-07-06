@@ -316,6 +316,7 @@ void releaseFunct(Function *f){
 
 	if(f->str != NULL)
 		free(f->str);
+	f->str = NULL;
 	f->len = 0;
 
 	if(f->prefix != NULL){

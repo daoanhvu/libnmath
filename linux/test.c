@@ -13,7 +13,8 @@
 
 void printError(int col, int code);
 int test1(int argc, char *agr[]);
-void testCriteria(int argc, char *agr[]);
+void testCriteria1(int argc, char *agr[]);
+void testCriteria2(int argc, char *agr[]);
 
 int main(int argc, char *agr[]){
 
@@ -24,7 +25,8 @@ int main(int argc, char *agr[]){
 	}
 	
 	//test1(argc, agr);
-	testCriteria(argc, agr);
+	//testCriteria1(argc, agr);
+	testCriteria2(argc, agr);
 #ifdef DEBUG
 	printf("\n[EndOfProgram] Number of dynamic object alive: %d \n", numberOfDynamicObject());
 #endif
@@ -32,7 +34,7 @@ int main(int argc, char *agr[]){
 	return 0;
 }
 
-void testCriteria(int argc, char *agr[]){
+void testCriteria1(int argc, char *agr[]){
 	Criteria *ci1, *ci2;
 	CombinedCriteria *cc1, *cc2;
 	CompositeCriteria *cp1;
@@ -171,6 +173,67 @@ void testCriteria(int argc, char *agr[]){
 	free(cp1);
 	free(outDomain);
 }
+
+/**
+	Test convert from NMAST tree to Criteria
+	Date: 6 Jul 2014
+	Result: Passed
+*/
+void testCriteria2(int argc, char *agr[]){
+	NMAST *ast;
+	void **outCriteria = (void **)malloc(sizeof(void*));
+	Criteria *ci1; 
+	//Criteria *ci2;
+	//CombinedCriteria *cc1;
+	//CombinedCriteria *cc2;
+	//CompositeCriteria *cp1;
+	//int i;
+	//int j; 
+	//int error;
+	//int outlen;
+	//int chk;
+	int outType;
+	//DATA_TYPE_FP *vals;
+	//CombinedCriteria *outIntList;
+	//CompositeCriteria *outDomain;
+	
+	*outCriteria = NULL;
+	
+	//Tes1
+	ast = (NMAST*)malloc(sizeof(NMAST));
+	ast->type = GT_LT;
+	ast->variable = 'x';
+	ast->parent = NULL;
+	ast->left = (NMAST*)malloc(sizeof(NMAST));
+	ast->left->type = NUMBER;
+	ast->left->value = -1;
+	ast->left->valueType = TYPE_FLOATING_POINT;
+	ast->left->left = ast->left->right = NULL;
+	ast->left->parent = ast;
+	ast->right = (NMAST*)malloc(sizeof(NMAST));
+	ast->right->type = NUMBER;
+	ast->right->value = 1.5;
+	ast->right->valueType = TYPE_FLOATING_POINT;
+	ast->right->left = ast->right->right = NULL;
+	ast->right->parent = ast;
+	
+	buildCompositeCriteria(ast, outCriteria);
+	
+	if(*outCriteria != NULL){
+		outType = *((int*)(*outCriteria));
+		if( outType == SIMPLE_CRITERIA ){
+			ci1 = (Criteria*)(*outCriteria);
+			printf("Got a simple criteria from %lf to %lf\n", ci1->leftVal, ci1->rightVal );
+			free(*outCriteria);
+		} else if( outType == COMBINED_CRITERIA ){
+		} else if( outType == COMPOSITE_CRITERIA ){
+		}
+	}
+
+	free(outCriteria);
+	clearTree(&ast);
+}
+
 
 void printError(int col, int code){
 	switch(code){

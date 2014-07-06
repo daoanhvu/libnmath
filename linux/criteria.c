@@ -159,7 +159,7 @@ int isInCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount) {
 	return FALSE;
 }
 
-void getInterval(void *interval, DATA_TYPE_FP *values, int varCount, void *outIntervalObj){
+void getInterval(void *interval, DATA_TYPE_FP *values, int unused, void *outIntervalObj){
 	Criteria *criteria = (Criteria*)interval;
 	Criteria *outInterval = (Criteria*)outIntervalObj;
 	
@@ -394,7 +394,7 @@ void getCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount, vo
 }
 
 /**
-	obj [OUT] MUST an level-2 NULL pointer
+	obj [OUT] MUST an level-2 NOT-NULL pointer
 */
 void buildCompositeCriteria(NMAST *ast, void **outCriteria){
 	void **leftResult = NULL;
@@ -410,7 +410,7 @@ void buildCompositeCriteria(NMAST *ast, void **outCriteria){
 		case GTE_LT:
 		case GT_LTE:
 		case GTE_LTE:
-			*outCriteria = newCriteria(ast->type, ast->variable, ast->left->value, ast->right->value, FALSE, FALSE);
+			*outCriteria = (void*)newCriteria(ast->type, ast->variable, ast->left->value, ast->right->value, FALSE, FALSE);
 		break;
 		
 		case LT:
@@ -557,7 +557,7 @@ int andTwoCriteria(void *c1, void *c2, void **out){
 	Need to implement
 */
 int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
-	double d[2];
+	DATA_TYPE_FP d[2];
 	Criteria *interval;
 	if(c1->variable == c2->variable){
 		interval = newCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
@@ -610,4 +610,54 @@ int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
 	}
 	
 	return TRUE;
+}
+
+/**
+ * 
+ * @param exp
+ * @param bd
+	@ bdlen MUST be 4 
+ * @param epsilon
+ */
+FData* generateTwoUnknows(NMAST* exp, Criteria *c, DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
+	DATA_TYPE_FP x[2] = {0, 0};
+	int count=0, i, vcount = 0, elementOnRow;
+	Criteria *out1, *out2;
+	DATA_TYPE_FP y;
+	FData *mesh = NULL;
+	
+	out1 = newCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
+	out2 = newCriteria(GT_LT, 'y', 0, 0, FALSE, FALSE);
+	getInterval(c, bd, 0, out1);
+	getInterval(c+1, bd+2, 0, out2);
+		
+	if(out1->available == FALSE || out2->available == FALSE) return NULL;
+	x[0] = out1->leftVal;
+	while(x[0] < out1->rightVal){
+		x[1] = out2->leftVal;
+		elementOnRow = 0;
+		while(x[1] < d2[1]){
+			y = formula.f(x);
+			mesh->list[0]->data[mesh->size++] = x[0];
+			mesh->list[0]->data[mesh->size++] = x[1];
+			mesh->list[0]->data[mesh->size++] = y;
+			x[1] += epsilon;
+			elementOnRow++;
+			vcount++;
+		}
+		rowInfo.add(elementOnRow);
+		x[0] += epsilon;
+	}
+		
+	float[] img = new float[mesh.size()];
+	//Unbox Float to float
+	count = 0;
+	for(i=0; i<mesh.size();i++)
+		img[count++] = mesh.get(i);
+		
+	int[] _rowsInfo = new int[rowInfo.size()];
+	for(i=0; i<_rowsInfo.length; i++){
+		_rowsInfo[i] = rowInfo.get(i);
+	}
+	image = new ImageData(formula.getVariables().length, img, vcount, _rowsInfo);
 }

@@ -15,10 +15,9 @@ extern TokenList *gTokens;
 //internal variables
 short gParenStack[100];
 short gParenTop;
-Function *returnFunction = NULL;
 NMAST *returnedAst = NULL;
 
-int functionNotation1(int index);
+int functionNotation(int index, char *vars, int *varCount);
 void parseFunct(TokenList *tokens, int *start, Function *f);
 void domain(int *start, Function *f);
 NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, Token* valtk2);
@@ -158,21 +157,36 @@ void addFunction2Tree(NMASTList *t, Token * stItm){
 }
 
 /**
-	access right: public
+	access right: private
+	@param outF a NOT-NULL Function pointer
+	@return errorCode
 */	
-Function* parseFunctionExpression1(TokenList *tokens){
+int parseFunctionExpression(TokenList *tokens, Function *outF){
 	int k, l, i, idx = 0;
 	gTokens = tokens;
 	gErrorCode = ERROR_NOT_A_FUNCTION;
 	gErrorColumn = tokens->list[idx]->column;
 	
-	if( (k=functionNotation1(idx)) > idx ){
+	/** This array will hold the variables of the function */
+	char variables[8];
+	int variableCount = 0;
+	if( (k=functionNotation(idx, variables, &variableCount)) > idx ){
 		if(tokens->list[k]->type == EQ){
-		
+			
+			outF->prefix = NULL;
+			outF->domain = NULL;
+			outF->str = NULL;
+			outF->len = 0;
+			outF->variableNode = NULL;
+			outF->numVarNode = 0;
+			outF->valLen = variableCount;
+			for(i=0;i<variableCount; i++) //Should use memcpy here
+				outF->variable[i] = variables[i];
+			
 			for(i=0; i<tokens->size; i++){
 				if(tokens->list[i]->type == NAME){
-					for(l=0; l<returnFunction->valLen; l++){
-						if(tokens->list[i]->text[0]==returnFunction->variable[l] 
+					for(l=0; l<variableCount; l++){
+						if(tokens->list[i]->text[0]==variables[l] 
 										&& tokens->list[i]->textLength==1)
 							tokens->list[i]->type = VARIABLE;
 					}
@@ -181,7 +195,7 @@ Function* parseFunctionExpression1(TokenList *tokens){
 			
 			k++;
 			do{
-				parseFunct(tokens, &k, returnFunction);
+				parseFunct(tokens, &k, outF);
 				
 				/** after parseFunct, we may get error, so MUST check if it's OK here */
 				if( (gErrorCode!=NO_ERROR) || (k >= tokens->size) ) break;
@@ -189,7 +203,7 @@ Function* parseFunctionExpression1(TokenList *tokens){
 				if(tokens->list[k]->type == DOMAIN_NOTATION){
 					if(k+1 < tokens->size){
 						l = k + 1;
-						domain(&l, returnFunction);
+						domain(&l, outF);
 						k = l;
 					} else{
 						//Here, we got a DOMAIN_NOTATION but it's at the end of the token list
@@ -200,33 +214,26 @@ Function* parseFunctionExpression1(TokenList *tokens){
 	}
 	
 	if(gErrorCode != NO_ERROR){
-		if(returnFunction != NULL){
-			if(returnFunction->prefix != NULL) {
-				for(k=0; k<returnFunction->prefix->size; k++){
-					clearTree(&(returnFunction->prefix->list[k]));
-				}
-				returnFunction->prefix->size = 0;
-				free(returnFunction->prefix);
+		if(outF->prefix != NULL) {
+			for(k=0; k<outF->prefix->size; k++){
+				clearTree(&(outF->prefix->list[k]));
+			}
+			outF->prefix->size = 0;
+			free(outF->prefix);
 #ifdef DEBUG
 	descNumberOfDynamicObject();
 #endif
-			}
+		}
 			
-			if(returnFunction->domain != NULL) {
-				for(k=0; k<returnFunction->domain->size; k++){
-					clearTree(&(returnFunction->domain->list[k]));
-				}
-				returnFunction->domain->size = 0;
-				free(returnFunction->domain);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
+		if(outF->domain != NULL) {
+			for(k=0; k<outF->domain->size; k++){
+				clearTree(&(outF->domain->list[k]));
 			}
-			free(returnFunction);
+			outF->domain->size = 0;
+			free(outF->domain);
 #ifdef DEBUG
 	descNumberOfDynamicObject();
 #endif
-			returnFunction = NULL;
 		}
 		
 		if(returnedAst != NULL){
@@ -235,21 +242,21 @@ Function* parseFunctionExpression1(TokenList *tokens){
 		}	
 	}
 	gTokens = NULL;
-	return returnFunction;
+	return gErrorCode;
 }
 
 /**
 	functionNotation: NAME LPAREN NAME (COMA NAME)* PRARENT;
 	@return if
 */
-int functionNotation1(int index){
-	int i, varsize = 0;
+int functionNotation(int index, char *variables, int *variableCount){
+	int i;
 	int oldIndex = index;
-	char vars[4];
 
 	if(index >= gTokens->size)
 		return index;
-	
+		
+	*variableCount = 0;
 	if(gTokens->list[index]->type == NAME ){
 		gErrorCode = ERROR_PARENTHESE_MISSING;
 		gErrorColumn = gTokens->list[index]->column;
@@ -258,32 +265,16 @@ int functionNotation1(int index){
 			gErrorColumn = gTokens->list[index+1]->column;
 			
 			if(gTokens->list[index+2]->type == NAME){
-				vars[varsize++] = (gTokens->list[index+2])->text[0];
+				variables[(*variableCount)++] = (gTokens->list[index+2])->text[0];
 				index += 3;
 				while( (index+1<gTokens->size) && (gTokens->list[index]->type == COMMA)
 							&& (gTokens->list[index+1]->type == NAME ) ){
-					vars[varsize++] = (gTokens->list[index+1])->text[0];
+					variables[(*variableCount)++] = (gTokens->list[index+1])->text[0];
 					index += 2;
 				}
 				gErrorCode = ERROR_PARENTHESE_MISSING;
 				gErrorColumn = gTokens->list[index]->column;
 				if( (index<gTokens->size) && (gTokens->list[index]->type == RPAREN)){
-					returnFunction = (Function*)malloc(sizeof(Function));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-					returnFunction->prefix = NULL;
-					returnFunction->domain = NULL;
-					returnFunction->str = NULL;
-					returnFunction->len = 0;
-					returnFunction->variableNode = NULL;
-					returnFunction->numVarNode = 0;
-
-					returnFunction->valLen = varsize;
-					//Should use memcpy here
-					for(i=0;i<varsize;i++)
-						returnFunction->variable[i] = vars[i];
-						
 					gErrorCode = NO_ERROR;
 					gErrorColumn = -1;
 					return (index + 1);
@@ -633,10 +624,9 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 /*
 	Parse the input string in object f to NMAST tree
 */
-Function* parseFunction(char *str, int len){
+int parseFunction(const char *str, int len, Function *outF){
 	TokenList lst;
-	int i;
-	Function *f = NULL;
+	int i, result;
 	
 	lst.loggedSize = 10;
 	lst.list = (Token**)malloc(sizeof(Token*) * lst.loggedSize);
@@ -653,7 +643,7 @@ Function* parseFunction(char *str, int len){
 #endif
 	
 	if( gErrorCode == NO_ERROR ){
-		f = parseFunctionExpression1(&lst);
+		result = parseFunctionExpression(&lst, outF);
 		for(i = 0; i<lst.size; i++){
 			free(lst.list[i]);
 #ifdef DEBUG
@@ -665,7 +655,7 @@ Function* parseFunction(char *str, int len){
 #ifdef DEBUG
 	descNumberOfDynamicObject();
 #endif
-	return f;
+	return result;
 }
 
 void domain(int *start, Function *f){

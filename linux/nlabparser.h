@@ -4,8 +4,10 @@
 #include "common.h"
 
 /**
-	Parse the input string in object f to NMAST tree
-*/
-Function* parseFunction(char *str, int len);
+	access right: private
+	@param outF a NOT-NULL Function pointer
+	@return errorCode
+*/	
+int parseFunction(const char *str, int len, Function *outF);
 
 #endif

@@ -118,7 +118,7 @@ typedef struct tagFunct{
 	char *str;
 	int len;
 
-	char variable[3];
+	char variable[8];
 	char valLen;
 
 	NMASTList *prefix;
