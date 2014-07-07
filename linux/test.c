@@ -284,7 +284,7 @@ void printError(int col, int code){
 }
 
 int test1(int argc, char *agr[]){
-	Function *f;
+	Function *f = (Function*)malloc(sizeof(Function));
 	DParam d;
 	int error;
 	DATA_TYPE_FP vars[] = {4, 1};
@@ -295,10 +295,11 @@ int test1(int argc, char *agr[]){
 	printf("%s\n", agr[1]);
 	//resetFunction(&f, agr[1], "xy", 2, &error);
 	l = strlen(agr[1]);
-	f = parseFunction(agr[1], l);
+	parseFunction(agr[1], l, f);
 	if(getErrorCode() != NO_ERROR) {
 		printError(getErrorColumn(), getErrorCode());
 		releaseFunct(f);
+		free(f);
 		return getErrorCode();
 	}
 	l = 0;

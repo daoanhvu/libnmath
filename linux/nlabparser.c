@@ -250,7 +250,6 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 	@return if
 */
 int functionNotation(int index, char *variables, int *variableCount){
-	int i;
 	int oldIndex = index;
 
 	if(index >= gTokens->size)

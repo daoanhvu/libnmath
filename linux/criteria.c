@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "nmath.h"
 #include "criteria.h"
 
 int andTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out);
@@ -152,14 +153,14 @@ int isInCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount) {
 	int i;
 	
 	for(i=0; i<criteria->size; i++){
-		if(((CombinedCriteria*)(criteria->list[i]))->fcheck( criteria->list[i], values+i, 1) == TRUE)
+		if((criteria->list[i])->fcheck( criteria->list[i], values+i, 1) == TRUE)
 			return TRUE;
 	}
 	
 	return FALSE;
 }
 
-void getInterval(void *interval, DATA_TYPE_FP *values, int unused, void *outIntervalObj){
+void getInterval(void *interval, const DATA_TYPE_FP *values, int unused, void *outIntervalObj){
 	Criteria *criteria = (Criteria*)interval;
 	Criteria *outInterval = (Criteria*)outIntervalObj;
 	
@@ -334,7 +335,7 @@ void getInterval(void *interval, DATA_TYPE_FP *values, int unused, void *outInte
 		This is a matrix N row and 2 columns which each row is for each continuous interval of a single variable
 		It means that N = varCount
 */
-void getCombinedInterval(void *intervalObj, DATA_TYPE_FP *values, int varCount, void *outListIntervalObj){
+void getCombinedInterval(void *intervalObj, const DATA_TYPE_FP *values, int varCount, void *outListIntervalObj){
 	CombinedCriteria *criteria = (CombinedCriteria*)intervalObj;
 	CombinedCriteria *outListInterval = (CombinedCriteria *)outListIntervalObj;
 	Criteria *interval;
@@ -343,7 +344,7 @@ void getCombinedInterval(void *intervalObj, DATA_TYPE_FP *values, int varCount, 
 	for(k=0; k<varCount; k++){
 		interval = newCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
 		
-		((Criteria*)(criteria->list[k]))->fgetInterval(criteria->list[k], values + k*2, varCount, interval);
+		(criteria->list[k])->fgetInterval(criteria->list[k], values + k*2, varCount, interval);
 		if( interval->available == FALSE ){
 			free(interval);
 			for(i=0; i<outListInterval->size; i++)
@@ -371,7 +372,7 @@ void getCombinedInterval(void *intervalObj, DATA_TYPE_FP *values, int varCount, 
 		This output parameter, it's a matrix N row and M columns which each row is for each continuous space for the expression
 		It means that each row will hold a combined-interval for n-tule variables and M equal varCount * 2
 */
-void getCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount, void *outDomainObj){
+void getCompositeInterval(void *interval, const DATA_TYPE_FP *values, int varCount, void *outDomainObj){
 	CompositeCriteria *criteria = (CompositeCriteria*)interval;
 	CompositeCriteria *outDomain = (CompositeCriteria *)outDomainObj;
 	CombinedCriteria *listIn;
@@ -380,7 +381,7 @@ void getCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount, vo
 	for(i=0; i<criteria->size; i++){
 		listIn = newCombinedInterval();
 		
-		((CombinedCriteria*)(criteria->list[i]))->fgetInterval(criteria->list[i], values, varCount, listIn);
+		(criteria->list[i])->fgetInterval(criteria->list[i], values, varCount, listIn);
 		if(listIn->size > 0 ){
 			if(outDomain->size >= outDomain->loggedSize){
 				outDomain->loggedSize += INCLEN;
@@ -613,51 +614,168 @@ int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
 }
 
 /**
- * 
- * @param exp
- * @param bd
-	@ bdlen MUST be 4 
- * @param epsilon
+ * 	This get a continuous 3D space
+ *	@param exp
+ *	@param bd
+ *	@param bdlen MUST be 4 
+ *	@param epsilon
  */
-FData* generateTwoUnknows(NMAST* exp, Criteria *c, DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
-	DATA_TYPE_FP x[2] = {0, 0};
-	int count=0, i, vcount = 0, elementOnRow;
+FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables, CombinedCriteria *c, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
+	int elementOnRow;
 	Criteria *out1, *out2;
 	DATA_TYPE_FP y;
+	void *tmpP;
 	FData *mesh = NULL;
+	RParam param;
 	
-	out1 = newCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
-	out2 = newCriteria(GT_LT, 'y', 0, 0, FALSE, FALSE);
-	getInterval(c, bd, 0, out1);
-	getInterval(c+1, bd+2, 0, out2);
+	out1 = newCriteria(GT_LT, c->list[0]->variable, 0, 0, FALSE, FALSE);
+	out2 = newCriteria(GT_LT, c->list[1]->variable, 0, 0, FALSE, FALSE);
+	getInterval(c->list[0], bd, 0, out1);
+	getInterval(c->list[1], bd+2, 0, out2);
 		
-	if(out1->available == FALSE || out2->available == FALSE) return NULL;
-	x[0] = out1->leftVal;
-	while(x[0] < out1->rightVal){
-		x[1] = out2->leftVal;
+	if(out1->available == FALSE || out2->available == FALSE){
+		free(out1);
+		free(out2);
+		return NULL;
+	}
+	
+	param.t = exp;
+	param.variables = (char*)malloc(sizeof(char) * 2);
+	param.variables[0] = variables[0];
+	param.variables[1] = variables[1];
+	param.values = (DATA_TYPE_FP*)malloc(sizeof(DATA_TYPE_FP) * 2);
+	param.error = 0;
+	
+	mesh = (FData*)malloc(sizeof(FData));
+	mesh->dimension = 3;
+	mesh->loggedSize = 20;
+	mesh->dataSize = 0;
+	mesh->data = (DATA_TYPE_FP*)malloc(sizeof(DATA_TYPE_FP) * mesh->loggedSize);
+	mesh->rowCount = 0;
+	param.values[0] = out1->leftVal;
+	while(param.values[0] < out1->rightVal){
+		param.values[1] = out2->leftVal;
 		elementOnRow = 0;
-		while(x[1] < d2[1]){
-			y = formula.f(x);
-			mesh->list[0]->data[mesh->size++] = x[0];
-			mesh->list[0]->data[mesh->size++] = x[1];
-			mesh->list[0]->data[mesh->size++] = y;
-			x[1] += epsilon;
+		while(param.values[1] < out2->rightVal){
+			calc_t((void*)&param);
+			y = param.retv;
+			if(mesh->dataSize >= mesh->loggedSize - 3){
+				mesh->loggedSize += 20;
+				tmpP = realloc(mesh->data, sizeof(DATA_TYPE_FP) * mesh->loggedSize);
+				if(tmpP != NULL)
+					mesh->data = (DATA_TYPE_FP*)tmpP;
+			}
+			mesh->data[mesh->dataSize++] = param.values[0];
+			mesh->data[mesh->dataSize++] = param.values[1];
+			mesh->data[mesh->dataSize++] = y;
+			param.values[1] += epsilon;
 			elementOnRow++;
-			vcount++;
 		}
-		rowInfo.add(elementOnRow);
-		x[0] += epsilon;
-	}
+		if(mesh->rowCount >= mesh->loggedRowCount){
+			mesh->loggedRowCount += 10;
+			tmpP = realloc(mesh->rowInfo, sizeof(int) * mesh->loggedRowCount);
+			if(tmpP != NULL)
+				mesh->rowInfo = (int*)tmpP;
+		}
 		
-	float[] img = new float[mesh.size()];
-	//Unbox Float to float
-	count = 0;
-	for(i=0; i<mesh.size();i++)
-		img[count++] = mesh.get(i);
-		
-	int[] _rowsInfo = new int[rowInfo.size()];
-	for(i=0; i<_rowsInfo.length; i++){
-		_rowsInfo[i] = rowInfo.get(i);
+		mesh->rowInfo[mesh->rowCount++] = elementOnRow;
+		param.values[0] += epsilon;
 	}
-	image = new ImageData(formula.getVariables().length, img, vcount, _rowsInfo);
+	free(out1);
+	free(out2);
+	free(param.values);
+	free(param.variables);
+	return mesh;
+}
+
+ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
+	ListFData *lst = NULL;
+	FData *sp;
+	CombinedCriteria *comb;
+	//CompositeCriteria *composite;
+	//Criteria *c;
+	void **outCriteria;
+	int i, outCriteriaType;
+	
+	switch(f->valLen){
+		case 1:
+			lst = (ListFData*)malloc(sizeof(ListFData));
+			if(f->domain == NULL){
+				comb = newCombinedInterval();
+				comb->loggedSize = 2;
+				comb->size = 2;
+				comb->list = (Criteria **)malloc(sizeof(Criteria *) * comb->loggedSize);
+				comb->list[0] = newCriteria(GT_LT, f->variable[0], bd[0], bd[1], FALSE, FALSE);
+				comb->list[1] = newCriteria(GT_LT, f->variable[1], bd[2], bd[3], FALSE, FALSE);
+				sp = generateTwoUnknowsFromCombinedCriteria(f->prefix->list[0], f->variable, comb, bd, 4, epsilon);
+				if(sp != NULL){
+					lst->loggedSize = 1;
+					lst->size = 1;
+					lst->list = (FData**)malloc(sizeof(FData*));
+					lst->list[0] = sp;
+				}
+				for(i=0; i<comb->size; i++)
+					free(comb->list[i]);
+				free(comb->list);
+				free(comb);
+			} else {
+			}
+		break;
+		
+		case 2:
+			lst = (ListFData*)malloc(sizeof(ListFData));
+			if(f->domain == NULL){
+				comb = newCombinedInterval();
+				comb->loggedSize = 2;
+				comb->size = 2;
+				comb->list = (Criteria **)malloc(sizeof(Criteria *) * comb->loggedSize);
+				comb->list[0] = newCriteria(GT_LT, f->variable[0], bd[0], bd[1], FALSE, FALSE);
+				comb->list[1] = newCriteria(GT_LT, f->variable[1], bd[2], bd[3], FALSE, FALSE);
+				sp = generateTwoUnknowsFromCombinedCriteria(f->prefix->list[0], f->variable, comb, bd, 4, epsilon);
+				if(sp != NULL){
+					lst->loggedSize = 1;
+					lst->size = 1;
+					lst->list = (FData**)malloc(sizeof(FData*));
+					lst->list[0] = sp;
+				}
+				for(i=0; i<comb->size; i++)
+					free(comb->list[i]);
+				free(comb->list);
+				free(comb);
+			} else {
+				outCriteria = (void**)malloc(sizeof(void*));
+				buildCompositeCriteria(f->domain->list[0], outCriteria);
+				outCriteriaType = *((int*)(*outCriteria));
+				switch(outCriteriaType){
+					case SIMPLE_CRITERIA:
+					break;
+					
+					case COMBINED_CRITERIA:
+						comb = (CombinedCriteria*)(*outCriteria);
+						sp = generateTwoUnknowsFromCombinedCriteria(f->prefix->list[0], f->variable, comb, bd, 4, epsilon);
+						if(sp != NULL){
+							lst->loggedSize = 1;
+							lst->size = 1;
+							lst->list = (FData**)malloc(sizeof(FData*));
+							lst->list[0] = sp;
+						}
+					break;
+					
+					case COMPOSITE_CRITERIA:
+						//composite = (CompositeCriteria*)(*outCriteria);
+					break;
+				}
+				
+				free(outCriteria);
+			}
+		break;
+		
+		case 3:
+		break;
+		
+		default:
+		break;
+	}
+	
+	return lst;
 }
