@@ -718,7 +718,9 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 	mesh->loggedSize = 20;
 	mesh->dataSize = 0;
 	mesh->data = (DATA_TYPE_FP*)malloc(sizeof(DATA_TYPE_FP) * mesh->loggedSize);
+	mesh->loggedRowCount = 0;
 	mesh->rowCount = 0;
+	mesh->rowInfo= NULL;
 	param.values[0] = out1->leftVal;
 	while(param.values[0] < out1->rightVal){
 		param.values[1] = out2->leftVal;

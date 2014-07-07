@@ -791,11 +791,36 @@ void domain(int *start, Function *f){
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
-						ast->left = ast->right = NULL;
+						//ast->left = ast->right = NULL;
 						ast->type = tokenItm->type;
 						ast->priority = tokenItm->priority;
 						ast->left = d->list[d->size-2];
 						ast->right = d->list[d->size-1];
+						if((ast->type == LT || ast->type == LTE || ast->type == GT || ast->type == GTE )
+									&& (d->list[d->size-1]->type==VARIABLE) ){
+							ast->left = d->list[d->size-1];
+							ast->right = d->list[d->size-2];
+							
+							switch(ast->type){
+								case LT:
+									ast->type = GT;
+								break;
+								
+								case LTE:
+									ast->type = GTE;
+								break;
+								
+								case GT:
+									ast->type = LT;
+								break;
+								
+								case GTE:
+									ast->type = LTE;
+								break;
+							}
+							
+							
+						}
 						
 						if((ast->left)!=NULL)
 							(ast->left)->parent = ast;
@@ -1024,6 +1049,7 @@ void domain(int *start, Function *f){
 					ast = (NMAST*)malloc(sizeof(NMAST));
 					ast->valueType = TYPE_FLOATING_POINT;
 					ast->sign = 1;
+					ast->variable = tk->text[0];
 					ast->left = ast->right = ast->parent = NULL;
 					ast->value = val;
 					ast->type = tk->type;
