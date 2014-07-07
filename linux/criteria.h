@@ -106,4 +106,6 @@ void getCompositeInterval(void *interval, const DATA_TYPE_FP *values, int varCou
 */
 void buildCompositeCriteria(NMAST *ast, void **outCriteria);
 
+ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon);
+
 #endif

@@ -415,27 +415,31 @@ void buildCompositeCriteria(NMAST *ast, void **outCriteria){
 		break;
 		
 		case LT:
-			*outCriteria = newCriteria(GT_LT, ast->left->variable, 99999, ast->right->value, TRUE, FALSE);
+			*outCriteria = (void*)newCriteria(GT_LT, ast->left->variable, 99999, ast->right->value, TRUE, FALSE);
 		break;
 		
 		case LTE:
-			*outCriteria = newCriteria(GT_LTE, ast->left->variable, 99999, ast->right->value, TRUE, FALSE);
+			*outCriteria = (void*)newCriteria(GT_LTE, ast->left->variable, 99999, ast->right->value, TRUE, FALSE);
 		break;
 		
 		case GT:
-			*outCriteria = newCriteria(GT_LT, ast->left->variable, ast->right->value, 99999, FALSE, TRUE);
+			*outCriteria = (void*)newCriteria(GT_LT, ast->left->variable, ast->right->value, 99999, FALSE, TRUE);
 		break;
 		
 		case GTE:
-			*outCriteria = newCriteria(GTE_LT, ast->left->variable, ast->right->value, 99999, FALSE, TRUE);
+			*outCriteria = (void*)newCriteria(GTE_LT, ast->left->variable, ast->right->value, 99999, FALSE, TRUE);
 		break;
 		
 		case AND:
 			if(ast->left == NULL || ast->right == NULL) //Do we need check NULL here?
 				return;
+			leftResult = (void**)malloc(sizeof(void*));
+			rightResult = (void**)malloc(sizeof(void*));
 			buildCompositeCriteria(ast->left, leftResult);
 			buildCompositeCriteria(ast->right, rightResult);
 			andTwoCriteria(*leftResult, *rightResult, outCriteria);
+			free(leftResult);
+			free(rightResult);
 		break;
 		
 		case OR:
@@ -620,6 +624,69 @@ int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
  *	@param bdlen MUST be 4 
  *	@param epsilon
  */
+FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
+						Criteria *c, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
+	int elementOnRow;
+	Criteria *out1;
+	DATA_TYPE_FP y;
+	void *tmpP;
+	FData *mesh = NULL;
+	RParam param;
+	
+	out1 = newCriteria(GT_LT, variables[0], 0, 0, FALSE, FALSE);
+	getInterval(c, bd, 0, out1);
+		
+	if(out1->available == FALSE){
+		free(out1);
+		return NULL;
+	}
+	
+	param.t = exp;
+	param.variables = (char*)malloc(1); //size of 1 character
+	param.variables[0] = variables[0];
+	param.values = (DATA_TYPE_FP*)malloc(sizeof(DATA_TYPE_FP));
+	param.error = 0;
+	
+	mesh = (FData*)malloc(sizeof(FData));
+	mesh->dimension = 2;
+	mesh->loggedSize = 20;
+	mesh->dataSize = 0;
+	mesh->data = (DATA_TYPE_FP*)malloc(sizeof(DATA_TYPE_FP) * mesh->loggedSize);
+	mesh->rowCount = 0;
+	mesh->loggedRowCount = 1;
+	mesh->rowInfo = realloc(mesh->rowInfo, sizeof(int));
+	param.values[0] = out1->leftVal;
+	elementOnRow = 0;
+	while(param.values[0] < out1->rightVal){
+		calc_t((void*)&param);
+		y = param.retv;
+		if(mesh->dataSize >= mesh->loggedSize - 2){
+			mesh->loggedSize += 20;
+			tmpP = realloc(mesh->data, sizeof(DATA_TYPE_FP) * mesh->loggedSize);
+			if(tmpP != NULL)
+				mesh->data = (DATA_TYPE_FP*)tmpP;
+		}
+		mesh->data[mesh->dataSize++] = param.values[0];
+		mesh->data[mesh->dataSize++] = y;
+		elementOnRow++;
+		param.values[0] += epsilon;
+	}
+	mesh->rowInfo[mesh->rowCount++] = elementOnRow;
+	
+	free(out1);
+	free(param.values);
+	free(param.variables);
+	return mesh;
+}
+
+
+/**
+ * 	This get a continuous 3D space
+ *	@param exp
+ *	@param bd
+ *	@param bdlen MUST be 4 
+ *	@param epsilon
+ */
 FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables, CombinedCriteria *c, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
 	int elementOnRow;
 	Criteria *out1, *out2;
@@ -628,8 +695,8 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 	FData *mesh = NULL;
 	RParam param;
 	
-	out1 = newCriteria(GT_LT, c->list[0]->variable, 0, 0, FALSE, FALSE);
-	out2 = newCriteria(GT_LT, c->list[1]->variable, 0, 0, FALSE, FALSE);
+	out1 = newCriteria(GT_LT, variables[0], 0, 0, FALSE, FALSE);
+	out2 = newCriteria(GT_LT, variables[1], 0, 0, FALSE, FALSE);
 	getInterval(c->list[0], bd, 0, out1);
 	getInterval(c->list[1], bd+2, 0, out2);
 		
@@ -640,7 +707,7 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 	}
 	
 	param.t = exp;
-	param.variables = (char*)malloc(sizeof(char) * 2);
+	param.variables = (char*)malloc(2);  //size of 1 character
 	param.variables[0] = variables[0];
 	param.variables[1] = variables[1];
 	param.values = (DATA_TYPE_FP*)malloc(sizeof(DATA_TYPE_FP) * 2);
@@ -692,8 +759,8 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 	ListFData *lst = NULL;
 	FData *sp;
 	CombinedCriteria *comb;
-	//CompositeCriteria *composite;
-	//Criteria *c;
+	CompositeCriteria *composite;
+	Criteria *c;
 	void **outCriteria;
 	int i, outCriteriaType;
 	
@@ -701,24 +768,55 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 		case 1:
 			lst = (ListFData*)malloc(sizeof(ListFData));
 			if(f->domain == NULL){
-				comb = newCombinedInterval();
-				comb->loggedSize = 2;
-				comb->size = 2;
-				comb->list = (Criteria **)malloc(sizeof(Criteria *) * comb->loggedSize);
-				comb->list[0] = newCriteria(GT_LT, f->variable[0], bd[0], bd[1], FALSE, FALSE);
-				comb->list[1] = newCriteria(GT_LT, f->variable[1], bd[2], bd[3], FALSE, FALSE);
-				sp = generateTwoUnknowsFromCombinedCriteria(f->prefix->list[0], f->variable, comb, bd, 4, epsilon);
+				c = newCriteria(GT_LT, f->variable[0], bd[0], bd[1], FALSE, FALSE);
+				sp = generateOneUnknows(f->prefix->list[0], f->variable, c, bd, 2, epsilon);
 				if(sp != NULL){
 					lst->loggedSize = 1;
 					lst->size = 1;
 					lst->list = (FData**)malloc(sizeof(FData*));
 					lst->list[0] = sp;
 				}
-				for(i=0; i<comb->size; i++)
-					free(comb->list[i]);
-				free(comb->list);
-				free(comb);
+				free(c);
 			} else {
+				outCriteria = (void**)malloc(sizeof(void*));
+				buildCompositeCriteria(f->domain->list[0], outCriteria);
+				outCriteriaType = *((int*)(*outCriteria));
+				switch(outCriteriaType){
+					case SIMPLE_CRITERIA:
+						c = (Criteria*)(*outCriteria);
+						sp = generateOneUnknows(f->prefix->list[0], f->variable, c, bd, 2, epsilon);
+						if(sp != NULL){
+							lst->loggedSize = 1;
+							lst->size = 1;
+							lst->list = (FData**)malloc(sizeof(FData*));
+							lst->list[0] = sp;
+						}
+						free(c);
+					break;
+					
+					case COMBINED_CRITERIA:
+					break;
+					
+					case COMPOSITE_CRITERIA:
+						composite = (CompositeCriteria*)(*outCriteria);
+						lst->list = (FData**)malloc(sizeof(FData*) * composite->size );
+						for(i=0; i<composite->size; i++){
+							comb = composite->list[i];
+							c = comb->list[0];
+							sp = generateOneUnknows(f->prefix->list[0], f->variable, c, bd, 2, epsilon);
+							if(sp != NULL)
+								lst->list[i] = sp;
+							for(i=0; i<comb->size; i++){
+								free(comb->list[i]);
+							}
+							free(comb->list);
+							free(comb);
+						}
+						free(composite->list);
+						free(composite);
+					break;
+				}//end switch
+				free(outCriteria);
 			}
 		break;
 		
@@ -748,6 +846,7 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 				outCriteriaType = *((int*)(*outCriteria));
 				switch(outCriteriaType){
 					case SIMPLE_CRITERIA:
+						free(*outCriteria);
 					break;
 					
 					case COMBINED_CRITERIA:
@@ -759,13 +858,31 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 							lst->list = (FData**)malloc(sizeof(FData*));
 							lst->list[0] = sp;
 						}
+						for(i=0; i<comb->size; i++){
+							free(comb->list[i]);
+						}
+						free(comb->list);
+						free(comb);
 					break;
 					
 					case COMPOSITE_CRITERIA:
-						//composite = (CompositeCriteria*)(*outCriteria);
+						composite = (CompositeCriteria*)(*outCriteria);
+						lst->list = (FData**)malloc(sizeof(FData*) * composite->size );
+						for(i=0; i<composite->size; i++){
+							comb = composite->list[i];
+							sp = generateTwoUnknowsFromCombinedCriteria(f->prefix->list[0], f->variable, comb, bd, 4, epsilon);
+							if(sp != NULL)
+								lst->list[i] = sp;
+							for(i=0; i<comb->size; i++){
+								free(comb->list[i]);
+							}
+							free(comb->list);
+							free(comb);
+						}
+						free(composite->list);
+						free(composite);
 					break;
 				}
-				
 				free(outCriteria);
 			}
 		break;

@@ -20,24 +20,37 @@ Token* createToken(int _type, const char *_text, int txtlen, int _col){
 #endif
 
 	switch(_type){
-		case PLUS:
-		case MINUS:
 		case OR:
 			tk->priority = 1;
 		break;
 		
-		case MULTIPLY:
-		case DIVIDE:
 		case AND:
 			tk->priority = 2;
 		break;
 		
-		case POWER:
+		case LT:
+		case GT:
+		case LTE:
+		case GTE:
 			tk->priority = 3;
 		break;
 		
-		case NE:
+		case PLUS:
+		case MINUS:
 			tk->priority = 4;
+		break;
+		
+		case MULTIPLY:
+		case DIVIDE:
+			tk->priority = 5;
+		break;
+		
+		case POWER:
+			tk->priority = 6;
+		break;
+		
+		case NE:
+			tk->priority = 7;
 		break;
 		
 		default:
@@ -62,24 +75,37 @@ Token* createTokenIdx(int _type, const char *_text, int frIdx, int toIdx, int _c
 #endif
 
 	switch(_type){
-		case PLUS:
-		case MINUS:
 		case OR:
 			tk->priority = 1;
 		break;
 		
-		case MULTIPLY:
-		case DIVIDE:
 		case AND:
 			tk->priority = 2;
 		break;
 		
-		case POWER:
+		case LT:
+		case GT:
+		case LTE:
+		case GTE:
 			tk->priority = 3;
 		break;
 		
-		case NE:
+		case PLUS:
+		case MINUS:
 			tk->priority = 4;
+		break;
+		
+		case MULTIPLY:
+		case DIVIDE:
+			tk->priority = 5;
+		break;
+		
+		case POWER:
+			tk->priority = 6;
+		break;
+		
+		case NE:
+			tk->priority = 7;
 		break;
 		
 		default:

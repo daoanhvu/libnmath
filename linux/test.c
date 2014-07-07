@@ -13,6 +13,7 @@
 
 void printError(int col, int code);
 int test1(int argc, char *agr[]);
+int test2(int argc, char *agr[]);
 void testCriteria1(int argc, char *agr[]);
 void testCriteria2(int argc, char *agr[]);
 
@@ -25,8 +26,9 @@ int main(int argc, char *agr[]){
 	}
 	
 	//test1(argc, agr);
+	test2(argc, agr);
 	//testCriteria1(argc, agr);
-	testCriteria2(argc, agr);
+	//testCriteria2(argc, agr);
 #ifdef DEBUG
 	printf("\n[EndOfProgram] Number of dynamic object alive: %d \n", numberOfDynamicObject());
 #endif
@@ -319,6 +321,52 @@ int test1(int argc, char *agr[]){
 	toString(d.returnValue, dstr, &l, 64);
 	printf("f' = %s\n", dstr);
 	clearTree(&(d.returnValue));
+
+	releaseFunct(f);
+	free(f);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+	return 0;
+}
+
+int test2(int argc, char *agr[]){
+	Function *f;
+	int i, l = 0;
+	DATA_TYPE_FP bd[]={-1, 0, 0.5, 1};
+	ListFData *data; 
+
+	f = (Function*)malloc(sizeof(Function));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif	
+	l = strlen(agr[1]);
+	parseFunction(agr[1], l, f);
+	if(getErrorCode() != NO_ERROR) {
+		printError(getErrorColumn(), getErrorCode());
+		releaseFunct(f);
+		free(f);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+		return getErrorCode();
+	}
+	printf("\n");
+	data = getSpaces(f, bd, f->valLen * 2, 0.2);
+	if(data != NULL){
+		for(i=0; i<data->size; i++){
+			printf("Mesh %d, row count: %d number of vertex: %d", i, data->list[i]->rowCount, data->list[i]->dataSize/data->list[i]->dimension);
+			free(data->list[i]->data);
+			free(data->list[i]->rowInfo);
+			free(data->list[i]);
+		}
+		free(data->list);
+		free(data);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+	descNumberOfDynamicObject();
+#endif
+	}
 
 	releaseFunct(f);
 	free(f);

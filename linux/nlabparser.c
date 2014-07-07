@@ -81,6 +81,13 @@ void addFunction2Tree(NMASTList *t, Token * stItm){
 		case MULTIPLY:
 		case DIVIDE:
 		case POWER:
+		
+		case LT:
+		case GT:
+		case LTE:
+		case GTE:
+		case AND:
+		case OR:
 			ast = (NMAST*)malloc(sizeof(NMAST));
 #ifdef DEBUG
 			incNumberOfDynamicObject();
@@ -201,12 +208,12 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 				if( (gErrorCode!=NO_ERROR) || (k >= tokens->size) ) break;
 				
 				if(tokens->list[k]->type == DOMAIN_NOTATION){
+					gErrorCode = ERROR_MISSING_DOMAIN;
+					gErrorColumn = tokens->list[k]->column;
 					if(k+1 < tokens->size){
 						l = k + 1;
 						domain(&l, outF);
 						k = l;
-					} else{
-						//Here, we got a DOMAIN_NOTATION but it's at the end of the token list
 					}
 				}
 			}while( gErrorCode==NO_ERROR && k < tokens->size );
@@ -776,7 +783,8 @@ void domain(int *start, Function *f){
 			case OR:
 			if(top >= 0){
 					tokenItm = stack[top];
-					while((isAnOperatorType(tokenItm->type)==TRUE) && (tokenItm->priority) >= tk->priority){
+					while((isAnOperatorType(tokenItm->type)==TRUE || isComparationOperator(tokenItm->type)==TRUE || tokenItm->type==AND || tokenItm->type==OR)
+								&& (tokenItm->priority) >= tk->priority){
 						tokenItm = popFromStack(stack, &top);
 
 						ast = (NMAST*)malloc(sizeof(NMAST));
