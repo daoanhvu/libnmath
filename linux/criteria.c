@@ -12,7 +12,9 @@ void copyCombinedCriteria(CombinedCriteria *from, CombinedCriteria *target){
 	target->loggedSize = from->loggedSize;
 	target->size = from->size;
 	target->list = (Criteria**)malloc(sizeof(Criteria*) * target->loggedSize);
-	
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	for(i=0; i<target->size; i++){
 		target->list[i] = newCriteria(from->list[i]->type, 
 											from->list[i]->variable,
@@ -37,6 +39,9 @@ Criteria *newCriteria(int type, char var, DATA_TYPE_FP lval, DATA_TYPE_FP rval,
 	result->fgetInterval = getInterval;
 	result->isLeftInfinity = leftInfinity;
 	result->isRightInfinity = rightInfinity;
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	return result;
 }
 
@@ -48,6 +53,9 @@ CombinedCriteria *newCombinedInterval() {
 	result->list = NULL;
 	result->loggedSize = 0;
 	result->size = 0;
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	return result;
 }
 
@@ -59,6 +67,9 @@ CompositeCriteria *newCompositeInterval() {
 	result->list = NULL;
 	result->loggedSize = 0;
 	result->size = 0;
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	return result;
 }
 
@@ -435,11 +446,18 @@ void buildCompositeCriteria(NMAST *ast, void **outCriteria){
 				return;
 			leftResult = (void**)malloc(sizeof(void*));
 			rightResult = (void**)malloc(sizeof(void*));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+	incNumberOfDynamicObject();
+#endif
 			buildCompositeCriteria(ast->left, leftResult);
 			buildCompositeCriteria(ast->right, rightResult);
 			andTwoCriteria(*leftResult, *rightResult, outCriteria);
 			free(leftResult);
 			free(rightResult);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(2);
+#endif
 		break;
 		
 		case OR:
@@ -491,10 +509,14 @@ int andTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
 	}else{
 		*out = newCombinedInterval();
 		((CombinedCriteria*)(*out))->list = (Criteria**)malloc(sizeof(Criteria*)*2);
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 		((CombinedCriteria*)(*out))->loggedSize = 2;
 		((CombinedCriteria*)(*out))->size = 2;
 		((CombinedCriteria*)(*out))->list[0] = newCriteria(c1->type, c1->variable, c1->leftVal, c1->rightVal, c1->isLeftInfinity, c1->isRightInfinity);
 		((CombinedCriteria*)(*out))->list[1] = newCriteria(c2->type, c2->variable, c2->leftVal, c2->rightVal, c2->isLeftInfinity, c2->isRightInfinity);
+
 	}
 	
 	return TRUE;
@@ -511,8 +533,10 @@ int andTwoCriteria(void *c1, void *c2, void **out){
 	int i, result = FALSE;
 	DATA_TYPE_FP d[2];
 	Criteria *interval;
-	CombinedCriteria* cb;
-	
+	CombinedCriteria *cb;
+	CompositeCriteria *inputComp, *comp1;
+	void *tmp;
+	void **outTmp;
 			
 	if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
 		result = andTwoSimpleCriteria(c1, c2, out);
@@ -545,8 +569,53 @@ int andTwoCriteria(void *c1, void *c2, void **out){
 		}
 		
 	} else if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
-			
+		/**
+			c1 and (c2 or  c3) = (c1 and c2) or (c1 and c3)
+		*/
+		inputComp = (CompositeCriteria*)c2;
+		comp1 = newCompositeInterval();
+		outTmp = (void**)malloc(sizeof(void*));
+		for(i=0; i<inputComp->size; i++) {
+			cb = inputComp->list[i];
+			if( andTwoCriteria((Criteria*)c1, cb, outTmp) ){
+				if(comp1->size >= comp1->loggedSize){
+					comp1->loggedSize += 5;
+					tmp = realloc(comp1->list, sizeof(CombinedCriteria*) * comp1->loggedSize);
+					comp1->list = tmp==NULL?comp1->list:tmp;
+				}
+				comp1->list[comp1->size++] = (CombinedCriteria*)(*outTmp);
+			}
+		}
+		result = TRUE;
+		*out = comp1;
+		free(outTmp);
 	} else if( objTypeLeft == COMBINED_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
+		cb = (CombinedCriteria*)c1;
+		i = 0;
+		while(i<cb->size){
+			if( ((Criteria*)c2)->variable == cb->list[i]->variable ){
+				interval = newCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
+				d[0] = cb->list[i]->leftVal;
+				d[1] = cb->list[i]->rightVal;
+				((Criteria*)c2)->fgetInterval(c2, d, 1, (void*)interval);
+				if(interval->available == TRUE){
+					*out = newCombinedInterval();
+					copyCombinedCriteria(cb, *out);
+					((CombinedCriteria*)(*out))->list[i]->variable = interval->variable;
+					((CombinedCriteria*)(*out))->list[i]->leftVal = interval->leftVal;
+					((CombinedCriteria*)(*out))->list[i]->rightVal = interval->rightVal;
+					((CombinedCriteria*)(*out))->list[i]->isLeftInfinity = interval->isLeftInfinity;
+					((CombinedCriteria*)(*out))->list[i]->isRightInfinity = interval->isRightInfinity;
+					free(interval);
+					return TRUE;
+				}else{
+					/** ERROR: AND two contracting criteria */
+					return FALSE;
+				}
+				break;
+			}
+			i++;
+		}
 	} else if( objTypeLeft == COMBINED_CRITERIA && objTypeRight == COMBINED_CRITERIA ) {
 	} else if( objTypeLeft == COMBINED_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
 			
@@ -571,7 +640,9 @@ int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
 		c1->fgetInterval(c1, d, 1, (void*)interval);
 		if(interval->available == FALSE){
 			free(interval);
-			
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 			*out = newCompositeInterval();
 			((CompositeCriteria*)(*out))->list = (CombinedCriteria**)malloc(sizeof(CombinedCriteria*)*2);
 			((CompositeCriteria*)(*out))->loggedSize = 2;
@@ -588,6 +659,12 @@ int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
 			((CompositeCriteria*)(*out))->list[1]->loggedSize = 1;
 			((CompositeCriteria*)(*out))->list[1]->size = 1;
 			((CompositeCriteria*)(*out))->list[1]->list[0] = c2;
+			
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+	incNumberOfDynamicObject();
+	incNumberOfDynamicObject();
+#endif
 			return TRUE;
 		}
 		
@@ -612,6 +689,12 @@ int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
 		((CompositeCriteria*)(*out))->list[1]->loggedSize = 1;
 		((CompositeCriteria*)(*out))->list[1]->size = 1;
 		((CompositeCriteria*)(*out))->list[1]->list[0] = c2;
+
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+	incNumberOfDynamicObject();
+	incNumberOfDynamicObject();
+#endif
 	}
 	
 	return TRUE;
@@ -621,7 +704,7 @@ int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
  * 	This get a continuous 3D space
  *	@param exp
  *	@param bd
- *	@param bdlen MUST be 4 
+ *	@param bdlen MUST be greater than or equals 2
  *	@param epsilon
  */
 FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
@@ -703,6 +786,9 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 	if(out1->available == FALSE || out2->available == FALSE){
 		free(out1);
 		free(out2);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(2);
+#endif
 		return NULL;
 	}
 	
@@ -712,6 +798,9 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 	param.variables[1] = variables[1];
 	param.values = (DATA_TYPE_FP*)malloc(sizeof(DATA_TYPE_FP) * 2);
 	param.error = 0;
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	
 	mesh = (FData*)malloc(sizeof(FData));
 	mesh->dimension = 3;
@@ -721,6 +810,11 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 	mesh->loggedRowCount = 0;
 	mesh->rowCount = 0;
 	mesh->rowInfo= NULL;
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+	incNumberOfDynamicObject();
+#endif
+	
 	param.values[0] = out1->leftVal;
 	while(param.values[0] < out1->rightVal){
 		param.values[1] = out2->leftVal;
@@ -754,6 +848,9 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 	free(out2);
 	free(param.values);
 	free(param.variables);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(4);
+#endif
 	return mesh;
 }
 
@@ -769,6 +866,9 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 	switch(f->valLen){
 		case 1:
 			lst = (ListFData*)malloc(sizeof(ListFData));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 			if(f->domain == NULL){
 				c = newCriteria(GT_LT, f->variable[0], bd[0], bd[1], FALSE, FALSE);
 				sp = generateOneUnknows(f->prefix->list[0], f->variable, c, bd, 2, epsilon);
@@ -776,11 +876,20 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 					lst->loggedSize = 1;
 					lst->size = 1;
 					lst->list = (FData**)malloc(sizeof(FData*));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 					lst->list[0] = sp;
 				}
 				free(c);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 			} else {
 				outCriteria = (void**)malloc(sizeof(void*));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 				buildCompositeCriteria(f->domain->list[0], outCriteria);
 				outCriteriaType = *((int*)(*outCriteria));
 				switch(outCriteriaType){
@@ -792,8 +901,14 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 							lst->size = 1;
 							lst->list = (FData**)malloc(sizeof(FData*));
 							lst->list[0] = sp;
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 						}
 						free(c);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 					break;
 					
 					case COMBINED_CRITERIA:
@@ -802,6 +917,9 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 					case COMPOSITE_CRITERIA:
 						composite = (CompositeCriteria*)(*outCriteria);
 						lst->list = (FData**)malloc(sizeof(FData*) * composite->size );
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 						for(i=0; i<composite->size; i++){
 							comb = composite->list[i];
 							c = comb->list[0];
@@ -813,22 +931,37 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 							}
 							free(comb->list);
 							free(comb);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(2);
+#endif
 						}
 						free(composite->list);
 						free(composite);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(2);
+#endif
 					break;
 				}//end switch
 				free(outCriteria);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 			}
 		break;
 		
 		case 2:
 			lst = (ListFData*)malloc(sizeof(ListFData));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 			if(f->domain == NULL){
 				comb = newCombinedInterval();
 				comb->loggedSize = 2;
 				comb->size = 2;
 				comb->list = (Criteria **)malloc(sizeof(Criteria *) * comb->loggedSize);
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 				comb->list[0] = newCriteria(GT_LT, f->variable[0], bd[0], bd[1], FALSE, FALSE);
 				comb->list[1] = newCriteria(GT_LT, f->variable[1], bd[2], bd[3], FALSE, FALSE);
 				sp = generateTwoUnknowsFromCombinedCriteria(f->prefix->list[0], f->variable, comb, bd, 4, epsilon);
@@ -838,17 +971,31 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 					lst->list = (FData**)malloc(sizeof(FData*));
 					lst->list[0] = sp;
 				}
-				for(i=0; i<comb->size; i++)
+				for(i=0; i<comb->size; i++) {
 					free(comb->list[i]);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+				}
 				free(comb->list);
 				free(comb);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+	descNumberOfDynamicObject();
+#endif
 			} else {
 				outCriteria = (void**)malloc(sizeof(void*));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 				buildCompositeCriteria(f->domain->list[0], outCriteria);
 				outCriteriaType = *((int*)(*outCriteria));
 				switch(outCriteriaType){
 					case SIMPLE_CRITERIA:
 						free(*outCriteria);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 					break;
 					
 					case COMBINED_CRITERIA:
@@ -858,18 +1005,30 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 							lst->loggedSize = 1;
 							lst->size = 1;
 							lst->list = (FData**)malloc(sizeof(FData*));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 							lst->list[0] = sp;
 						}
 						for(i=0; i<comb->size; i++){
 							free(comb->list[i]);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 						}
 						free(comb->list);
 						free(comb);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(2);
+#endif
 					break;
 					
 					case COMPOSITE_CRITERIA:
 						composite = (CompositeCriteria*)(*outCriteria);
 						lst->list = (FData**)malloc(sizeof(FData*) * composite->size );
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 						for(i=0; i<composite->size; i++){
 							comb = composite->list[i];
 							sp = generateTwoUnknowsFromCombinedCriteria(f->prefix->list[0], f->variable, comb, bd, 4, epsilon);
@@ -877,15 +1036,27 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 								lst->list[i] = sp;
 							for(i=0; i<comb->size; i++){
 								free(comb->list[i]);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 							}
 							free(comb->list);
 							free(comb);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(2);
+#endif
 						}
 						free(composite->list);
 						free(composite);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(2);
+#endif
 					break;
 				}
 				free(outCriteria);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 			}
 		break;
 		

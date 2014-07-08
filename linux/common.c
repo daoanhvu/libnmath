@@ -25,6 +25,9 @@ void incNumberOfDynamicObject(){
 void descNumberOfDynamicObject(){
 	gNumberOfDynamicObject--;
 }
+void descNumberOfDynamicObjectBy(int k){
+	gNumberOfDynamicObject -= k;
+}
 #endif
 
 /** internal use */

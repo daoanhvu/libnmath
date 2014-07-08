@@ -334,7 +334,7 @@ int test2(int argc, char *agr[]){
 	Function *f;
 	int i, l = 0;
 	DATA_TYPE_FP bd[]={-1, 0, 0.5, 1};
-	ListFData *data; 
+	ListFData *data;
 
 	f = (Function*)malloc(sizeof(Function));
 #ifdef DEBUG
@@ -359,12 +359,14 @@ int test2(int argc, char *agr[]){
 			free(data->list[i]->data);
 			free(data->list[i]->rowInfo);
 			free(data->list[i]);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(3);
+#endif
 		}
 		free(data->list);
 		free(data);
 #ifdef DEBUG
-	descNumberOfDynamicObject();
-	descNumberOfDynamicObject();
+	descNumberOfDynamicObject(2);
 #endif
 	}
 

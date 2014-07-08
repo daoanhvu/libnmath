@@ -204,6 +204,7 @@ int isLetter(char c);
 int numberOfDynamicObject();
 void incNumberOfDynamicObject();
 void descNumberOfDynamicObject();
+void descNumberOfDynamicObjectBy(int k);
 #endif
 
 #ifdef __cplusplus
