@@ -463,7 +463,12 @@ void buildCompositeCriteria(NMAST *ast, void **outCriteria){
 		case OR:
 			if(ast->left == NULL || ast->right == NULL) //Do we need check NULL here?
 				return;
-				
+			leftResult = (void**)malloc(sizeof(void*));
+			rightResult = (void**)malloc(sizeof(void*));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+	incNumberOfDynamicObject();
+#endif
 			buildCompositeCriteria(ast->left, leftResult);
 			buildCompositeCriteria(ast->right, rightResult);
 
@@ -471,6 +476,7 @@ void buildCompositeCriteria(NMAST *ast, void **outCriteria){
 			objTypeRight = *((int*)(*rightResult));
 			
 			if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
+				orTwoSimpleCriteria(*leftResult, *rightResult, outCriteria);
 			} else if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == COMBINED_CRITERIA ) {
 			} else if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
 			
@@ -483,6 +489,11 @@ void buildCompositeCriteria(NMAST *ast, void **outCriteria){
 			} else if( objTypeLeft == COMPOSITE_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
 			
 			}
+			free(leftResult);
+			free(rightResult);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(2);
+#endif
 		break;
 		
 		default:
@@ -737,7 +748,7 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
 	mesh->data = (DATA_TYPE_FP*)malloc(sizeof(DATA_TYPE_FP) * mesh->loggedSize);
 	mesh->rowCount = 0;
 	mesh->loggedRowCount = 1;
-	mesh->rowInfo = realloc(mesh->rowInfo, sizeof(int));
+	mesh->rowInfo = (int*)malloc(sizeof(int));
 	param.values[0] = out1->leftVal;
 	elementOnRow = 0;
 	while(param.values[0] < out1->rightVal){
@@ -861,7 +872,7 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 	CompositeCriteria *composite;
 	Criteria *c;
 	void **outCriteria;
-	int i, outCriteriaType;
+	int i, j, outCriteriaType;
 	
 	switch(f->valLen){
 		case 1:
@@ -917,17 +928,20 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 					case COMPOSITE_CRITERIA:
 						composite = (CompositeCriteria*)(*outCriteria);
 						lst->list = (FData**)malloc(sizeof(FData*) * composite->size );
+						lst->loggedSize = composite->size;
+						lst->size = 0;
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
 						for(i=0; i<composite->size; i++){
 							comb = composite->list[i];
-							c = comb->list[0];
+							c = comb->list[0]; //because f is one unknown function
 							sp = generateOneUnknows(f->prefix->list[0], f->variable, c, bd, 2, epsilon);
-							if(sp != NULL)
-								lst->list[i] = sp;
-							for(i=0; i<comb->size; i++){
-								free(comb->list[i]);
+							if(sp != NULL){
+								lst->list[lst->size++] = sp;
+							}
+							for(j=0; j<comb->size; j++){
+								free(comb->list[j]);
 							}
 							free(comb->list);
 							free(comb);
@@ -1026,6 +1040,8 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 					case COMPOSITE_CRITERIA:
 						composite = (CompositeCriteria*)(*outCriteria);
 						lst->list = (FData**)malloc(sizeof(FData*) * composite->size );
+						lst->loggedSize = composite->size;
+						lst->size = 0;
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
@@ -1033,9 +1049,9 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 							comb = composite->list[i];
 							sp = generateTwoUnknowsFromCombinedCriteria(f->prefix->list[0], f->variable, comb, bd, 4, epsilon);
 							if(sp != NULL)
-								lst->list[i] = sp;
-							for(i=0; i<comb->size; i++){
-								free(comb->list[i]);
+								lst->list[lst->size++] = sp;
+							for(j=0; j<comb->size; j++){
+								free(comb->list[j]);
 #ifdef DEBUG
 	descNumberOfDynamicObject();
 #endif

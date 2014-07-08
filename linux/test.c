@@ -333,7 +333,7 @@ int test1(int argc, char *agr[]){
 int test2(int argc, char *agr[]){
 	Function *f;
 	int i, l = 0;
-	DATA_TYPE_FP bd[]={-1, 0, 0.5, 1};
+	DATA_TYPE_FP bd[]={-1, 1, 0.5, 1.2};
 	ListFData *data;
 
 	f = (Function*)malloc(sizeof(Function));
@@ -352,10 +352,10 @@ int test2(int argc, char *agr[]){
 		return getErrorCode();
 	}
 	printf("\n");
-	data = getSpaces(f, bd, f->valLen * 2, 0.2);
+	data = getSpaces(f, bd, f->valLen * 2, 0.1);
 	if(data != NULL){
 		for(i=0; i<data->size; i++){
-			printf("Mesh %d, row count: %d number of vertex: %d", i, data->list[i]->rowCount, data->list[i]->dataSize/data->list[i]->dimension);
+			printf("Mesh %d, row count: %d number of vertex: %d\n", i, data->list[i]->rowCount, data->list[i]->dataSize/data->list[i]->dimension);
 			free(data->list[i]->data);
 			free(data->list[i]->rowInfo);
 			free(data->list[i]);
