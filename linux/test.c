@@ -183,7 +183,7 @@ void testCriteria1(int argc, char *agr[]){
 */
 void testCriteria2(int argc, char *agr[]){
 	NMAST *ast;
-	void **outCriteria = (void **)malloc(sizeof(void*));
+	OutBuiltCriteria outCriteria;
 	Criteria *ci1; 
 	//Criteria *ci2;
 	//CombinedCriteria *cc1;
@@ -199,7 +199,7 @@ void testCriteria2(int argc, char *agr[]){
 	//CombinedCriteria *outIntList;
 	//CompositeCriteria *outDomain;
 	
-	*outCriteria = NULL;
+	outCriteria.cr = NULL;
 	
 	//Tes1
 	ast = (NMAST*)malloc(sizeof(NMAST));
@@ -219,20 +219,18 @@ void testCriteria2(int argc, char *agr[]){
 	ast->right->left = ast->right->right = NULL;
 	ast->right->parent = ast;
 	
-	buildCompositeCriteria(ast, outCriteria);
+	buildCompositeCriteria(ast, &outCriteria);
 	
-	if(*outCriteria != NULL){
-		outType = *((int*)(*outCriteria));
+	if(outCriteria.cr != NULL){
+		outType = *((int*)(outCriteria.cr));
 		if( outType == SIMPLE_CRITERIA ){
-			ci1 = (Criteria*)(*outCriteria);
+			ci1 = (Criteria*)(outCriteria.cr);
 			printf("Got a simple criteria from %lf to %lf\n", ci1->leftVal, ci1->rightVal );
-			free(*outCriteria);
+			free(outCriteria.cr);
 		} else if( outType == COMBINED_CRITERIA ){
 		} else if( outType == COMPOSITE_CRITERIA ){
 		}
 	}
-
-	free(outCriteria);
 	clearTree(&ast);
 }
 

@@ -2,9 +2,9 @@
 #include "nmath.h"
 #include "criteria.h"
 
-int andTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out);
-int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out);
-int andTwoCriteria(void *c1, void *c2, void **out);
+int andTwoSimpleCriteria(Criteria *c1, Criteria *c2, OutBuiltCriteria *out);
+int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, OutBuiltCriteria *out);
+int andTwoCriteria(void *c1, void *c2, OutBuiltCriteria *out);
 
 void copyCombinedCriteria(CombinedCriteria *from, CombinedCriteria *target){
 	int i;
@@ -179,7 +179,7 @@ void getInterval(void *interval, const DATA_TYPE_FP *values, int unused, void *o
 	if(criteria->isLeftInfinity && criteria->isRightInfinity){
 		outInterval->leftVal = values[0];
 		outInterval->rightVal = values[1];
-		outInterval->type = criteria->type;
+		outInterval->type = GTE_LTE;
 		return;
 	}
 		
@@ -200,6 +200,7 @@ void getInterval(void *interval, const DATA_TYPE_FP *values, int unused, void *o
 					outInterval->rightVal = values[1];
 				else 
 					outInterval->rightVal = criteria->rightVal;
+					//outInterval->rightVal = criteria->rightVal - epsilon;
 			break;
 			
 			case GT_LTE:
@@ -262,7 +263,6 @@ void getInterval(void *interval, const DATA_TYPE_FP *values, int unused, void *o
 					outInterval->available = FALSE;
 					return;
 				}
-				
 				
 				if(criteria->leftVal < values[0])
 					outInterval->leftVal = values[0];
@@ -408,75 +408,60 @@ void getCompositeInterval(void *interval, const DATA_TYPE_FP *values, int varCou
 /**
 	obj [OUT] MUST an level-2 NOT-NULL pointer
 */
-void buildCompositeCriteria(NMAST *ast, void **outCriteria){
-	void **leftResult = NULL;
-	void **rightResult = NULL;
+void buildCompositeCriteria(NMAST *ast, OutBuiltCriteria *result){
+	OutBuiltCriteria leftResult;
+	OutBuiltCriteria rightResult;
 	int objTypeLeft, objTypeRight /*, type*/;
 	
 	if(ast == NULL){
 		return;
 	}
 	
+	leftResult.cr = NULL;
+	rightResult.cr = NULL;
 	switch(ast->type){
 		case GT_LT:
 		case GTE_LT:
 		case GT_LTE:
 		case GTE_LTE:
-			*outCriteria = (void*)newCriteria(ast->type, ast->variable, ast->left->value, ast->right->value, FALSE, FALSE);
+			result->cr = (void*)newCriteria(ast->type, ast->variable, ast->left->value, ast->right->value, FALSE, FALSE);
 		break;
 		
 		case LT:
-			*outCriteria = (void*)newCriteria(GT_LT, ast->left->variable, 99999, ast->right->value, TRUE, FALSE);
+			result->cr = (void*)newCriteria(GT_LT, ast->left->variable, 99999, ast->right->value, TRUE, FALSE);
 		break;
 		
 		case LTE:
-			*outCriteria = (void*)newCriteria(GT_LTE, ast->left->variable, 99999, ast->right->value, TRUE, FALSE);
+			result->cr = (void*)newCriteria(GT_LTE, ast->left->variable, 99999, ast->right->value, TRUE, FALSE);
 		break;
 		
 		case GT:
-			*outCriteria = (void*)newCriteria(GT_LT, ast->left->variable, ast->right->value, 99999, FALSE, TRUE);
+			result->cr = (void*)newCriteria(GT_LT, ast->left->variable, ast->right->value, 99999, FALSE, TRUE);
 		break;
 		
 		case GTE:
-			*outCriteria = (void*)newCriteria(GTE_LT, ast->left->variable, ast->right->value, 99999, FALSE, TRUE);
+			result->cr = (void*)newCriteria(GTE_LT, ast->left->variable, ast->right->value, 99999, FALSE, TRUE);
 		break;
 		
 		case AND:
 			if(ast->left == NULL || ast->right == NULL) //Do we need check NULL here?
 				return;
-			leftResult = (void**)malloc(sizeof(void*));
-			rightResult = (void**)malloc(sizeof(void*));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-	incNumberOfDynamicObject();
-#endif
-			buildCompositeCriteria(ast->left, leftResult);
-			buildCompositeCriteria(ast->right, rightResult);
-			andTwoCriteria(*leftResult, *rightResult, outCriteria);
-			free(leftResult);
-			free(rightResult);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
+			buildCompositeCriteria(ast->left, &leftResult);
+			buildCompositeCriteria(ast->right, &rightResult);
+			andTwoCriteria(leftResult.cr, rightResult.cr, result);
 		break;
 		
 		case OR:
 			if(ast->left == NULL || ast->right == NULL) //Do we need check NULL here?
 				return;
-			leftResult = (void**)malloc(sizeof(void*));
-			rightResult = (void**)malloc(sizeof(void*));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-	incNumberOfDynamicObject();
-#endif
-			buildCompositeCriteria(ast->left, leftResult);
-			buildCompositeCriteria(ast->right, rightResult);
+			buildCompositeCriteria(ast->left, &leftResult);
+			buildCompositeCriteria(ast->right, &rightResult);
 
-			objTypeLeft = *((int*)(*leftResult));
-			objTypeRight = *((int*)(*rightResult));
+			objTypeLeft = *((int*)(leftResult.cr));
+			objTypeRight = *((int*)(rightResult.cr));
 			
 			if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
-				orTwoSimpleCriteria(*leftResult, *rightResult, outCriteria);
+				orTwoSimpleCriteria(leftResult.cr, rightResult.cr, result);
 			} else if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == COMBINED_CRITERIA ) {
 			} else if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
 			
@@ -489,11 +474,6 @@ void buildCompositeCriteria(NMAST *ast, void **outCriteria){
 			} else if( objTypeLeft == COMPOSITE_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
 			
 			}
-			free(leftResult);
-			free(rightResult);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
 		break;
 		
 		default:
@@ -504,7 +484,7 @@ void buildCompositeCriteria(NMAST *ast, void **outCriteria){
 /**
 	Need to test here
 */
-int andTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
+int andTwoSimpleCriteria(Criteria *c1, Criteria *c2, OutBuiltCriteria *out){
 	DATA_TYPE_FP d[2];
 	Criteria *interval;
 	if(c1->variable == c2->variable){
@@ -516,17 +496,17 @@ int andTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
 			free(interval);
 			return FALSE;
 		}
-		*out = interval;
+		out->cr = interval;
 	}else{
-		*out = newCombinedInterval();
-		((CombinedCriteria*)(*out))->list = (Criteria**)malloc(sizeof(Criteria*)*2);
+		out->cr = newCombinedInterval();
+		((CombinedCriteria*)(out->cr))->list = (Criteria**)malloc(sizeof(Criteria*)*2);
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
-		((CombinedCriteria*)(*out))->loggedSize = 2;
-		((CombinedCriteria*)(*out))->size = 2;
-		((CombinedCriteria*)(*out))->list[0] = newCriteria(c1->type, c1->variable, c1->leftVal, c1->rightVal, c1->isLeftInfinity, c1->isRightInfinity);
-		((CombinedCriteria*)(*out))->list[1] = newCriteria(c2->type, c2->variable, c2->leftVal, c2->rightVal, c2->isLeftInfinity, c2->isRightInfinity);
+		((CombinedCriteria*)(out->cr))->loggedSize = 2;
+		((CombinedCriteria*)(out->cr))->size = 2;
+		((CombinedCriteria*)(out->cr))->list[0] = newCriteria(c1->type, c1->variable, c1->leftVal, c1->rightVal, c1->isLeftInfinity, c1->isRightInfinity);
+		((CombinedCriteria*)(out->cr))->list[1] = newCriteria(c2->type, c2->variable, c2->leftVal, c2->rightVal, c2->isLeftInfinity, c2->isRightInfinity);
 
 	}
 	
@@ -538,7 +518,7 @@ int andTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
 		FALSE: if it is contradiction
 		TRUE: 
 */
-int andTwoCriteria(void *c1, void *c2, void **out){
+int andTwoCriteria(void *c1, void *c2, OutBuiltCriteria *out){
 	int objTypeLeft = *((int*)c1);
 	int objTypeRight = *((int*)c2);
 	int i, result = FALSE;
@@ -547,8 +527,8 @@ int andTwoCriteria(void *c1, void *c2, void **out){
 	CombinedCriteria *cb;
 	CompositeCriteria *inputComp, *comp1;
 	void *tmp;
-	void **outTmp;
-			
+	OutBuiltCriteria outTmp;
+	
 	if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
 		result = andTwoSimpleCriteria(c1, c2, out);
 	} else if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == COMBINED_CRITERIA ) {
@@ -561,13 +541,13 @@ int andTwoCriteria(void *c1, void *c2, void **out){
 				d[1] = cb->list[i]->rightVal;
 				((Criteria*)c1)->fgetInterval(c1, d, 1, (void*)interval);
 				if(interval->available == TRUE){
-					*out = newCombinedInterval();
-					copyCombinedCriteria(cb, *out);
-					((CombinedCriteria*)(*out))->list[i]->variable = interval->variable;
-					((CombinedCriteria*)(*out))->list[i]->leftVal = interval->leftVal;
-					((CombinedCriteria*)(*out))->list[i]->rightVal = interval->rightVal;
-					((CombinedCriteria*)(*out))->list[i]->isLeftInfinity = interval->isLeftInfinity;
-					((CombinedCriteria*)(*out))->list[i]->isRightInfinity = interval->isRightInfinity;
+					out->cr = newCombinedInterval();
+					copyCombinedCriteria(cb, out->cr);
+					((CombinedCriteria*)(out->cr))->list[i]->variable = interval->variable;
+					((CombinedCriteria*)(out->cr))->list[i]->leftVal = interval->leftVal;
+					((CombinedCriteria*)(out->cr))->list[i]->rightVal = interval->rightVal;
+					((CombinedCriteria*)(out->cr))->list[i]->isLeftInfinity = interval->isLeftInfinity;
+					((CombinedCriteria*)(out->cr))->list[i]->isRightInfinity = interval->isRightInfinity;
 					free(interval);
 					return TRUE;
 				}else{
@@ -583,23 +563,23 @@ int andTwoCriteria(void *c1, void *c2, void **out){
 		/**
 			c1 and (c2 or  c3) = (c1 and c2) or (c1 and c3)
 		*/
+		
 		inputComp = (CompositeCriteria*)c2;
 		comp1 = newCompositeInterval();
-		outTmp = (void**)malloc(sizeof(void*));
 		for(i=0; i<inputComp->size; i++) {
 			cb = inputComp->list[i];
-			if( andTwoCriteria((Criteria*)c1, cb, outTmp) ){
+			outTmp.cr = NULL;
+			if( andTwoCriteria((Criteria*)c1, cb, &outTmp) ){
 				if(comp1->size >= comp1->loggedSize){
 					comp1->loggedSize += 5;
 					tmp = realloc(comp1->list, sizeof(CombinedCriteria*) * comp1->loggedSize);
 					comp1->list = tmp==NULL?comp1->list:tmp;
 				}
-				comp1->list[comp1->size++] = (CombinedCriteria*)(*outTmp);
+				comp1->list[comp1->size++] = (CombinedCriteria*)(outTmp.cr);
 			}
 		}
 		result = TRUE;
-		*out = comp1;
-		free(outTmp);
+		out->cr = comp1;
 	} else if( objTypeLeft == COMBINED_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
 		cb = (CombinedCriteria*)c1;
 		i = 0;
@@ -610,17 +590,18 @@ int andTwoCriteria(void *c1, void *c2, void **out){
 				d[1] = cb->list[i]->rightVal;
 				((Criteria*)c2)->fgetInterval(c2, d, 1, (void*)interval);
 				if(interval->available == TRUE){
-					*out = newCombinedInterval();
-					copyCombinedCriteria(cb, *out);
-					((CombinedCriteria*)(*out))->list[i]->variable = interval->variable;
-					((CombinedCriteria*)(*out))->list[i]->leftVal = interval->leftVal;
-					((CombinedCriteria*)(*out))->list[i]->rightVal = interval->rightVal;
-					((CombinedCriteria*)(*out))->list[i]->isLeftInfinity = interval->isLeftInfinity;
-					((CombinedCriteria*)(*out))->list[i]->isRightInfinity = interval->isRightInfinity;
+					out->cr = newCombinedInterval();
+					copyCombinedCriteria(cb, out->cr);
+					((CombinedCriteria*)(out->cr))->list[i]->variable = interval->variable;
+					((CombinedCriteria*)(out->cr))->list[i]->leftVal = interval->leftVal;
+					((CombinedCriteria*)(out->cr))->list[i]->rightVal = interval->rightVal;
+					((CombinedCriteria*)(out->cr))->list[i]->isLeftInfinity = interval->isLeftInfinity;
+					((CombinedCriteria*)(out->cr))->list[i]->isRightInfinity = interval->isRightInfinity;
 					free(interval);
 					return TRUE;
 				}else{
 					/** ERROR: AND two contracting criteria */
+					free(interval);
 					return FALSE;
 				}
 				break;
@@ -641,7 +622,7 @@ int andTwoCriteria(void *c1, void *c2, void **out){
 /**
 	Need to implement
 */
-int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
+int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, OutBuiltCriteria *out){
 	DATA_TYPE_FP d[2];
 	Criteria *interval;
 	if(c1->variable == c2->variable){
@@ -654,22 +635,22 @@ int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
 #ifdef DEBUG
 	descNumberOfDynamicObject();
 #endif
-			*out = newCompositeInterval();
-			((CompositeCriteria*)(*out))->list = (CombinedCriteria**)malloc(sizeof(CombinedCriteria*)*2);
-			((CompositeCriteria*)(*out))->loggedSize = 2;
-			((CompositeCriteria*)(*out))->size = 2;
+			out->cr = newCompositeInterval();
+			((CompositeCriteria*)(out->cr))->list = (CombinedCriteria**)malloc(sizeof(CombinedCriteria*)*2);
+			((CompositeCriteria*)(out->cr))->loggedSize = 2;
+			((CompositeCriteria*)(out->cr))->size = 2;
 			
-			((CompositeCriteria*)(*out))->list[0] = newCombinedInterval();
-			((CompositeCriteria*)(*out))->list[0]->list = (Criteria**)malloc(sizeof(Criteria*));
-			((CompositeCriteria*)(*out))->list[0]->loggedSize = 1;
-			((CompositeCriteria*)(*out))->list[0]->size = 1;
-			((CompositeCriteria*)(*out))->list[0]->list[0] = c1;
+			((CompositeCriteria*)(out->cr))->list[0] = newCombinedInterval();
+			((CompositeCriteria*)(out->cr))->list[0]->list = (Criteria**)malloc(sizeof(Criteria*));
+			((CompositeCriteria*)(out->cr))->list[0]->loggedSize = 1;
+			((CompositeCriteria*)(out->cr))->list[0]->size = 1;
+			((CompositeCriteria*)(out->cr))->list[0]->list[0] = c1;
 			
-			((CompositeCriteria*)(*out))->list[1] = newCombinedInterval();
-			((CompositeCriteria*)(*out))->list[1]->list = (Criteria**)malloc(sizeof(Criteria*));
-			((CompositeCriteria*)(*out))->list[1]->loggedSize = 1;
-			((CompositeCriteria*)(*out))->list[1]->size = 1;
-			((CompositeCriteria*)(*out))->list[1]->list[0] = c2;
+			((CompositeCriteria*)(out->cr))->list[1] = newCombinedInterval();
+			((CompositeCriteria*)(out->cr))->list[1]->list = (Criteria**)malloc(sizeof(Criteria*));
+			((CompositeCriteria*)(out->cr))->list[1]->loggedSize = 1;
+			((CompositeCriteria*)(out->cr))->list[1]->size = 1;
+			((CompositeCriteria*)(out->cr))->list[1]->list[0] = c2;
 			
 #ifdef DEBUG
 	incNumberOfDynamicObject();
@@ -682,24 +663,24 @@ int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, void **out){
 		interval->leftVal = (c1->leftVal < c2->leftVal)?c1->leftVal:c2->leftVal;
 		interval->rightVal = (c1->rightVal < c2->rightVal)?c2->rightVal:c1->rightVal;
 		
-		*out = interval;
+		out->cr = interval;
 	}else{
-		*out = newCompositeInterval();
-		((CompositeCriteria*)(*out))->list = (CombinedCriteria**)malloc(sizeof(CombinedCriteria*)*2);
-		((CompositeCriteria*)(*out))->loggedSize = 2;
-		((CompositeCriteria*)(*out))->size = 2;
+		out->cr = newCompositeInterval();
+		((CompositeCriteria*)(out->cr))->list = (CombinedCriteria**)malloc(sizeof(CombinedCriteria*)*2);
+		((CompositeCriteria*)(out->cr))->loggedSize = 2;
+		((CompositeCriteria*)(out->cr))->size = 2;
 		
-		((CompositeCriteria*)(*out))->list[0] = newCombinedInterval();
-		((CompositeCriteria*)(*out))->list[0]->list = (Criteria**)malloc(sizeof(Criteria*));
-		((CompositeCriteria*)(*out))->list[0]->loggedSize = 1;
-		((CompositeCriteria*)(*out))->list[0]->size = 1;
-		((CompositeCriteria*)(*out))->list[0]->list[0] = c1;
+		((CompositeCriteria*)(out->cr))->list[0] = newCombinedInterval();
+		((CompositeCriteria*)(out->cr))->list[0]->list = (Criteria**)malloc(sizeof(Criteria*));
+		((CompositeCriteria*)(out->cr))->list[0]->loggedSize = 1;
+		((CompositeCriteria*)(out->cr))->list[0]->size = 1;
+		((CompositeCriteria*)(out->cr))->list[0]->list[0] = c1;
 			
-		((CompositeCriteria*)(*out))->list[1] = newCombinedInterval();
-		((CompositeCriteria*)(*out))->list[1]->list = (Criteria**)malloc(sizeof(Criteria*));
-		((CompositeCriteria*)(*out))->list[1]->loggedSize = 1;
-		((CompositeCriteria*)(*out))->list[1]->size = 1;
-		((CompositeCriteria*)(*out))->list[1]->list[0] = c2;
+		((CompositeCriteria*)(out->cr))->list[1] = newCombinedInterval();
+		((CompositeCriteria*)(out->cr))->list[1]->list = (Criteria**)malloc(sizeof(Criteria*));
+		((CompositeCriteria*)(out->cr))->list[1]->loggedSize = 1;
+		((CompositeCriteria*)(out->cr))->list[1]->size = 1;
+		((CompositeCriteria*)(out->cr))->list[1]->list[0] = c2;
 
 #ifdef DEBUG
 	incNumberOfDynamicObject();
@@ -722,7 +703,7 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
 						Criteria *c, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
 	int elementOnRow;
 	Criteria *out1;
-	DATA_TYPE_FP y;
+	DATA_TYPE_FP right1, y;
 	void *tmpP;
 	FData *mesh = NULL;
 	RParam param;
@@ -749,9 +730,17 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
 	mesh->rowCount = 0;
 	mesh->loggedRowCount = 1;
 	mesh->rowInfo = (int*)malloc(sizeof(int));
+	
 	param.values[0] = out1->leftVal;
+	if(out1->type == GT_LT || out1->type == GT_LTE)
+		param.values[0] = out1->leftVal + epsilon;
+		
+	right1 = out1->rightVal;
+	if(out1->type == GT_LT || out1->type == GTE_LT)
+		param.values[0] = out1->leftVal - epsilon;
+		
 	elementOnRow = 0;
-	while(param.values[0] < out1->rightVal){
+	while(param.values[0] <= right1){
 		calc_t((void*)&param);
 		y = param.retv;
 		if(mesh->dataSize >= mesh->loggedSize - 2){
@@ -784,7 +773,7 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
 FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables, CombinedCriteria *c, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
 	int elementOnRow;
 	Criteria *out1, *out2;
-	DATA_TYPE_FP y;
+	DATA_TYPE_FP right1, left2, right2, y;
 	void *tmpP;
 	FData *mesh = NULL;
 	RParam param;
@@ -825,12 +814,27 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 	incNumberOfDynamicObject();
 	incNumberOfDynamicObject();
 #endif
-	
+
 	param.values[0] = out1->leftVal;
-	while(param.values[0] < out1->rightVal){
-		param.values[1] = out2->leftVal;
+	if(out1->type == GT_LT || out1->type == GT_LTE)
+		param.values[0] = out1->leftVal + epsilon;
+		
+	right1 = out1->rightVal;
+	if(out1->type == GT_LT || out1->type == GTE_LT)
+		param.values[0] = out1->leftVal - epsilon;
+	
+	left2 = out2->leftVal;
+	if(out2->type == GT_LT || out2->type == GT_LTE)
+		left2 = out2->leftVal + epsilon;
+		
+	right2 = out2->rightVal;
+	if(out2->type == GT_LT || out2->type == GTE_LT)
+		right2 = out2->leftVal - epsilon;
+	
+	while(param.values[0] <= right1){
+		param.values[1] = left2;
 		elementOnRow = 0;
-		while(param.values[1] < out2->rightVal){
+		while(param.values[1] < right2){
 			calc_t((void*)&param);
 			y = param.retv;
 			if(mesh->dataSize >= mesh->loggedSize - 3){
@@ -871,9 +875,10 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 	CombinedCriteria *comb;
 	CompositeCriteria *composite;
 	Criteria *c;
-	void **outCriteria;
+	OutBuiltCriteria outCriteria;
 	int i, j, outCriteriaType;
 	
+	outCriteria.cr = NULL;
 	switch(f->valLen){
 		case 1:
 			lst = (ListFData*)malloc(sizeof(ListFData));
@@ -897,15 +902,11 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 	descNumberOfDynamicObject();
 #endif
 			} else {
-				outCriteria = (void**)malloc(sizeof(void*));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-				buildCompositeCriteria(f->domain->list[0], outCriteria);
-				outCriteriaType = *((int*)(*outCriteria));
+				buildCompositeCriteria(f->domain->list[0], &outCriteria);
+				outCriteriaType = *((int*)(outCriteria.cr));
 				switch(outCriteriaType){
 					case SIMPLE_CRITERIA:
-						c = (Criteria*)(*outCriteria);
+						c = (Criteria*)(outCriteria.cr);
 						sp = generateOneUnknows(f->prefix->list[0], f->variable, c, bd, 2, epsilon);
 						if(sp != NULL){
 							lst->loggedSize = 1;
@@ -926,7 +927,7 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 					break;
 					
 					case COMPOSITE_CRITERIA:
-						composite = (CompositeCriteria*)(*outCriteria);
+						composite = (CompositeCriteria*)(outCriteria.cr);
 						lst->list = (FData**)malloc(sizeof(FData*) * composite->size );
 						lst->loggedSize = composite->size;
 						lst->size = 0;
@@ -956,10 +957,6 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 #endif
 					break;
 				}//end switch
-				free(outCriteria);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
 			}
 		break;
 		
@@ -998,22 +995,18 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 	descNumberOfDynamicObject();
 #endif
 			} else {
-				outCriteria = (void**)malloc(sizeof(void*));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-				buildCompositeCriteria(f->domain->list[0], outCriteria);
-				outCriteriaType = *((int*)(*outCriteria));
+				buildCompositeCriteria(f->domain->list[0], &outCriteria);
+				outCriteriaType = *((int*)(outCriteria.cr));
 				switch(outCriteriaType){
 					case SIMPLE_CRITERIA:
-						free(*outCriteria);
+						free(outCriteria.cr);
 #ifdef DEBUG
 	descNumberOfDynamicObject();
 #endif
 					break;
 					
 					case COMBINED_CRITERIA:
-						comb = (CombinedCriteria*)(*outCriteria);
+						comb = (CombinedCriteria*)(outCriteria.cr);
 						sp = generateTwoUnknowsFromCombinedCriteria(f->prefix->list[0], f->variable, comb, bd, 4, epsilon);
 						if(sp != NULL){
 							lst->loggedSize = 1;
@@ -1038,7 +1031,7 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 					break;
 					
 					case COMPOSITE_CRITERIA:
-						composite = (CompositeCriteria*)(*outCriteria);
+						composite = (CompositeCriteria*)(outCriteria.cr);
 						lst->list = (FData**)malloc(sizeof(FData*) * composite->size );
 						lst->loggedSize = composite->size;
 						lst->size = 0;
@@ -1069,10 +1062,6 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 #endif
 					break;
 				}
-				free(outCriteria);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
 			}
 		break;
 		

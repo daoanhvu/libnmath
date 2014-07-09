@@ -8,6 +8,7 @@ typedef struct tagCombinedCriteria CombinedCriteria;
 typedef struct tagCompositeCriteria CompositeCriteria;
 typedef struct tagFData FData;
 typedef struct tagListFData ListFData;
+typedef struct tagOutBuiltCriteria OutBuiltCriteria;
 
 //Function poiters
 typedef void (*FPGetIntervalF)(void *, const DATA_TYPE_FP *, int, void *);
@@ -79,6 +80,10 @@ struct tagListFData{
 	int size;
 };
 
+struct tagOutBuiltCriteria{
+	void *cr;
+};
+
 Criteria *newCriteria(int type, char var, DATA_TYPE_FP lval, DATA_TYPE_FP rval, 
 										int leftInfinity, int rightInfinity);
 CombinedCriteria *newCombinedInterval();
@@ -104,7 +109,7 @@ void getCompositeInterval(void *interval, const DATA_TYPE_FP *values, int varCou
 /**
 
 */
-void buildCompositeCriteria(NMAST *ast, void **outCriteria);
+void buildCompositeCriteria(NMAST *ast, OutBuiltCriteria *result);
 
 ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon);
 
