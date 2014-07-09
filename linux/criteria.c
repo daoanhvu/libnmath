@@ -2,9 +2,9 @@
 #include "nmath.h"
 #include "criteria.h"
 
-int andTwoSimpleCriteria(Criteria *c1, Criteria *c2, OutBuiltCriteria *out);
-int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, OutBuiltCriteria *out);
-int andTwoCriteria(void *c1, void *c2, OutBuiltCriteria *out);
+int andTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria *out);
+int orTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria *out);
+int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out);
 
 void copyCombinedCriteria(CombinedCriteria *from, CombinedCriteria *target){
 	int i;
@@ -73,7 +73,7 @@ CompositeCriteria *newCompositeInterval() {
 	return result;
 }
 
-int isInInterval(void *interval, DATA_TYPE_FP *values, int varCount) {
+int isInInterval(const void *interval, DATA_TYPE_FP *values, int varCount) {
 	int result = FALSE;
 	Criteria *criteria = (Criteria*)interval;
 	if(criteria->isLeftInfinity && criteria->isRightInfinity)
@@ -145,7 +145,7 @@ int isInInterval(void *interval, DATA_TYPE_FP *values, int varCount) {
 }
 
 //AND Criteria
-int isInCombinedInterval(void *interval, DATA_TYPE_FP *values, int varCount) {
+int isInCombinedInterval(const void *interval, DATA_TYPE_FP *values, int varCount) {
 	CombinedCriteria *criteria = (CombinedCriteria*)interval;
 	int i;
 	
@@ -159,7 +159,7 @@ int isInCombinedInterval(void *interval, DATA_TYPE_FP *values, int varCount) {
 
 
 //OR CombinedCriteria
-int isInCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount) {
+int isInCompositeInterval(const void *interval, DATA_TYPE_FP *values, int varCount) {
 	CompositeCriteria *criteria = (CompositeCriteria*)interval;
 	int i;
 	
@@ -171,7 +171,7 @@ int isInCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount) {
 	return FALSE;
 }
 
-void getInterval(void *interval, const DATA_TYPE_FP *values, int unused, void *outIntervalObj){
+void getInterval(const void *interval, const DATA_TYPE_FP *values, int unused, void *outIntervalObj){
 	Criteria *criteria = (Criteria*)interval;
 	Criteria *outInterval = (Criteria*)outIntervalObj;
 	
@@ -346,7 +346,7 @@ void getInterval(void *interval, const DATA_TYPE_FP *values, int unused, void *o
 		This is a matrix N row and 2 columns which each row is for each continuous interval of a single variable
 		It means that N = varCount
 */
-void getCombinedInterval(void *intervalObj, const DATA_TYPE_FP *values, int varCount, void *outListIntervalObj){
+void getCombinedInterval(const void *intervalObj, const DATA_TYPE_FP *values, int varCount, void *outListIntervalObj){
 	CombinedCriteria *criteria = (CombinedCriteria*)intervalObj;
 	CombinedCriteria *outListInterval = (CombinedCriteria *)outListIntervalObj;
 	Criteria *interval;
@@ -383,7 +383,7 @@ void getCombinedInterval(void *intervalObj, const DATA_TYPE_FP *values, int varC
 		This output parameter, it's a matrix N row and M columns which each row is for each continuous space for the expression
 		It means that each row will hold a combined-interval for n-tule variables and M equal varCount * 2
 */
-void getCompositeInterval(void *interval, const DATA_TYPE_FP *values, int varCount, void *outDomainObj){
+void getCompositeInterval(const void *interval, const DATA_TYPE_FP *values, int varCount, void *outDomainObj){
 	CompositeCriteria *criteria = (CompositeCriteria*)interval;
 	CompositeCriteria *outDomain = (CompositeCriteria *)outDomainObj;
 	CombinedCriteria *listIn;
@@ -484,7 +484,7 @@ void buildCompositeCriteria(NMAST *ast, OutBuiltCriteria *result){
 /**
 	Need to test here
 */
-int andTwoSimpleCriteria(Criteria *c1, Criteria *c2, OutBuiltCriteria *out){
+int andTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria *out){
 	DATA_TYPE_FP d[2];
 	Criteria *interval;
 	if(c1->variable == c2->variable){
@@ -518,7 +518,7 @@ int andTwoSimpleCriteria(Criteria *c1, Criteria *c2, OutBuiltCriteria *out){
 		FALSE: if it is contradiction
 		TRUE: 
 */
-int andTwoCriteria(void *c1, void *c2, OutBuiltCriteria *out){
+int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out){
 	int objTypeLeft = *((int*)c1);
 	int objTypeRight = *((int*)c2);
 	int i, result = FALSE;
@@ -622,7 +622,7 @@ int andTwoCriteria(void *c1, void *c2, OutBuiltCriteria *out){
 /**
 	Need to implement
 */
-int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, OutBuiltCriteria *out){
+int orTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria *out){
 	DATA_TYPE_FP d[2];
 	Criteria *interval;
 	if(c1->variable == c2->variable){
@@ -644,13 +644,33 @@ int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, OutBuiltCriteria *out){
 			((CompositeCriteria*)(out->cr))->list[0]->list = (Criteria**)malloc(sizeof(Criteria*));
 			((CompositeCriteria*)(out->cr))->list[0]->loggedSize = 1;
 			((CompositeCriteria*)(out->cr))->list[0]->size = 1;
-			((CompositeCriteria*)(out->cr))->list[0]->list[0] = c1;
+			((CompositeCriteria*)(out->cr))->list[0]->list[0] = (Criteria*)malloc(sizeof(Criteria));
+			((CompositeCriteria*)(out->cr))->list[0]->list[0]->objectType = SIMPLE_CRITERIA;
+			((CompositeCriteria*)(out->cr))->list[0]->list[0]->available = TRUE;
+			((CompositeCriteria*)(out->cr))->list[0]->list[0]->type = c1->type;
+			((CompositeCriteria*)(out->cr))->list[0]->list[0]->variable = c1->variable;
+			((CompositeCriteria*)(out->cr))->list[0]->list[0]->leftVal = c1->leftVal;
+			((CompositeCriteria*)(out->cr))->list[0]->list[0]->rightVal = c1->rightVal;
+			((CompositeCriteria*)(out->cr))->list[0]->list[0]->fcheck = isInInterval;
+			((CompositeCriteria*)(out->cr))->list[0]->list[0]->fgetInterval = getInterval;
+			((CompositeCriteria*)(out->cr))->list[0]->list[0]->isLeftInfinity = c1->isLeftInfinity;
+			((CompositeCriteria*)(out->cr))->list[0]->list[0]->isRightInfinity = c1->isRightInfinity;
 			
 			((CompositeCriteria*)(out->cr))->list[1] = newCombinedInterval();
 			((CompositeCriteria*)(out->cr))->list[1]->list = (Criteria**)malloc(sizeof(Criteria*));
 			((CompositeCriteria*)(out->cr))->list[1]->loggedSize = 1;
 			((CompositeCriteria*)(out->cr))->list[1]->size = 1;
-			((CompositeCriteria*)(out->cr))->list[1]->list[0] = c2;
+			((CompositeCriteria*)(out->cr))->list[1]->list[0] = (Criteria*)malloc(sizeof(Criteria));
+			((CompositeCriteria*)(out->cr))->list[1]->list[0]->objectType = SIMPLE_CRITERIA;
+			((CompositeCriteria*)(out->cr))->list[1]->list[0]->available = TRUE;
+			((CompositeCriteria*)(out->cr))->list[1]->list[0]->type = c2->type;
+			((CompositeCriteria*)(out->cr))->list[1]->list[0]->variable = c2->variable;
+			((CompositeCriteria*)(out->cr))->list[1]->list[0]->leftVal = c2->leftVal;
+			((CompositeCriteria*)(out->cr))->list[1]->list[0]->rightVal = c2->rightVal;
+			((CompositeCriteria*)(out->cr))->list[1]->list[0]->fcheck = isInInterval;
+			((CompositeCriteria*)(out->cr))->list[1]->list[0]->fgetInterval = getInterval;
+			((CompositeCriteria*)(out->cr))->list[1]->list[0]->isLeftInfinity = c2->isLeftInfinity;
+			((CompositeCriteria*)(out->cr))->list[1]->list[0]->isRightInfinity = c2->isRightInfinity;
 			
 #ifdef DEBUG
 	incNumberOfDynamicObject();
@@ -674,13 +694,33 @@ int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, OutBuiltCriteria *out){
 		((CompositeCriteria*)(out->cr))->list[0]->list = (Criteria**)malloc(sizeof(Criteria*));
 		((CompositeCriteria*)(out->cr))->list[0]->loggedSize = 1;
 		((CompositeCriteria*)(out->cr))->list[0]->size = 1;
-		((CompositeCriteria*)(out->cr))->list[0]->list[0] = c1;
+		((CompositeCriteria*)(out->cr))->list[0]->list[0] = (Criteria*)malloc(sizeof(Criteria));
+		((CompositeCriteria*)(out->cr))->list[0]->list[0]->objectType = SIMPLE_CRITERIA;
+		((CompositeCriteria*)(out->cr))->list[0]->list[0]->available = TRUE;
+		((CompositeCriteria*)(out->cr))->list[0]->list[0]->type = c1->type;
+		((CompositeCriteria*)(out->cr))->list[0]->list[0]->variable = c1->variable;
+		((CompositeCriteria*)(out->cr))->list[0]->list[0]->leftVal = c1->leftVal;
+		((CompositeCriteria*)(out->cr))->list[0]->list[0]->rightVal = c1->rightVal;
+		((CompositeCriteria*)(out->cr))->list[0]->list[0]->fcheck = isInInterval;
+		((CompositeCriteria*)(out->cr))->list[0]->list[0]->fgetInterval = getInterval;
+		((CompositeCriteria*)(out->cr))->list[0]->list[0]->isLeftInfinity = c1->isLeftInfinity;
+		((CompositeCriteria*)(out->cr))->list[0]->list[0]->isRightInfinity = c1->isRightInfinity;
 			
 		((CompositeCriteria*)(out->cr))->list[1] = newCombinedInterval();
 		((CompositeCriteria*)(out->cr))->list[1]->list = (Criteria**)malloc(sizeof(Criteria*));
 		((CompositeCriteria*)(out->cr))->list[1]->loggedSize = 1;
 		((CompositeCriteria*)(out->cr))->list[1]->size = 1;
-		((CompositeCriteria*)(out->cr))->list[1]->list[0] = c2;
+		((CompositeCriteria*)(out->cr))->list[1]->list[0] = (Criteria*)malloc(sizeof(Criteria));
+		((CompositeCriteria*)(out->cr))->list[1]->list[0]->objectType = SIMPLE_CRITERIA;
+		((CompositeCriteria*)(out->cr))->list[1]->list[0]->available = TRUE;
+		((CompositeCriteria*)(out->cr))->list[1]->list[0]->type = c2->type;
+		((CompositeCriteria*)(out->cr))->list[1]->list[0]->variable = c2->variable;
+		((CompositeCriteria*)(out->cr))->list[1]->list[0]->leftVal = c2->leftVal;
+		((CompositeCriteria*)(out->cr))->list[1]->list[0]->rightVal = c2->rightVal;
+		((CompositeCriteria*)(out->cr))->list[1]->list[0]->fcheck = isInInterval;
+		((CompositeCriteria*)(out->cr))->list[1]->list[0]->fgetInterval = getInterval;
+		((CompositeCriteria*)(out->cr))->list[1]->list[0]->isLeftInfinity = c2->isLeftInfinity;
+		((CompositeCriteria*)(out->cr))->list[1]->list[0]->isRightInfinity = c2->isRightInfinity;
 
 #ifdef DEBUG
 	incNumberOfDynamicObject();
@@ -700,19 +740,28 @@ int orTwoSimpleCriteria(Criteria *c1, Criteria *c2, OutBuiltCriteria *out){
  *	@param epsilon
  */
 FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
-						Criteria *c, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
+						const Criteria *c, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
 	int elementOnRow;
-	Criteria *out1;
+	Criteria out1;
 	DATA_TYPE_FP right1, y;
 	void *tmpP;
 	FData *mesh = NULL;
 	RParam param;
 	
-	out1 = newCriteria(GT_LT, variables[0], 0, 0, FALSE, FALSE);
-	getInterval(c, bd, 0, out1);
+	out1.objectType = SIMPLE_CRITERIA;
+	out1.available = TRUE;
+	out1.type = GT_LT;
+	out1.variable = variables[0];
+	out1.leftVal = 0;
+	out1.rightVal = 0;
+	out1.fcheck = isInInterval;
+	out1.fgetInterval = getInterval;
+	out1.isLeftInfinity = FALSE;
+	out1.isRightInfinity = FALSE;
+	
+	getInterval(c, bd, 0, &out1);
 		
-	if(out1->available == FALSE){
-		free(out1);
+	if(out1.available == FALSE){
 		return NULL;
 	}
 	
@@ -731,13 +780,13 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
 	mesh->loggedRowCount = 1;
 	mesh->rowInfo = (int*)malloc(sizeof(int));
 	
-	param.values[0] = out1->leftVal;
-	if(out1->type == GT_LT || out1->type == GT_LTE)
-		param.values[0] = out1->leftVal + epsilon;
+	param.values[0] = out1.leftVal;
+	if(out1.type == GT_LT || out1.type == GT_LTE)
+		param.values[0] = out1.leftVal + epsilon;
 		
-	right1 = out1->rightVal;
-	if(out1->type == GT_LT || out1->type == GTE_LT)
-		param.values[0] = out1->leftVal - epsilon;
+	right1 = out1.rightVal;
+	if(out1.type == GT_LT || out1.type == GTE_LT)
+		param.values[0] = out1.leftVal - epsilon;
 		
 	elementOnRow = 0;
 	while(param.values[0] <= right1){
@@ -756,7 +805,6 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
 	}
 	mesh->rowInfo[mesh->rowCount++] = elementOnRow;
 	
-	free(out1);
 	free(param.values);
 	free(param.variables);
 	return mesh;
@@ -770,25 +818,40 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
  *	@param bdlen MUST be 4 
  *	@param epsilon
  */
-FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables, CombinedCriteria *c, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
+FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables, const CombinedCriteria *c, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
 	int elementOnRow;
-	Criteria *out1, *out2;
+	Criteria out1, out2;
 	DATA_TYPE_FP right1, left2, right2, y;
 	void *tmpP;
 	FData *mesh = NULL;
 	RParam param;
 	
-	out1 = newCriteria(GT_LT, variables[0], 0, 0, FALSE, FALSE);
-	out2 = newCriteria(GT_LT, variables[1], 0, 0, FALSE, FALSE);
-	getInterval(c->list[0], bd, 0, out1);
-	getInterval(c->list[1], bd+2, 0, out2);
+	out1.objectType = SIMPLE_CRITERIA;
+	out1.available = TRUE;
+	out1.type = GT_LT;
+	out1.variable = variables[0];
+	out1.leftVal = 0;
+	out1.rightVal = 0;
+	out1.fcheck = isInInterval;
+	out1.fgetInterval = getInterval;
+	out1.isLeftInfinity = FALSE;
+	out1.isRightInfinity = FALSE;
+	
+	out2.objectType = SIMPLE_CRITERIA;
+	out2.available = TRUE;
+	out2.type = GT_LT;
+	out2.variable = variables[1];
+	out2.leftVal = 0;
+	out2.rightVal = 0;
+	out2.fcheck = isInInterval;
+	out2.fgetInterval = getInterval;
+	out2.isLeftInfinity = FALSE;
+	out2.isRightInfinity = FALSE;
+	
+	getInterval(c->list[0], bd, 0, &out1);
+	getInterval(c->list[1], bd+2, 0, &out2);
 		
-	if(out1->available == FALSE || out2->available == FALSE){
-		free(out1);
-		free(out2);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
+	if(out1.available == FALSE || out2.available == FALSE){
 		return NULL;
 	}
 	
@@ -815,21 +878,21 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 	incNumberOfDynamicObject();
 #endif
 
-	param.values[0] = out1->leftVal;
-	if(out1->type == GT_LT || out1->type == GT_LTE)
-		param.values[0] = out1->leftVal + epsilon;
+	param.values[0] = out1.leftVal;
+	if(out1.type == GT_LT || out1.type == GT_LTE)
+		param.values[0] = out1.leftVal + epsilon;
 		
-	right1 = out1->rightVal;
-	if(out1->type == GT_LT || out1->type == GTE_LT)
-		param.values[0] = out1->leftVal - epsilon;
+	right1 = out1.rightVal;
+	if(out1.type == GT_LT || out1.type == GTE_LT)
+		param.values[0] = out1.leftVal - epsilon;
 	
-	left2 = out2->leftVal;
-	if(out2->type == GT_LT || out2->type == GT_LTE)
-		left2 = out2->leftVal + epsilon;
+	left2 = out2.leftVal;
+	if(out2.type == GT_LT || out2.type == GT_LTE)
+		left2 = out2.leftVal + epsilon;
 		
-	right2 = out2->rightVal;
-	if(out2->type == GT_LT || out2->type == GTE_LT)
-		right2 = out2->leftVal - epsilon;
+	right2 = out2.rightVal;
+	if(out2.type == GT_LT || out2.type == GTE_LT)
+		right2 = out2.leftVal - epsilon;
 	
 	while(param.values[0] <= right1){
 		param.values[1] = left2;
@@ -859,12 +922,10 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 		mesh->rowInfo[mesh->rowCount++] = elementOnRow;
 		param.values[0] += epsilon;
 	}
-	free(out1);
-	free(out2);
 	free(param.values);
 	free(param.variables);
 #ifdef DEBUG
-	descNumberOfDynamicObjectBy(4);
+	descNumberOfDynamicObjectBy(2);
 #endif
 	return mesh;
 }
@@ -874,7 +935,7 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 	FData *sp;
 	CombinedCriteria *comb;
 	CompositeCriteria *composite;
-	Criteria *c;
+	Criteria c;
 	OutBuiltCriteria outCriteria;
 	int i, j, outCriteriaType;
 	
@@ -886,8 +947,18 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 	incNumberOfDynamicObject();
 #endif
 			if(f->domain == NULL){
-				c = newCriteria(GT_LT, f->variable[0], bd[0], bd[1], FALSE, FALSE);
-				sp = generateOneUnknows(f->prefix->list[0], f->variable, c, bd, 2, epsilon);
+				c.objectType = SIMPLE_CRITERIA;
+				c.available = TRUE;
+				c.type = GT_LT;
+				c.variable = f->variable[0];
+				c.leftVal = bd[0];
+				c.rightVal = bd[1];
+				c.fcheck = isInInterval;
+				c.fgetInterval = getInterval;
+				c.isLeftInfinity = FALSE;
+				c.isRightInfinity = FALSE;
+				
+				sp = generateOneUnknows(f->prefix->list[0], f->variable, &c, bd, 2, epsilon);
 				if(sp != NULL){
 					lst->loggedSize = 1;
 					lst->size = 1;
@@ -897,17 +968,12 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 #endif
 					lst->list[0] = sp;
 				}
-				free(c);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
 			} else {
 				buildCompositeCriteria(f->domain->list[0], &outCriteria);
 				outCriteriaType = *((int*)(outCriteria.cr));
 				switch(outCriteriaType){
 					case SIMPLE_CRITERIA:
-						c = (Criteria*)(outCriteria.cr);
-						sp = generateOneUnknows(f->prefix->list[0], f->variable, c, bd, 2, epsilon);
+						sp = generateOneUnknows(f->prefix->list[0], f->variable, (Criteria*)(outCriteria.cr), bd, 2, epsilon);
 						if(sp != NULL){
 							lst->loggedSize = 1;
 							lst->size = 1;
@@ -917,7 +983,7 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 	incNumberOfDynamicObject();
 #endif
 						}
-						free(c);
+						free(outCriteria.cr);
 #ifdef DEBUG
 	descNumberOfDynamicObject();
 #endif
@@ -936,8 +1002,7 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 #endif
 						for(i=0; i<composite->size; i++){
 							comb = composite->list[i];
-							c = comb->list[0]; //because f is one unknown function
-							sp = generateOneUnknows(f->prefix->list[0], f->variable, c, bd, 2, epsilon);
+							sp = generateOneUnknows(f->prefix->list[0], f->variable, comb->list[0], bd, 2, epsilon);
 							if(sp != NULL){
 								lst->list[lst->size++] = sp;
 							}

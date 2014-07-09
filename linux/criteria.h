@@ -11,8 +11,8 @@ typedef struct tagListFData ListFData;
 typedef struct tagOutBuiltCriteria OutBuiltCriteria;
 
 //Function poiters
-typedef void (*FPGetIntervalF)(void *, const DATA_TYPE_FP *, int, void *);
-typedef int (*FPCheck)(void *, DATA_TYPE_FP *, int);
+typedef void (*FPGetIntervalF)(const void *, const DATA_TYPE_FP *, int, void *);
+typedef int (*FPCheck)(const void *, DATA_TYPE_FP *, int);
 
 #define SIMPLE_CRITERIA 		0
 #define COMBINED_CRITERIA 		1
@@ -89,22 +89,22 @@ Criteria *newCriteria(int type, char var, DATA_TYPE_FP lval, DATA_TYPE_FP rval,
 CombinedCriteria *newCombinedInterval();
 CompositeCriteria *newCompositeInterval();
 
-int isInInterval(void *interval, DATA_TYPE_FP *values, int varCount);
-int isInCombinedInterval(void *interval, DATA_TYPE_FP *values, int varCount);
-int isInCompositeInterval(void *interval, DATA_TYPE_FP *values, int varCount);
+int isInInterval(const void *interval, DATA_TYPE_FP *values, int varCount);
+int isInCombinedInterval(const void *interval, DATA_TYPE_FP *values, int varCount);
+int isInCompositeInterval(const void *interval, DATA_TYPE_FP *values, int varCount);
 
-void getInterval(void *interval, const DATA_TYPE_FP *values, int varCount, void *outInterval);
+void getInterval(const void *interval, const DATA_TYPE_FP *values, int varCount, void *outInterval);
 
 /**
 	outListInterval [OUT] CombinedCriteria
 */
-void getCombinedInterval(void *interval, const DATA_TYPE_FP *values, int varCount, void *outListInterval);
+void getCombinedInterval(const void *interval, const DATA_TYPE_FP *values, int varCount, void *outListInterval);
 
 /**
 	outDomain [OUT] 
 		it's a CompositeCriteria
 */
-void getCompositeInterval(void *interval, const DATA_TYPE_FP *values, int varCount, void *outDomain);
+void getCompositeInterval(const void *interval, const DATA_TYPE_FP *values, int varCount, void *outDomain);
 
 /**
 
