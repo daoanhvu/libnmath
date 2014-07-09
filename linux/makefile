@@ -24,7 +24,7 @@ m64:
 test:
 	gcc -g -Wall -Werror -DDEBUG -o bin/test test.c common.c nlablexer.c nlabparser.c criteria.c nmath.c $(LDFLAGS)
 	
-andr:
+android:
 	gcc -Wall -Werror -D_TARGET_HOST_ANDROID -o bin/test_android $(SRC) $(LDFLAGS)
 	
 install:

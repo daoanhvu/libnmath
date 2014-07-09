@@ -1038,8 +1038,8 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
-				comb->list[0] = newCriteria(GT_LT, f->variable[0], bd[0], bd[1], FALSE, FALSE);
-				comb->list[1] = newCriteria(GT_LT, f->variable[1], bd[2], bd[3], FALSE, FALSE);
+				comb->list[0] = newCriteria(GT_LT, f->variable[0], bd[0], bd[1], TRUE, TRUE);
+				comb->list[1] = newCriteria(GT_LT, f->variable[1], bd[2], bd[3], TRUE, TRUE);
 				sp = generateTwoUnknowsFromCombinedCriteria(f->prefix->list[0], f->variable, comb, bd, 4, epsilon);
 				if(sp != NULL){
 					lst->loggedSize = 1;
@@ -1056,8 +1056,7 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 				free(comb->list);
 				free(comb);
 #ifdef DEBUG
-	descNumberOfDynamicObject();
-	descNumberOfDynamicObject();
+	descNumberOfDynamicObjectBy(2);
 #endif
 			} else {
 				buildCompositeCriteria(f->domain->list[0], &outCriteria);
