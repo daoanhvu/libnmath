@@ -3,13 +3,22 @@
 #ifdef DEBUG
 	#include <stdio.h>
 #endif
+/*
+#ifdef _TARGET_HOST_ANDROID
+	#include<android/log.h>
+	#define LOG_TAG "NMATH2"
+	#define LOG_LEVEL 10
+	#define LOGI(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__);}
+	#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
+#endif
+*/
 
 #include "nlablexer.h"
 #include "common.h"
 #include "nlabparser.h"
 
-extern int gErrorColumn;
-extern int gErrorCode;
+extern short gErrorColumn;
+extern short gErrorCode;
 extern TokenList *gTokens;
 
 //internal variables
@@ -53,9 +62,15 @@ int clearStackWithoutFreeItem(Token **ls, int len){
 }
 
 void pushItem2Stack(Token ***st, int *top, int *allocLen, Token *item){
+	Token** tmp;
 	if( (*top) >= ( (*allocLen)-1)){
 		(*allocLen) += INCLEN;
-		(*st) = (Token**)realloc(*st, sizeof(Token*) * (*allocLen) );
+		tmp = (Token**)realloc(*st, sizeof(Token*) * (*allocLen) );
+		if(tmp == NULL){
+			gErrorCode = ERROR_NOT_ENOUGH_MEMORY;
+			return;
+		}
+		(*st) = tmp;
 	}
 	(*top)++;
 	(*st)[(*top)] = item;
@@ -189,7 +204,11 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 			outF->valLen = variableCount;
 			for(i=0;i<variableCount; i++) //Should use memcpy here
 				outF->variable[i] = variables[i];
-			
+/*
+#ifdef _TARGET_HOST_ANDROID
+	LOGI(3, "Done parsing expression!");
+#endif
+*/
 			for(i=0; i<tokens->size; i++){
 				if(tokens->list[i]->type == NAME){
 					for(l=0; l<variableCount; l++){
@@ -297,7 +316,8 @@ int functionNotation(int index, char *variables, int *variableCount){
 	Parse the input string in object f to NMAST tree
 */
 void parseFunct(TokenList *tokens, int *start, Function *f){
-	int i, error, top=-1, allocLen=0, isEndExp = FALSE;
+	int i, top=-1, allocLen=0, isEndExp = FALSE;
+	short error;
 	DATA_TYPE_FP val;
 	Token *tk = NULL;
 	Token **stack = NULL;
@@ -630,7 +650,7 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 /*
 	Parse the input string in object f to NMAST tree
 */
-int parseFunction(const char *str, int len, Function *outF){
+short parseFunction(const char *str, short len, Function *outF){
 	TokenList lst;
 	int i, result;
 	

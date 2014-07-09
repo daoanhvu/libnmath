@@ -71,9 +71,7 @@
 #define ERROR_MISSING_VARIABLE -14
 #define ERROR_LOG -15
 #define ERROR_MISSING_DOMAIN -16
-
-#define MAXTEXTLEN 20
-#define INCLEN 10
+#define ERROR_NOT_ENOUGH_MEMORY -17
 
 #ifndef TRUE
 	#define TRUE -1
@@ -86,12 +84,16 @@
 
 /** Redirect building target */
 #ifdef _TARGET_HOST_ANDROID
+	#define MAXTEXTLEN 8
+	#define INCLEN 4
 	#define DATA_TYPE_FP float
 	#define ZERO_FP	0.0f
 	#define ONE_FP	1.0f
 	#define PI		3.141592653f
 	#define E			2.718281828f
 #else
+	#define MAXTEXTLEN 16
+	#define INCLEN 8
 	#define DATA_TYPE_FP double
 	#define ZERO_FP	0.0
 	#define ONE_FP	1.0
@@ -117,7 +119,7 @@ struct tagFraction{
 
 typedef struct tagFunct{
 	char *str;
-	int len;
+	unsigned short len;
 
 	char variable[8];
 	char valLen;
@@ -126,29 +128,29 @@ typedef struct tagFunct{
 	NMASTList *domain;
 
 	NMAST **variableNode;
-	int numVarNode;
+	short numVarNode;
 } Function;
 
 struct tagToken{
-	int type;
+	short type;
 	char text[MAXTEXTLEN];
-	int column;
-	int textLength;
+	short column;
+	unsigned char textLength;
 	
 	/* This is used for operators & functions */
 	char priority;
 };
 
 struct tagTokenList{
-	int loggedSize;
-	int size;
+	unsigned short loggedSize;
+	unsigned short size;
 	struct tagToken **list;
 };
 
 struct tagNMAST{
-	int type;
+	short type;
 
-	int priority;
+	char priority;
 	/*
 	 TYPE_FLOATING_POINT OR TYPE_FRACTION
 	 0: floating point value
@@ -163,15 +165,15 @@ struct tagNMAST{
 	
 	/* this flag is just used for function cause the function cannot express its sign itself */
 	/* MUST = 1 by default */
-	int sign;
+	char sign;
 	struct tagNMAST *parent;
 	struct tagNMAST *left;
 	struct tagNMAST *right;
 };
 
 struct tagNMASTList{
-	int loggedSize;
-	int size;
+	unsigned short loggedSize;
+	unsigned short size;
 	struct tagNMAST **list;
 };
 
@@ -186,10 +188,10 @@ int isPrime(long n);
 long gcd(long a, long b);
 long lcm(long a, long b);
 long l_cast(DATA_TYPE_FP val, DATA_TYPE_FP *fr);
-DATA_TYPE_FP parseFloatingPoint(char *str, int start, int end, int *error);
-int contains(int type, const int *aset, int len);
-DATA_TYPE_FP logab(DATA_TYPE_FP a, DATA_TYPE_FP b, int *error);
-DATA_TYPE_FP doCalculate(DATA_TYPE_FP val1, DATA_TYPE_FP val2, int type, int *error);
+DATA_TYPE_FP parseFloatingPoint(const char *str, short start, short end, short *error);
+int contains(short type, const short *aset, short len);
+DATA_TYPE_FP logab(DATA_TYPE_FP a, DATA_TYPE_FP b, short *error);
+DATA_TYPE_FP doCalculate(DATA_TYPE_FP val1, DATA_TYPE_FP val2, short type, short *error);
 void clearTree(NMAST **prf);
 int getErrorColumn();
 int getErrorCode();
@@ -201,10 +203,10 @@ int isConstant(int type);
 int isLetter(char c);
 
 #ifdef DEBUG
-int numberOfDynamicObject();
+short numberOfDynamicObject();
 void incNumberOfDynamicObject();
 void descNumberOfDynamicObject();
-void descNumberOfDynamicObjectBy(int k);
+void descNumberOfDynamicObjectBy(short k);
 #endif
 
 #ifdef __cplusplus

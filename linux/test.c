@@ -40,8 +40,8 @@ void testCriteria1(int argc, char *agr[]){
 	Criteria *ci1, *ci2;
 	CombinedCriteria *cc1, *cc2;
 	CompositeCriteria *cp1;
-	
-	int i, j, error, outlen, chk;
+	short error;
+	int i, j, outlen, chk;
 	DATA_TYPE_FP *vals;
 	CombinedCriteria *outIntList;
 	CompositeCriteria *outDomain;

@@ -12,7 +12,7 @@ extern "C" {
 typedef struct tagDParam{
 	NMAST *t;
 	char x;
-	int error;
+	short error;
 	NMAST *returnValue;
 }DParam;
 
@@ -22,12 +22,12 @@ typedef struct tagRParam{
 	char *variables;
 	DATA_TYPE_FP *values;
 	DATA_TYPE_FP retv;
-	int error;
+	short error;
 }RParam;
 
 void initFunct(Function *);
 void toString(const NMAST *t, char *str, int *curpos, int len);
-void resetFunction(Function *f, const char *str, const char *vars, int varCount, int *error);
+void resetFunction(Function *f, const char *str, const char *vars, int varCount, short *error);
 DATA_TYPE_FP calc(Function *f, DATA_TYPE_FP *values, int numOfValue, int *);
 int reduce(Function *f, int *);
 void* reduce_t(void *);

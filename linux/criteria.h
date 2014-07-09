@@ -25,16 +25,16 @@ typedef int (*FPCheck)(const void *, DATA_TYPE_FP *, int);
 		x is greater than leftVal and x is less than rightValue
 */
 struct tagCriteria{
-	int objectType;
+	char objectType;
 	FPCheck fcheck;
 	FPGetIntervalF fgetInterval;
 	
 	/** GT_LT, GTE_LT, GT_LTE, GTE_LTE */
-	int type, available;
-	char variable;
+	short type;
+	char variable, available;
 	DATA_TYPE_FP leftVal;
 	DATA_TYPE_FP rightVal;
-	int isLeftInfinity, isRightInfinity;
+	char isLeftInfinity, isRightInfinity;
 };
 
 //AND
@@ -45,39 +45,39 @@ struct tagCriteria{
 	For example: 0<x<=5 AND y>3
  */
 struct tagCombinedCriteria{
-	int objectType;
+	char objectType;
 	FPCheck fcheck;
 	FPGetIntervalF fgetInterval;
 	Criteria **list;
-	int loggedSize;
-	int size;
+	unsigned short loggedSize;
+	unsigned short size;
 };
 
 //OR
 struct tagCompositeCriteria{
-	int objectType;
+	char objectType;
 	FPCheck fcheck;
 	FPGetIntervalF fgetInterval;
 	CombinedCriteria **list;
-	int loggedSize;
-	int size;
+	unsigned short loggedSize;
+	unsigned short size;
 };
 
 struct tagFData{
 	DATA_TYPE_FP *data;
-	int dataSize;
-	int loggedSize;
-	int dimension;
+	unsigned short dataSize;
+	unsigned short loggedSize;
+	char dimension;
 	
 	int *rowInfo;
-	int rowCount;
-	int loggedRowCount;
+	unsigned short rowCount;
+	unsigned short loggedRowCount;
 };
 
 struct tagListFData{
 	FData **list;
-	int loggedSize;
-	int size;
+	unsigned short loggedSize;
+	unsigned short size;
 };
 
 struct tagOutBuiltCriteria{

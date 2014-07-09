@@ -366,7 +366,7 @@ void releaseFunct(Function *f){
 	}
 }
 
-void resetFunction(Function *f, const char *str, const char *vars, int varCount, int *error){
+void resetFunction(Function *f, const char *str, const char *vars, int varCount, short *error){
 	int i=0, l=0, flagFirst = 0;
 	char buf[1024];
 	

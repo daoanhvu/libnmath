@@ -2,6 +2,14 @@
 #include "nmath.h"
 #include "criteria.h"
 
+#ifdef _TARGET_HOST_ANDROID
+	#include<android/log.h>
+	#define LOG_TAG "NMATH2"
+	#define LOG_LEVEL 10
+	#define LOGI(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__);}
+	#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
+#endif
+
 int andTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria *out);
 int orTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria *out);
 int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out);
@@ -1135,6 +1143,10 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 		default:
 		break;
 	}
-	
+/*		
+#ifdef _TARGET_HOST_ANDROID
+	LOGI(3, "Number of piece: %d", lst->size);
+#endif
+*/
 	return lst;
 }

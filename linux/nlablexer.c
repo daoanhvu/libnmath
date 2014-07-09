@@ -3,15 +3,15 @@
 #include "common.h"
 
 
-const int setLeadNegativeNumber[] = {LPAREN, LPRACKET,SEMI,COMMA,AND,OR,LT,LTE,GT,GTE,EQ,NE,IMPLY,RARROW};
-const int LeadNegativeNumberSize = 14;
+const short setLeadNegativeNumber[] = {LPAREN, LPRACKET,SEMI,COMMA,AND,OR,LT,LTE,GT,GTE,EQ,NE,IMPLY,RARROW};
+const short LeadNegativeNumberSize = 14;
 
 TokenList *gTokens = NULL;
-extern int gErrorColumn;
-extern int gErrorCode;
+extern short gErrorColumn;
+extern short gErrorCode;
 
-Token* createToken(int _type, const char *_text, int txtlen, int _col){
-	int i;
+Token* createToken(short _type, const char *_text, char txtlen, short _col){
+	unsigned char i;
 	Token *tk = (Token*)malloc(sizeof(Token));
 	tk->type = _type;
 	tk->column = _col;
@@ -57,7 +57,7 @@ Token* createToken(int _type, const char *_text, int txtlen, int _col){
 			tk->priority = 0;
 	}
 	
-	tk->textLength = (MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen;
+	tk->textLength = (char)((MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen);
 	for(i=0; i<tk->textLength; i++)
 		tk->text[i] = _text[i];
 	
@@ -65,8 +65,8 @@ Token* createToken(int _type, const char *_text, int txtlen, int _col){
 	return tk;
 }
 
-Token* createTokenIdx(int _type, const char *_text, int frIdx, int toIdx, int _col){
-	int i;
+Token* createTokenIdx(short _type, const char *_text, short frIdx, short toIdx, short _col){
+	unsigned char i;
 	Token *tk = (Token*)malloc(sizeof(Token));
 	tk->type = _type;
 	tk->column = _col;

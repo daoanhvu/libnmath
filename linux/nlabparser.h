@@ -8,6 +8,6 @@
 	@param outF a NOT-NULL Function pointer
 	@return errorCode
 */	
-int parseFunction(const char *str, int len, Function *outF);
+short parseFunction(const char *str, short len, Function *outF);
 
 #endif
