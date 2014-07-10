@@ -8,15 +8,6 @@
 #include "common.h"
 #include "nlabparser.h"
 
-#ifdef _TARGET_HOST_ANDROID
-	#include<android/log.h>
-	#define LOG_TAG "NMATH2"
-	#define LOG_LEVEL 10
-	#define LOGI(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__);}
-	#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
-#endif
-
-
 extern short gErrorColumn;
 extern short gErrorCode;
 extern TokenList *gTokens;
@@ -260,9 +251,6 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 			returnedAst = NULL;
 		}	
 	}
-#ifdef _TARGET_HOST_ANDROID
-	LOGI(3, "End process expression!");
-#endif
 	gTokens = NULL;
 	return gErrorCode;
 }
@@ -340,9 +328,6 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 	
 	f->numVarNode = 0;
 	i = (*start);
-#ifdef _TARGET_HOST_ANDROID
-	LOGI(3, "Before process expression!");
-#endif
 	while(i < tokens->size && !isEndExp){
 		tk = tokens->list[i];
 		switch(tk->type){
@@ -639,10 +624,6 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 				return;
 		}//end switch
 	}//end while
-	
-#ifdef _TARGET_HOST_ANDROID
-	LOGI(3, "After while loop process expression!");
-#endif
 
 	while(top >= 0){
 		stItm = popFromStack(stack, &top);
@@ -666,9 +647,6 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 		}
 		addFunction2Tree(prefix, stItm);
 	}
-#ifdef _TARGET_HOST_ANDROID
-	LOGI(3, "After while loop 2 in parseFunct !");
-#endif	
 	/**
 		If we make sure that the function f is initialized 
 		ok we do not need to check here. Actually, we SHOULD initialize it completely
@@ -692,9 +670,6 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 #endif
 	*start = i;
 	
-#ifdef _TARGET_HOST_ANDROID
-	LOGI(3, "At the end of parseFunct !");
-#endif	
 	//if(f->numVarNode > 0) {
 	//	f->variableNode = (NMAST**)malloc(sizeof(NMAST*) * f->numVarNode);
 	//	for(i=0; i<f->numVarNode; i++){
