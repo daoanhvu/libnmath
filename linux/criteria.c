@@ -465,8 +465,8 @@ void buildCompositeCriteria(NMAST *ast, OutBuiltCriteria *result){
 			buildCompositeCriteria(ast->left, &leftResult);
 			buildCompositeCriteria(ast->right, &rightResult);
 
-			objTypeLeft = *((int*)(leftResult.cr));
-			objTypeRight = *((int*)(rightResult.cr));
+			objTypeLeft = *((char*)(leftResult.cr));
+			objTypeRight = *((char*)(rightResult.cr));
 			
 			if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
 				orTwoSimpleCriteria(leftResult.cr, rightResult.cr, result);
@@ -527,8 +527,8 @@ int andTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteri
 		TRUE: 
 */
 int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out){
-	int objTypeLeft = *((int*)c1);
-	int objTypeRight = *((int*)c2);
+	int objTypeLeft = *((char*)c1);
+	int objTypeRight = *((char*)c2);
 	int i, result = FALSE;
 	DATA_TYPE_FP d[2];
 	Criteria *interval;
@@ -978,7 +978,7 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 				}
 			} else {
 				buildCompositeCriteria(f->domain->list[0], &outCriteria);
-				outCriteriaType = *((int*)(outCriteria.cr));
+				outCriteriaType = *((char*)(outCriteria.cr));
 				switch(outCriteriaType){
 					case SIMPLE_CRITERIA:
 						sp = generateOneUnknows(f->prefix->list[0], f->variable, (Criteria*)(outCriteria.cr), bd, 2, epsilon);
@@ -1068,7 +1068,7 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 #endif
 			} else {
 				buildCompositeCriteria(f->domain->list[0], &outCriteria);
-				outCriteriaType = *((int*)(outCriteria.cr));
+				outCriteriaType = *((char*)(outCriteria.cr));
 				switch(outCriteriaType){
 					case SIMPLE_CRITERIA:
 						free(outCriteria.cr);

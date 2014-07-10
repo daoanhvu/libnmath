@@ -22,8 +22,6 @@ extern short gErrorCode;
 extern TokenList *gTokens;
 
 //internal variables
-short gParenStack[100];
-short gParenTop;
 NMAST *returnedAst = NULL;
 
 int functionNotation(int index, char *vars, int *varCount);
