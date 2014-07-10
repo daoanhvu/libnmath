@@ -16,7 +16,11 @@ typedef int (*FPCheck)(const void *, DATA_TYPE_FP *, int);
 
 #define SIMPLE_CRITERIA 		0
 #define COMBINED_CRITERIA 		1
-#define COMPOSITE_CRITERIA 	2
+#define COMPOSITE_CRITERIA 		2
+
+#define LEFT_INF	0x02
+#define RIGHT_INF	0x01
+#define AVAILABLE	0x04
 
 /**
 	This is a single continuous interval for one variable
@@ -31,10 +35,16 @@ struct tagCriteria{
 	
 	/** GT_LT, GTE_LT, GT_LTE, GTE_LTE */
 	short type;
-	char variable, available;
+	char variable;
 	DATA_TYPE_FP leftVal;
 	DATA_TYPE_FP rightVal;
-	char isLeftInfinity, isRightInfinity;
+	
+	/*
+		bit 0: right infinity
+		bit 1: left infinity
+		bit 2: available
+	*/
+	char flag;
 };
 
 //AND

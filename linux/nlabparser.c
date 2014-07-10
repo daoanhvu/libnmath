@@ -3,7 +3,11 @@
 #ifdef DEBUG
 	#include <stdio.h>
 #endif
-/*
+
+#include "nlablexer.h"
+#include "common.h"
+#include "nlabparser.h"
+
 #ifdef _TARGET_HOST_ANDROID
 	#include<android/log.h>
 	#define LOG_TAG "NMATH2"
@@ -11,11 +15,7 @@
 	#define LOGI(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__);}
 	#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
 #endif
-*/
 
-#include "nlablexer.h"
-#include "common.h"
-#include "nlabparser.h"
 
 extern short gErrorColumn;
 extern short gErrorCode;
@@ -192,7 +192,7 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 	int variableCount = 0;
 	if( (k=functionNotation(idx, variables, &variableCount)) > idx ){
 		if(tokens->list[k]->type == EQ){
-			
+
 			outF->prefix = NULL;
 			outF->domain = NULL;
 			outF->str = NULL;
@@ -202,11 +202,7 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 			outF->valLen = variableCount;
 			for(i=0;i<variableCount; i++) //Should use memcpy here
 				outF->variable[i] = variables[i];
-/*
-#ifdef _TARGET_HOST_ANDROID
-	LOGI(3, "Done parsing expression!");
-#endif
-*/
+
 			for(i=0; i<tokens->size; i++){
 				if(tokens->list[i]->type == NAME){
 					for(l=0; l<variableCount; l++){
@@ -220,7 +216,6 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 			k++;
 			do{
 				parseFunct(tokens, &k, outF);
-				
 				/** after parseFunct, we may get error, so MUST check if it's OK here */
 				if( (gErrorCode!=NO_ERROR) || (k >= tokens->size) ) break;
 				
@@ -265,6 +260,9 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 			returnedAst = NULL;
 		}	
 	}
+#ifdef _TARGET_HOST_ANDROID
+	LOGI(3, "End process expression!");
+#endif
 	gTokens = NULL;
 	return gErrorCode;
 }
@@ -342,6 +340,9 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 	
 	f->numVarNode = 0;
 	i = (*start);
+#ifdef _TARGET_HOST_ANDROID
+	LOGI(3, "Before process expression!");
+#endif
 	while(i < tokens->size && !isEndExp){
 		tk = tokens->list[i];
 		switch(tk->type){
@@ -443,11 +444,43 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 				}
 				//push operation o1 (tk) into stack
 				pushItem2Stack(&stack, &top, &allocLen, tk);
+				if(gErrorCode == ERROR_NOT_ENOUGH_MEMORY){
+					clearStackWithoutFreeItem(stack, top+1);
+					free(stack);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+					for(i=0;i<prefix->size;i++)
+						clearTree(&(prefix->list[i]));
+					free(prefix->list);
+					free(prefix);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(2);
+#endif
+					gErrorColumn = tk->column;
+					return;
+				}
 				i++;
 				break;
 
 			case LPAREN:/*If it an open parentheses then put it to stack*/
 				pushItem2Stack(&stack, &top, &allocLen, tk);
+				if(gErrorCode == ERROR_NOT_ENOUGH_MEMORY){
+					clearStackWithoutFreeItem(stack, top+1);
+					free(stack);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+					for(i=0;i<prefix->size;i++)
+						clearTree(&(prefix->list[i]));
+					free(prefix->list);
+					free(prefix);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(2);
+#endif
+					gErrorColumn = tk->column;
+					return;
+				}
 				i++;
 				break;
 
@@ -540,6 +573,22 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 				}
 				
 				pushItem2Stack(&stack, &top, &allocLen, tk);
+				if(gErrorCode == ERROR_NOT_ENOUGH_MEMORY){
+					clearStackWithoutFreeItem(stack, top+1);
+					free(stack);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+					for(i=0;i<prefix->size;i++)
+						clearTree(&(prefix->list[i]));
+					free(prefix->list);
+					free(prefix);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(2);
+#endif
+					gErrorColumn = tk->column;
+					return;
+				}
 				/**
 					After a function name must be a LPAREN, and we just ignore that LPAREN token
 				*/
@@ -583,14 +632,17 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 				free(prefix->list);
 				free(prefix);
 #ifdef DEBUG
-	descNumberOfDynamicObject();
-	descNumberOfDynamicObject();
+	descNumberOfDynamicObjectBy(2);
 #endif
 				gErrorColumn = tk->column;
 				gErrorCode = ERROR_BAD_TOKEN;
 				return;
 		}//end switch
 	}//end while
+	
+#ifdef _TARGET_HOST_ANDROID
+	LOGI(3, "After while loop process expression!");
+#endif
 
 	while(top >= 0){
 		stItm = popFromStack(stack, &top);
@@ -606,8 +658,7 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 			free(prefix->list);
 			free(prefix);
 #ifdef DEBUG
-	descNumberOfDynamicObject();
-	descNumberOfDynamicObject();
+	descNumberOfDynamicObjectBy(2);
 #endif
 			gErrorColumn = tk->column;
 			gErrorCode = ERROR_PARENTHESE_MISSING;
@@ -615,13 +666,18 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 		}
 		addFunction2Tree(prefix, stItm);
 	}
-	
+#ifdef _TARGET_HOST_ANDROID
+	LOGI(3, "After while loop 2 in parseFunct !");
+#endif	
 	/**
 		If we make sure that the function f is initialized 
 		ok we do not need to check here. Actually, we SHOULD initialize it completely
 	*/
 	if(f->prefix == NULL){
 		f->prefix = (NMASTList*)malloc(sizeof(NMASTList));
+		f->prefix->list = NULL;
+		f->prefix->loggedSize = 0;
+		f->prefix->size = 0;
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
@@ -632,11 +688,13 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 	free(stack);
 	free(prefix);
 #ifdef DEBUG
-	descNumberOfDynamicObject();
-	descNumberOfDynamicObject();
+	descNumberOfDynamicObjectBy(2);
 #endif
 	*start = i;
-
+	
+#ifdef _TARGET_HOST_ANDROID
+	LOGI(3, "At the end of parseFunct !");
+#endif	
 	//if(f->numVarNode > 0) {
 	//	f->variableNode = (NMAST**)malloc(sizeof(NMAST*) * f->numVarNode);
 	//	for(i=0; i<f->numVarNode; i++){
@@ -661,7 +719,7 @@ short parseFunction(const char *str, short len, Function *outF){
 
 	/* build the tokens list from the input string */
 	parseTokens(str, len, &lst);
-	
+
 #ifdef DEBUG
 	printf("\n[NLabParser] Number of dynamic objects after parsing tokens: %d \n", numberOfDynamicObject() );
 #endif
@@ -738,8 +796,7 @@ void domain(int *start, Function *f){
 						free(d->list);
 						free(d);
 #ifdef DEBUG
-	descNumberOfDynamicObject();
-	descNumberOfDynamicObject();
+	descNumberOfDynamicObjectBy(2);
 #endif
 						return ;
 					}
@@ -765,8 +822,7 @@ void domain(int *start, Function *f){
 							free(d->list);
 							free(d);
 #ifdef DEBUG
-	descNumberOfDynamicObject();
-	descNumberOfDynamicObject();
+	descNumberOfDynamicObjectBy(2);
 #endif
 							gErrorColumn = tk->column;
 							return;
@@ -857,6 +913,22 @@ void domain(int *start, Function *f){
 				}
 				//push operation o1 (tk) into stack
 				pushItem2Stack(&stack, &top, &allocLen, tk);
+				if(gErrorCode == ERROR_NOT_ENOUGH_MEMORY){
+					clearStackWithoutFreeItem(stack, top+1);
+					free(stack);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+					for(i=0;i<d->size;i++)
+						clearTree(&(d->list[i]));
+					free(d->list);
+					free(d);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(2);
+#endif
+					gErrorColumn = tk->column;
+					return;
+				}
 				index++;
 			break;
 
@@ -875,8 +947,7 @@ void domain(int *start, Function *f){
 					free(d->list);
 					free(d);
 #ifdef DEBUG
-	descNumberOfDynamicObject();
-	descNumberOfDynamicObject();
+	descNumberOfDynamicObjectBy(2);
 #endif
 					gErrorColumn = tk->column;
 					gErrorCode = ERROR_PARENTHESE_MISSING;
@@ -901,8 +972,7 @@ void domain(int *start, Function *f){
 					free(d->list);
 					free(d);
 #ifdef DEBUG
-	descNumberOfDynamicObject();
-	descNumberOfDynamicObject();
+	descNumberOfDynamicObjectBy(2);
 #endif
 					gErrorColumn = tk->column;
 					gErrorCode = ERROR_PARENTHESE_MISSING;
@@ -918,6 +988,22 @@ void domain(int *start, Function *f){
 				
 			case LPAREN:
 				pushItem2Stack(&stack, &top, &allocLen, tk);
+				if(gErrorCode == ERROR_NOT_ENOUGH_MEMORY){
+					clearStackWithoutFreeItem(stack, top+1);
+					free(stack);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+					for(i=0;i<d->size;i++)
+						clearTree(&(d->list[i]));
+					free(d->list);
+					free(d);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(2);
+#endif
+					gErrorColumn = gTokens->list[index]->column;
+					return;
+				}
 				index++;
 			break;
 			
@@ -952,8 +1038,7 @@ void domain(int *start, Function *f){
 									free(d->list);
 									free(d);
 	#ifdef DEBUG
-		descNumberOfDynamicObject();
-		descNumberOfDynamicObject();
+		descNumberOfDynamicObjectBy(2);
 	#endif
 									gErrorColumn = tk->column;
 									return;
@@ -982,8 +1067,7 @@ void domain(int *start, Function *f){
 									free(d->list);
 									free(d);
 	#ifdef DEBUG
-		descNumberOfDynamicObject();
-		descNumberOfDynamicObject();
+		descNumberOfDynamicObjectBy(2);
 	#endif
 									gErrorColumn = gTokens->list[index+4]->column;
 									return;
@@ -1056,8 +1140,7 @@ void domain(int *start, Function *f){
 						free(d->list);
 						free(d);
 #ifdef DEBUG
-	descNumberOfDynamicObject();
-	descNumberOfDynamicObject();
+	descNumberOfDynamicObjectBy(2);
 #endif
 						gErrorColumn = tk->column;
 						gErrorCode = ERROR_SYNTAX;
@@ -1100,8 +1183,7 @@ void domain(int *start, Function *f){
 			free(d->list);
 			free(d);
 #ifdef DEBUG
-	descNumberOfDynamicObject();
-	descNumberOfDynamicObject();
+	descNumberOfDynamicObjectBy(2);
 #endif
 			gErrorColumn = tk->column;
 			gErrorCode = ERROR_PARENTHESE_MISSING;
@@ -1126,8 +1208,7 @@ void domain(int *start, Function *f){
 	free(stack);
 	free(d);
 #ifdef DEBUG
-	descNumberOfDynamicObject();
-	descNumberOfDynamicObject();
+	descNumberOfDynamicObjectBy(2);
 #endif
 }
 

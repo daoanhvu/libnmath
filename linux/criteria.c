@@ -28,8 +28,8 @@ void copyCombinedCriteria(CombinedCriteria *from, CombinedCriteria *target){
 											from->list[i]->variable,
 											from->list[i]->leftVal,
 											from->list[i]->rightVal, 
-											from->list[i]->isLeftInfinity,
-											from->list[i]->isRightInfinity);
+											(from->list[i]->flag & LEFT_INF) >> 1,
+											from->list[i]->flag & RIGHT_INF);
 	}
 	
 }
@@ -38,15 +38,13 @@ Criteria *newCriteria(int type, char var, DATA_TYPE_FP lval, DATA_TYPE_FP rval,
 										int leftInfinity, int rightInfinity) {
 	Criteria *result = (Criteria *)malloc(sizeof(Criteria));
 	result->objectType = SIMPLE_CRITERIA;
-	result->available = TRUE;
+	result->flag = AVAILABLE | (leftInfinity & LEFT_INF) | (rightInfinity & RIGHT_INF) ;
 	result->type = type;
 	result->variable = var;
 	result->leftVal = lval;
 	result->rightVal = rval;
 	result->fcheck = isInInterval;
 	result->fgetInterval = getInterval;
-	result->isLeftInfinity = leftInfinity;
-	result->isRightInfinity = rightInfinity;
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
@@ -84,10 +82,10 @@ CompositeCriteria *newCompositeInterval() {
 int isInInterval(const void *interval, DATA_TYPE_FP *values, int varCount) {
 	int result = FALSE;
 	Criteria *criteria = (Criteria*)interval;
-	if(criteria->isLeftInfinity && criteria->isRightInfinity)
+	if( (criteria->flag & 0x03) == 0x03) //Check left and right infinity is set (bit 0 and 1 = TRUE)
 		return (values!=NULL)?TRUE:FALSE;
 		
-	if(criteria->isLeftInfinity){
+	if( (criteria->flag & LEFT_INF) == LEFT_INF){
 		/** HERE we don't need to take care of leftVal */
 		switch(criteria->type){
 			case GT_LT:
@@ -104,7 +102,7 @@ int isInInterval(const void *interval, DATA_TYPE_FP *values, int varCount) {
 					result = TRUE;
 			break;
 		}
-	}else if (criteria->isRightInfinity){
+	}else if ( (criteria->flag & RIGHT_INF) == RIGHT_INF ){
 		/** HERE we don't need to take care of rightVal */
 		switch(criteria->type){
 			case GT_LT:
@@ -183,15 +181,15 @@ void getInterval(const void *interval, const DATA_TYPE_FP *values, int unused, v
 	Criteria *criteria = (Criteria*)interval;
 	Criteria *outInterval = (Criteria*)outIntervalObj;
 	
-	outInterval->variable = criteria->variable;
-	if(criteria->isLeftInfinity && criteria->isRightInfinity){
+	outInterval->flag = outInterval->flag & (criteria->flag | 0xfb);
+	if( (criteria->flag & 0x03) == 0x03){ //Check if left and right is set (bit 0 and 1 is TRUE)
 		outInterval->leftVal = values[0];
 		outInterval->rightVal = values[1];
 		outInterval->type = GTE_LTE;
 		return;
 	}
 		
-	if(criteria->isLeftInfinity){
+	if( (criteria->flag & LEFT_INF) == LEFT_INF){
 		/** HERE we don't need to take care of leftVal */
 		outInterval->leftVal = values[0];
 		switch(criteria->type){
@@ -199,8 +197,8 @@ void getInterval(const void *interval, const DATA_TYPE_FP *values, int unused, v
 			case GTE_LT:
 				// x < rightVal
 				if(criteria->rightVal <= values[0]){
-					//return empty set
-					outInterval->available = FALSE;
+					//return empty set, available bit set to FALSE
+					outInterval->flag = outInterval->flag & 0xfb;
 					return;
 				}
 				outInterval->type = GTE_LT; //TODO: need to test here
@@ -215,8 +213,8 @@ void getInterval(const void *interval, const DATA_TYPE_FP *values, int unused, v
 			case GTE_LTE:
 				// x <= rightVal
 				if(criteria->rightVal < values[0]){
-					//return empty set
-					outInterval->available = FALSE;
+					//return empty set, available bit set to FALSE
+					outInterval->flag = outInterval->flag & 0xfb;
 					return;
 				}
 				
@@ -227,7 +225,7 @@ void getInterval(const void *interval, const DATA_TYPE_FP *values, int unused, v
 					outInterval->rightVal = criteria->rightVal;
 			break;
 		}
-	}else if (criteria->isRightInfinity){
+	}else if ( (criteria->flag & RIGHT_INF) == RIGHT_INF){
 		/** HERE we don't need to take care of rightVal */
 		outInterval->rightVal = values[1];
 		switch(criteria->type){
@@ -235,8 +233,8 @@ void getInterval(const void *interval, const DATA_TYPE_FP *values, int unused, v
 			case GT_LTE:
 				// leftVal < x
 				if(criteria->leftVal >= values[1]){
-					//empty set
-					outInterval->available = FALSE;
+					//return empty set, available bit set to FALSE
+					outInterval->flag = outInterval->flag & 0xfb;
 					return;
 				}
 				outInterval->type = GT_LTE; //TODO: need to test here
@@ -250,8 +248,8 @@ void getInterval(const void *interval, const DATA_TYPE_FP *values, int unused, v
 			case GTE_LTE:
 				// leftVal <= x
 				if(criteria->leftVal > values[1]){
-					//empty set
-					outInterval->available = FALSE;
+					//return empty set, available bit set to FALSE
+					outInterval->flag = outInterval->flag & 0xfb;
 					return;
 				}
 				
@@ -267,8 +265,8 @@ void getInterval(const void *interval, const DATA_TYPE_FP *values, int unused, v
 			case GT_LT:
 				// leftVal < x < rightVal
 				if(criteria->leftVal >= values[1] || criteria->rightVal <= values[0]){
-					//empty set
-					outInterval->available = FALSE;
+					//return empty set, available bit set to FALSE
+					outInterval->flag = outInterval->flag & 0xfb;
 					return;
 				}
 				
@@ -286,8 +284,8 @@ void getInterval(const void *interval, const DATA_TYPE_FP *values, int unused, v
 			
 			case GT_LTE:
 				if(criteria->leftVal >= values[1] || criteria->rightVal < values[0]){
-					//empty set
-					outInterval->available = FALSE;
+					//return empty set, available bit set to FALSE
+					outInterval->flag = outInterval->flag & 0xfb;
 					return;
 				}
 				
@@ -306,8 +304,8 @@ void getInterval(const void *interval, const DATA_TYPE_FP *values, int unused, v
 			case GTE_LT:
 				// leftVal <= x < rightVal
 				if(criteria->leftVal > values[1] || criteria->rightVal <= values[0]){
-					//empty set
-					outInterval->available = FALSE;
+					//return empty set, available bit set to FALSE
+					outInterval->flag = outInterval->flag & 0xfb;
 					return;
 				}
 				
@@ -325,8 +323,8 @@ void getInterval(const void *interval, const DATA_TYPE_FP *values, int unused, v
 			case GTE_LTE:
 				// leftVal <= x <= rightVal
 				if(criteria->leftVal > values[1] || criteria->rightVal < values[0]){
-					//empty set
-					outInterval->available = FALSE;
+					//return empty set, available bit set to FALSE
+					outInterval->flag = outInterval->flag & 0xfb;
 					return;
 				}
 				
@@ -364,7 +362,7 @@ void getCombinedInterval(const void *intervalObj, const DATA_TYPE_FP *values, in
 		interval = newCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
 		
 		(criteria->list[k])->fgetInterval(criteria->list[k], values + k*2, varCount, interval);
-		if( interval->available == FALSE ){
+		if( (interval->flag & AVAILABLE) != AVAILABLE ){
 			free(interval);
 			for(i=0; i<outListInterval->size; i++)
 				free(outListInterval->list[i]);
@@ -500,7 +498,7 @@ int andTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteri
 		d[0] = c2->leftVal;
 		d[1] = c2->rightVal;
 		c1->fgetInterval(c1, d, 1, (void*)interval);
-		if(interval->available == FALSE){
+		if( (interval->flag & AVAILABLE) != AVAILABLE){
 			free(interval);
 			return FALSE;
 		}
@@ -513,8 +511,8 @@ int andTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteri
 #endif
 		((CombinedCriteria*)(out->cr))->loggedSize = 2;
 		((CombinedCriteria*)(out->cr))->size = 2;
-		((CombinedCriteria*)(out->cr))->list[0] = newCriteria(c1->type, c1->variable, c1->leftVal, c1->rightVal, c1->isLeftInfinity, c1->isRightInfinity);
-		((CombinedCriteria*)(out->cr))->list[1] = newCriteria(c2->type, c2->variable, c2->leftVal, c2->rightVal, c2->isLeftInfinity, c2->isRightInfinity);
+		((CombinedCriteria*)(out->cr))->list[0] = newCriteria(c1->type, c1->variable, c1->leftVal, c1->rightVal, (c1->flag & LEFT_INF) >> 1, c1->flag & RIGHT_INF);
+		((CombinedCriteria*)(out->cr))->list[1] = newCriteria(c2->type, c2->variable, c2->leftVal, c2->rightVal, (c2->flag & LEFT_INF) >> 1, c2->flag & RIGHT_INF);
 
 	}
 	
@@ -548,14 +546,13 @@ int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out){
 				d[0] = cb->list[i]->leftVal;
 				d[1] = cb->list[i]->rightVal;
 				((Criteria*)c1)->fgetInterval(c1, d, 1, (void*)interval);
-				if(interval->available == TRUE){
+				if( (interval->flag & AVAILABLE) == AVAILABLE){
 					out->cr = newCombinedInterval();
 					copyCombinedCriteria(cb, out->cr);
 					((CombinedCriteria*)(out->cr))->list[i]->variable = interval->variable;
 					((CombinedCriteria*)(out->cr))->list[i]->leftVal = interval->leftVal;
 					((CombinedCriteria*)(out->cr))->list[i]->rightVal = interval->rightVal;
-					((CombinedCriteria*)(out->cr))->list[i]->isLeftInfinity = interval->isLeftInfinity;
-					((CombinedCriteria*)(out->cr))->list[i]->isRightInfinity = interval->isRightInfinity;
+					((CombinedCriteria*)(out->cr))->list[i]->flag = interval->flag;
 					free(interval);
 					return TRUE;
 				}else{
@@ -597,14 +594,13 @@ int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out){
 				d[0] = cb->list[i]->leftVal;
 				d[1] = cb->list[i]->rightVal;
 				((Criteria*)c2)->fgetInterval(c2, d, 1, (void*)interval);
-				if(interval->available == TRUE){
+				if( (interval->flag & AVAILABLE) == AVAILABLE){
 					out->cr = newCombinedInterval();
 					copyCombinedCriteria(cb, out->cr);
 					((CombinedCriteria*)(out->cr))->list[i]->variable = interval->variable;
 					((CombinedCriteria*)(out->cr))->list[i]->leftVal = interval->leftVal;
 					((CombinedCriteria*)(out->cr))->list[i]->rightVal = interval->rightVal;
-					((CombinedCriteria*)(out->cr))->list[i]->isLeftInfinity = interval->isLeftInfinity;
-					((CombinedCriteria*)(out->cr))->list[i]->isRightInfinity = interval->isRightInfinity;
+					((CombinedCriteria*)(out->cr))->list[i]->flag = interval->flag;
 					free(interval);
 					return TRUE;
 				}else{
@@ -638,7 +634,7 @@ int orTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria
 		d[0] = c2->leftVal;
 		d[1] = c2->rightVal;
 		c1->fgetInterval(c1, d, 1, (void*)interval);
-		if(interval->available == FALSE){
+		if( (interval->flag & AVAILABLE) == 0){
 			free(interval);
 #ifdef DEBUG
 	descNumberOfDynamicObject();
@@ -654,15 +650,14 @@ int orTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria
 			((CompositeCriteria*)(out->cr))->list[0]->size = 1;
 			((CompositeCriteria*)(out->cr))->list[0]->list[0] = (Criteria*)malloc(sizeof(Criteria));
 			((CompositeCriteria*)(out->cr))->list[0]->list[0]->objectType = SIMPLE_CRITERIA;
-			((CompositeCriteria*)(out->cr))->list[0]->list[0]->available = TRUE;
 			((CompositeCriteria*)(out->cr))->list[0]->list[0]->type = c1->type;
 			((CompositeCriteria*)(out->cr))->list[0]->list[0]->variable = c1->variable;
 			((CompositeCriteria*)(out->cr))->list[0]->list[0]->leftVal = c1->leftVal;
 			((CompositeCriteria*)(out->cr))->list[0]->list[0]->rightVal = c1->rightVal;
 			((CompositeCriteria*)(out->cr))->list[0]->list[0]->fcheck = isInInterval;
 			((CompositeCriteria*)(out->cr))->list[0]->list[0]->fgetInterval = getInterval;
-			((CompositeCriteria*)(out->cr))->list[0]->list[0]->isLeftInfinity = c1->isLeftInfinity;
-			((CompositeCriteria*)(out->cr))->list[0]->list[0]->isRightInfinity = c1->isRightInfinity;
+			//set available bit, unset left and right infinity
+			((CompositeCriteria*)(out->cr))->list[0]->list[0]->flag = (AVAILABLE) | (c1->flag | 0xfc);
 			
 			((CompositeCriteria*)(out->cr))->list[1] = newCombinedInterval();
 			((CompositeCriteria*)(out->cr))->list[1]->list = (Criteria**)malloc(sizeof(Criteria*));
@@ -670,15 +665,14 @@ int orTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria
 			((CompositeCriteria*)(out->cr))->list[1]->size = 1;
 			((CompositeCriteria*)(out->cr))->list[1]->list[0] = (Criteria*)malloc(sizeof(Criteria));
 			((CompositeCriteria*)(out->cr))->list[1]->list[0]->objectType = SIMPLE_CRITERIA;
-			((CompositeCriteria*)(out->cr))->list[1]->list[0]->available = TRUE;
 			((CompositeCriteria*)(out->cr))->list[1]->list[0]->type = c2->type;
 			((CompositeCriteria*)(out->cr))->list[1]->list[0]->variable = c2->variable;
 			((CompositeCriteria*)(out->cr))->list[1]->list[0]->leftVal = c2->leftVal;
 			((CompositeCriteria*)(out->cr))->list[1]->list[0]->rightVal = c2->rightVal;
 			((CompositeCriteria*)(out->cr))->list[1]->list[0]->fcheck = isInInterval;
 			((CompositeCriteria*)(out->cr))->list[1]->list[0]->fgetInterval = getInterval;
-			((CompositeCriteria*)(out->cr))->list[1]->list[0]->isLeftInfinity = c2->isLeftInfinity;
-			((CompositeCriteria*)(out->cr))->list[1]->list[0]->isRightInfinity = c2->isRightInfinity;
+			//set available bit, unset left and right infinity
+			((CompositeCriteria*)(out->cr))->list[1]->list[0]->flag = AVAILABLE | (c2->flag | 0xfc);
 			
 #ifdef DEBUG
 	incNumberOfDynamicObject();
@@ -704,15 +698,14 @@ int orTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria
 		((CompositeCriteria*)(out->cr))->list[0]->size = 1;
 		((CompositeCriteria*)(out->cr))->list[0]->list[0] = (Criteria*)malloc(sizeof(Criteria));
 		((CompositeCriteria*)(out->cr))->list[0]->list[0]->objectType = SIMPLE_CRITERIA;
-		((CompositeCriteria*)(out->cr))->list[0]->list[0]->available = TRUE;
 		((CompositeCriteria*)(out->cr))->list[0]->list[0]->type = c1->type;
 		((CompositeCriteria*)(out->cr))->list[0]->list[0]->variable = c1->variable;
 		((CompositeCriteria*)(out->cr))->list[0]->list[0]->leftVal = c1->leftVal;
 		((CompositeCriteria*)(out->cr))->list[0]->list[0]->rightVal = c1->rightVal;
 		((CompositeCriteria*)(out->cr))->list[0]->list[0]->fcheck = isInInterval;
 		((CompositeCriteria*)(out->cr))->list[0]->list[0]->fgetInterval = getInterval;
-		((CompositeCriteria*)(out->cr))->list[0]->list[0]->isLeftInfinity = c1->isLeftInfinity;
-		((CompositeCriteria*)(out->cr))->list[0]->list[0]->isRightInfinity = c1->isRightInfinity;
+		//set available bit, unset left and right infinity
+		((CompositeCriteria*)(out->cr))->list[0]->list[0]->flag = (AVAILABLE) | (c1->flag | 0xfc);
 			
 		((CompositeCriteria*)(out->cr))->list[1] = newCombinedInterval();
 		((CompositeCriteria*)(out->cr))->list[1]->list = (Criteria**)malloc(sizeof(Criteria*));
@@ -720,15 +713,14 @@ int orTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria
 		((CompositeCriteria*)(out->cr))->list[1]->size = 1;
 		((CompositeCriteria*)(out->cr))->list[1]->list[0] = (Criteria*)malloc(sizeof(Criteria));
 		((CompositeCriteria*)(out->cr))->list[1]->list[0]->objectType = SIMPLE_CRITERIA;
-		((CompositeCriteria*)(out->cr))->list[1]->list[0]->available = TRUE;
 		((CompositeCriteria*)(out->cr))->list[1]->list[0]->type = c2->type;
 		((CompositeCriteria*)(out->cr))->list[1]->list[0]->variable = c2->variable;
 		((CompositeCriteria*)(out->cr))->list[1]->list[0]->leftVal = c2->leftVal;
 		((CompositeCriteria*)(out->cr))->list[1]->list[0]->rightVal = c2->rightVal;
 		((CompositeCriteria*)(out->cr))->list[1]->list[0]->fcheck = isInInterval;
 		((CompositeCriteria*)(out->cr))->list[1]->list[0]->fgetInterval = getInterval;
-		((CompositeCriteria*)(out->cr))->list[1]->list[0]->isLeftInfinity = c2->isLeftInfinity;
-		((CompositeCriteria*)(out->cr))->list[1]->list[0]->isRightInfinity = c2->isRightInfinity;
+		//set available bit, unset left and right infinity
+		((CompositeCriteria*)(out->cr))->list[1]->list[0]->flag = AVAILABLE | (c2->flag | 0xfc);
 
 #ifdef DEBUG
 	incNumberOfDynamicObject();
@@ -757,19 +749,17 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
 	RParam param;
 	
 	out1.objectType = SIMPLE_CRITERIA;
-	out1.available = TRUE;
 	out1.type = GT_LT;
 	out1.variable = variables[0];
 	out1.leftVal = 0;
 	out1.rightVal = 0;
 	out1.fcheck = isInInterval;
 	out1.fgetInterval = getInterval;
-	out1.isLeftInfinity = FALSE;
-	out1.isRightInfinity = FALSE;
+	out1.flag = AVAILABLE;
 	
 	getInterval(c, bd, 0, &out1);
 		
-	if(out1.available == FALSE){
+	if( (out1.flag && AVAILABLE) == 0){
 		return NULL;
 	}
 	
@@ -835,31 +825,27 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 	RParam param;
 	
 	out1.objectType = SIMPLE_CRITERIA;
-	out1.available = TRUE;
+	out1.flag = AVAILABLE;
 	out1.type = GT_LT;
 	out1.variable = variables[0];
 	out1.leftVal = 0;
 	out1.rightVal = 0;
 	out1.fcheck = isInInterval;
 	out1.fgetInterval = getInterval;
-	out1.isLeftInfinity = FALSE;
-	out1.isRightInfinity = FALSE;
 	
 	out2.objectType = SIMPLE_CRITERIA;
-	out2.available = TRUE;
+	out2.flag = AVAILABLE;
 	out2.type = GT_LT;
 	out2.variable = variables[1];
 	out2.leftVal = 0;
 	out2.rightVal = 0;
 	out2.fcheck = isInInterval;
 	out2.fgetInterval = getInterval;
-	out2.isLeftInfinity = FALSE;
-	out2.isRightInfinity = FALSE;
 	
 	getInterval(c->list[0], bd, 0, &out1);
 	getInterval(c->list[1], bd+2, 0, &out2);
 		
-	if(out1.available == FALSE || out2.available == FALSE){
+	if( (out1.flag & AVAILABLE) == 0 || (out2.flag & AVAILABLE) == 0){
 		return NULL;
 	}
 	
@@ -956,15 +942,13 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 #endif
 			if(f->domain == NULL){
 				c.objectType = SIMPLE_CRITERIA;
-				c.available = TRUE;
+				c.flag = AVAILABLE;
 				c.type = GT_LT;
 				c.variable = f->variable[0];
 				c.leftVal = bd[0];
 				c.rightVal = bd[1];
 				c.fcheck = isInInterval;
 				c.fgetInterval = getInterval;
-				c.isLeftInfinity = FALSE;
-				c.isRightInfinity = FALSE;
 				
 				sp = generateOneUnknows(f->prefix->list[0], f->variable, &c, bd, 2, epsilon);
 				if(sp != NULL){

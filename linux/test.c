@@ -75,8 +75,7 @@ void testCriteria1(int argc, char *agr[]){
 	ci1->variable = 'x';
 	ci1->leftVal = -1.0;
 	ci1->rightVal = 2.1;
-	ci1->isLeftInfinity = FALSE;
-	ci1->isRightInfinity = FALSE;
+	ci1->flag = ci1->flag & 0xfc;
 	
 	ci2 = newCriteria(GT_LT, 'y', 0.0, 2.1, FALSE, TRUE);
 	
@@ -119,15 +118,13 @@ void testCriteria1(int argc, char *agr[]){
 	ci1->variable = 'x';
 	ci1->leftVal = -1.0;
 	ci1->rightVal = -1;
-	ci1->isLeftInfinity = TRUE;
-	ci1->isRightInfinity = FALSE;
+	ci1->flag = (ci1->flag | 0x02) & 0xfe;
 	
 	ci2->type = GT_LT;
 	ci2->variable = 'x';
 	ci2->leftVal = 0.0;
 	ci2->rightVal = 2.1;
-	ci2->isLeftInfinity = FALSE;
-	ci2->isRightInfinity = TRUE;
+	ci1->flag = (ci1->flag & (0xff << 2 )) | 0x01;
 	
 	cc1 = newCombinedInterval();
 	cc1->list = (Criteria**)malloc(sizeof(Criteria*));

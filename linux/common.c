@@ -32,7 +32,7 @@ void descNumberOfDynamicObjectBy(short k){
 
 /** internal use */
 void pushASTStack(NMASTList *sk, NMAST* ele){
-
+	NMAST** tmpP;
 #ifdef DEBUG
 	char isFirtTime = (sk==NULL || sk->loggedSize<=0)?TRUE:FALSE;
 #endif
@@ -46,8 +46,12 @@ void pushASTStack(NMASTList *sk, NMAST* ele){
 			IMPORTANT: It may not secure here, if the realloc is failed it will return NULL
 			and assign back to sk->list and finaly, the sk->list will be NULL accidentally
 		*/
-		sk->list = (NMAST**)realloc(sk->list, sizeof(NMAST*) * sk->loggedSize);
-
+		tmpP = (NMAST**)realloc(sk->list, sizeof(NMAST*) * sk->loggedSize);
+		if(tmpP == NULL){
+			gErrorCode = ERROR_NOT_ENOUGH_MEMORY;
+			return;
+		}
+		sk->list = tmpP;
 #ifdef DEBUG
 		if(isFirtTime)
 			incNumberOfDynamicObject();
