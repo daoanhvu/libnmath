@@ -36,6 +36,36 @@ int main(int argc, char *agr[]){
 	return 0;
 }
 
+int parseRange(char *str, int len, DATA_TYPE_FP *bd, int *outlen){
+	int i=0, j, flag = FALSE;
+	short e;
+	int k = 0;
+	while(i<len){
+		if(str[i] >= 48 && str[i] <= 57){
+			flag = FALSE;
+			for(j=i; j<len; j++){
+				if( str[j] <48 || str[j]>57 ){
+					if(str[j] == '.'){
+						if(flag == TRUE){
+							return -1;
+						}
+						flag = TRUE;
+					}else if (str[j] == ' '){
+						bd[k++] = parseFloatingPoint(str, i, j-1, &e);
+						i = j;
+						break;
+					}else{
+						return -1;
+					}
+				}
+			}
+		}
+		i++;
+	}
+	*outlen = k;
+	return k;
+}
+
 void testCriteria1(int argc, char *agr[]){
 	Criteria *ci1, *ci2;
 	CombinedCriteria *cc1, *cc2;
@@ -327,9 +357,12 @@ int test1(int argc, char *agr[]){
 
 int test2(int argc, char *agr[]){
 	Function *f;
-	int i, l = 0;
-	DATA_TYPE_FP bd[]={-1, 1, 0.5, 1.2};
+	int cmd, numOfV=0, i, j, vcount, l = 0;
+	DATA_TYPE_FP bd[]={-2, 2, -2, 2};
+	DATA_TYPE_FP eps = 0.2f;
 	ListFData *data;
+	FILE *file;
+	char strbuff[256];
 
 	f = (Function*)malloc(sizeof(Function));
 #ifdef DEBUG
@@ -346,11 +379,33 @@ int test2(int argc, char *agr[]){
 #endif
 		return getErrorCode();
 	}
+	
+	printf("The range for each variable is [-2, 2]\n");
+	printf("The epsilon = %lf \n", eps);
+	printf("Do you want to change these values? Press 1 and Enter to change otherwise you will use the default\n");
+	scanf("%d", &cmd);
+	if(cmd == 1){
+		printf("Enter the range for each variable, use comma as delimiter: ");
+		gets(strbuff);
+		printf("Enter epsilon: ");
+		scanf("%lf", &eps);
+		parseRange(strbuff, strlen(strbuff), bd, &numOfV);
+	}
+	
 	printf("\n");
-	data = getSpaces(f, bd, f->valLen * 2, 0.1);
+	data = getSpaces(f, bd, f->valLen * 2, eps);
 	if(data != NULL){
+		file = fopen("../data.txt", "w+");
+		fscanf(file, "%s\n", agr[1]);
 		for(i=0; i<data->size; i++){
-			printf("Mesh %d, row count: %d number of vertex: %d\n", i, data->list[i]->rowCount, data->list[i]->dataSize/data->list[i]->dimension);
+			vcount = data->list[i]->dataSize/data->list[i]->dimension;
+			printf("Mesh %d, row count: %d number of vertex: %d%c%c", i, data->list[i]->rowCount, vcount, 10, 13);
+			fprintf(file, "number of vertex = %d\n", vcount );
+			
+			for(j=0; j<vcount; j++){
+				fprintf(file, "%lf \t %lf \t %lf%c%c", data->list[i]->data[j*3], data->list[i]->data[j*3+1], data->list[i]->data[j*3+2], 10, 13);
+			}
+			
 			free(data->list[i]->data);
 			free(data->list[i]->rowInfo);
 			free(data->list[i]);
@@ -358,6 +413,7 @@ int test2(int argc, char *agr[]){
 	descNumberOfDynamicObjectBy(3);
 #endif
 		}
+		fclose(file);
 		free(data->list);
 		free(data);
 #ifdef DEBUG

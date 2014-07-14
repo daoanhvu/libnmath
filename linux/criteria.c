@@ -883,7 +883,7 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 	while(param.values[0] <= right1){
 		param.values[1] = left2;
 		elementOnRow = 0;
-		while(param.values[1] < right2){
+		while(param.values[1] <= right2){
 			calc_t((void*)&param);
 			y = param.retv;
 			if(mesh->dataSize >= mesh->loggedSize - 3){
