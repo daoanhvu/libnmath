@@ -3,13 +3,11 @@
 #include <stdlib.h>
 #include <math.h>
 
-#ifdef unix
-	#include <pthread.h>
-#else
 #ifdef _WIN32
 	#include <Windows.h>
 	#include <process.h>
-#endif
+#else
+	#include <pthread.h>
 #endif
 
 #include "nmath.h"
@@ -1060,7 +1058,12 @@ void* derivative(void *p){
 		u->value = 0.0;
 		u->parent = NULL;
 		u->left = u->right = NULL;
+#ifdef _WIN32
+		dp->returnValue = u;
+		return 0;
+#else
 		return u;
+#endif
 	}
 	
 	/*
@@ -1079,18 +1082,99 @@ void* derivative(void *p){
 		u->left = u->right = NULL;		
 		if(dp->x == t->variable){
 			u->value = 1.0;
+#ifdef _WIN32
+		}
+		dp->returnValue = u;
+		return 0;
+#else
 			return u;
 		}
-		
 		u->value = 0.0;
 		return u;
+#endif
 	}
 
 	dv = du = NULL;
 	
 	u = t->left;
 	v = t->right;
+#ifdef _WIN32
+	if(u!=NULL){
+		pdu.t = t->left;
+		pdu.x = x;
+		tdu = (HANDLE)_beginthreadex(NULL, 0, &derivative, (void*)&pdu, 0, NULL);
+	}
+	
+	if(v != NULL){
+		pdv.t = t->right;
+		pdv.x = x;
+		tdv = (HANDLE)_beginthreadex(NULL, 0, &derivative, (void*)&pdv, 0, NULL);
+	}
 
+	if(tdu != 0){
+		WaitForSingleObject(tdu, INFINITE);
+		du = pdu.returnValue;
+		CloseHandle(tdu);
+	}
+	if(tdv != 0){
+		WaitForSingleObject(tdv, INFINITE);
+		dv = pdv.returnValue;
+		CloseHandle(tdv);
+	}
+	
+	switch(t->type){
+		case SIN:
+			dp->returnValue = d_sin(t, u, du, v, dv, x);
+			return 0;
+				
+		case COS:
+			dp->returnValue = d_cos(t, u, du, v, dv, x);
+			return 0;
+
+		case TAN:
+			dp->returnValue = d_tan(t, u, du, v, dv, dp->x);
+			return 0;
+
+		case COTAN:
+			dp->returnValue = d_cotan(t, u, du, v, dv, dp->x);
+			return 0;
+				
+		case ASIN:
+			dp->returnValue = d_asin(t, u, du, v, dv, dp->x);
+			return 0;
+				
+		case ACOS:
+			dp->returnValue = d_acos(t, u, du, v, dv, dp->x);
+			return 0;
+				
+		case ATAN:
+			dp->returnValue = d_atan(t, u, du, v, dv, dp->x);
+			return 0;
+				
+		case SQRT:
+			dp->returnValue = d_sqrt(t, u, du, v, dv, x);
+			return 0;
+
+		case PLUS:
+		case MINUS:
+			dp->returnValue = d_sum_subtract(t, t->type, u, du, v, dv, x);
+			return 0;
+			
+		case MULTIPLY:
+			dp->returnValue = d_product(t, u, du, v, dv, x);
+			return 0;
+				
+		case DIVIDE:
+			dp->returnValue = d_quotient(t, u, du, v, dv, x);
+			return 0;
+				
+		case POWER:
+			dp->returnValue = d_pow_exp(t, u, du, v, dv, x);
+			return 0;
+	}
+	dp->returnValue = NULL;
+	return 0;
+#else
 	if(u!=NULL) {
 		pdu.t = t->left;
 		pdu.x = x;
@@ -1147,9 +1231,9 @@ void* derivative(void *p){
 		case POWER:
 			return d_pow_exp(t, u, du, v, dv, x);
 	}
-	
 	/* WHERE du AND dv GO IF WE NOT TO USE THEM ????? */
 	return NULL;
+#endif
 }
 
 /* (u.v) = u'v + uv' */

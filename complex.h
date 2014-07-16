@@ -5,7 +5,7 @@
  * z = image*i + real
  * i^2 = -1
  * */
-struct tagComplex{
+struct tagComplex {
 	double real, image;
 };
 

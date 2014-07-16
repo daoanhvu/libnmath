@@ -1048,7 +1048,7 @@ void* derivative(void *p){
 		return 0;
 #else
 		return NULL;
-#else
+#endif
 	}
 	
 	if(t->type == NUMBER || t->type == PI_TYPE|| t->type == E_TYPE ){
@@ -1060,8 +1060,12 @@ void* derivative(void *p){
 		u->value = 0.0;
 		u->parent = NULL;
 		u->left = u->right = NULL;
+#ifdef _WIN32
 		dp->returnValue = u;
 		return 0;
+#else
+		return u;
+#endif
 	}
 	
 	/*
@@ -1077,20 +1081,26 @@ void* derivative(void *p){
 		u->type = NUMBER;
 		u->value = 1.0;
 		u->parent = NULL;
-		u->left = u->right = NULL;
+		u->left = u->right = NULL;		
 		if(dp->x == t->variable){
-			u->value = 1.0;			
+			u->value = 1.0;
+#ifdef _WIN32
 		}
-
 		dp->returnValue = u;
 		return 0;
+#else
+			return u;
+		}
+		u->value = 0.0;
+		return u;
+#endif
 	}
-	
+
 	dv = du = NULL;
 	
 	u = t->left;
 	v = t->right;
-
+#ifdef _WIN32
 	if(u!=NULL){
 		pdu.t = t->left;
 		pdu.x = x;
@@ -1164,8 +1174,72 @@ void* derivative(void *p){
 			dp->returnValue = d_pow_exp(t, u, du, v, dv, x);
 			return 0;
 	}
+#else
+	if(u!=NULL) {
+		pdu.t = t->left;
+		pdu.x = x;
+		id_du = pthread_create(&tdu, NULL, derivative, (void*)(&pdu));
+	}
+	
+	if(v != NULL){
+		pdv.t = t->right;
+		pdv.x = x;
+		id_dv = pthread_create(&tdv, NULL, derivative, (void*)(&pdv));
+	}
+	if(id_du == 0)
+		pthread_join(tdu, (void**)&du);
+	if(id_dv == 0)
+		pthread_join(tdv, (void**)&dv);
+		
+	/****************************************************************/
+	// 2.0 get done here	
+	switch(t->type){
+		case SIN:
+			return d_sin(t, u, du, v, dv, x);
+			
+		case COS:
+			return d_cos(t, u, du, v, dv, x);
+
+		case TAN:
+			return d_tan(t, u, du, v, dv, dp->x);
+
+		case COTAN:
+			return d_cotan(t, u, du, v, dv, dp->x);
+				
+		case ASIN:
+			return d_asin(t, u, du, v, dv, dp->x);
+				
+		case ACOS:
+			return d_acos(t, u, du, v, dv, dp->x);
+				
+		case ATAN:
+			return d_atan(t, u, du, v, dv, dp->x);
+				
+		case SQRT:
+			return d_sqrt(t, u, du, v, dv, x);
+
+		case PLUS:
+		case MINUS:
+			return d_sum_subtract(t, t->type, u, du, v, dv, x);
+			
+		case MULTIPLY:
+			return d_product(t, u, du, v, dv, x);
+				
+		case DIVIDE:
+			return d_quotient(t, u, du, v, dv, x);
+				
+		case POWER:
+			return d_pow_exp(t, u, du, v, dv, x);
+	}
+#endif
+
+#ifdef _WIN32
 	dp->returnValue = NULL;
 	return 0;
+#else
+	/* WHERE du AND dv GO IF WE NOT TO USE THEM ????? */
+	return NULL;
+#endif
 }
 
 /* (u.v) = u'v + uv' */
