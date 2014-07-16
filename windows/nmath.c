@@ -14,6 +14,15 @@
 
 #include "nmath.h"
 
+#ifdef _TARGET_HOST_ANDROID
+	#include<android/log.h>
+	#define LOG_TAG "NMATH2"
+	#define LOG_LEVEL 10
+	#define LOGI(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__);}
+	#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
+#endif
+
+
 NMAST* d_product(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
 NMAST* d_quotient(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
 NMAST* d_sum_subtract(NMAST *t, int type, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
@@ -59,7 +68,7 @@ void getOperatorChar(int operatorType, char *opCh){
 }
 
 void toString(const NMAST *t, char *str, int *curpos, int len){
-	double fr;
+	DATA_TYPE_FP fr;
 	long lval;
 	int i, l;
 	char operatorChar = 0;
@@ -302,45 +311,71 @@ void initFunct(Function *f){
 	f->valLen = 0;
 
 	f->prefix = NULL;
-	f->prefixLen = 0;
-	f->prefixAllocLen = 0;
+	f->domain = 0;
+	
 
 	f->variableNode = NULL;
 	f->numVarNode = 0;
-	
-	f->domain = NULL;
 }
 
 void releaseFunct(Function *f){
 	int i;
-	NMAST **temp;
+	
 	if(f==NULL) return;
 
 	if(f->str != NULL)
 		free(f->str);
+	f->str = NULL;
 	f->len = 0;
 
-	for(i=0;i<f->prefixLen;i++){
-		clearTree(&(f->prefix[i]));
+	if(f->prefix != NULL){
+		for(i=0; i<f->prefix->size; i++){
+			clearTree(&(f->prefix->list[i]));
+		}
+		if(f->prefix->list != NULL){
+			free(f->prefix->list);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+		}
+		f->prefix->size = 0;
+		f->prefix->loggedSize = 0;
+		free(f->prefix);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+		f->prefix = NULL;
 	}
-	f->prefixLen = 0;
-	f->prefixAllocLen = 0;
-	temp = f->prefix;
-	free(temp);
-	f->prefix = NULL;
 	
 	if(f->domain != NULL){
-		clearTree(&(f->domain));
+		for(i=0; i<f->domain->size; i++){
+			clearTree(&(f->domain->list[i]));
+		}
+		if(f->domain->list != NULL){
+			free(f->domain->list);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+		}
+		f->domain->size = 0;
+		f->domain->loggedSize = 0;
+		free(f->domain);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+		f->domain = NULL;
 	}
 
 	if(f->numVarNode > 0){
-		temp = f->variableNode;
-		free(temp);
+		free(f->variableNode);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 		f->variableNode = NULL;
 	}
 }
 
-void resetFunction(Function *f, const char *str, const char *vars, int varCount, int *error){
+void resetFunction(Function *f, const char *str, const char *vars, int varCount, short *error){
 	int i=0, l=0, flagFirst = 0;
 	char buf[1024];
 	
@@ -384,22 +419,38 @@ void resetFunction(Function *f, const char *str, const char *vars, int varCount,
 		f->variable[i] = vars[i];
 	f->valLen = varCount;
 
-	for(i=0; i<f->prefixLen; i++)
-		clearTree(&(f->prefix[i]));
-	f->prefixLen = 0;
+	if(f->prefix != NULL){
+		for(i=0; i<f->prefix->size; i++)
+			clearTree(&(f->prefix->list[i]));
+		f->prefix->size = 0;
+	}
 	(*error) = 0;
 }
 
+#ifdef _WIN32
 unsigned int __stdcall reduce_t(void *param){
+#else
+void* reduce_t(void *param){
+#endif
 	RParam *dp = (RParam *)param;
 	NMAST *p;
 	RParam this_param_left;
 	RParam this_param_right;
+#ifdef _WIN32
 	HANDLE thread_1 = 0, thread_2 = 0;
+#else
+	pthread_t thrLeft, thrRight;
+	int idThrLeft=-1, idThrRight = -1;
+#endif
 	this_param_left.error = this_param_right.error = 0;
 	
+	/* If the tree is NULL */
 	if((dp->t)==NULL){
+#ifdef _WIN32
 		return 0;
+#else
+		return NULL;
+#endif
 	}
 
 	/*
@@ -408,13 +459,18 @@ unsigned int __stdcall reduce_t(void *param){
 	*/
 	if( ((dp->t)->left) != NULL && isFunctionOROperator(((dp->t)->left)->type) ){
 		this_param_left.t = (dp->t)->left;
+#ifdef _WIN32
 		thread_1 = (HANDLE)_beginthreadex(NULL, 0, &reduce_t, (void*)&this_param_left, 0, NULL);
+#else
+		idThrLeft = pthread_create(&thrLeft, NULL, reduce_t, (void*)(&this_param_left));		return &(dp->error);
+#endif
 	}
 		
 	/*
 		If this node is has right child, and the right child is an operator or a function then we
 		create a thread to reduce the right child.
 	*/
+#ifdef _WIN32
 	if( ((dp->t)->right) != NULL && isFunctionOROperator(((dp->t)->right)->type) ){
 		this_param_right.t = (dp->t)->right;
 		thread_2 = (HANDLE)_beginthreadex(NULL, 0, &reduce_t, (void*)&this_param_right, 0, NULL);
@@ -428,22 +484,45 @@ unsigned int __stdcall reduce_t(void *param){
 		WaitForSingleObject(thread_2, INFINITE);
 		CloseHandle(thread_2);
 	}
+#else
+	if( ((dp->t)->right) != NULL && isFunctionOROperator(((dp->t)->right)->type) ){
+		this_param_right.t = (dp->t)->right;
+		idThrRight = pthread_create(&thrRight, NULL, reduce_t, (void*)(&this_param_right));
+	}
+	if(idThrLeft == 0)
+		pthread_join(thrLeft, NULL);
+	if(idThrRight == 0)
+		pthread_join(thrRight, NULL);
+#endif
 
 	if(this_param_left.error != 0){
 		dp->error = this_param_left.error;
+#ifdef _WIN32
 		return dp->error;
+#else
+		return &(dp->error);
+#endif
 	}
 	
 	if(this_param_right.error != 0){
 		dp->error = this_param_right.error;
+#ifdef _WIN32
 		return dp->error;
+#else
+		return &(dp->error);
+#endif
 	}
+	/*************************************************************************************/
 	
 	/*
 		We don't reduce a node if it's a variable, a number, PI, E
 	*/
 	if(((dp->t)->type == VARIABLE) || isConstant((dp->t)->type))
+#ifdef _WIN32
 		return dp->error;
+#else
+		return &(dp->error);
+#endif
 		
 	//if this node is an operator
 	if( ((dp->t)->type == PLUS) || ((dp->t)->type == MINUS) || ((dp->t)->type == MULTIPLY)
@@ -477,7 +556,11 @@ unsigned int __stdcall reduce_t(void *param){
 						/* Now release p */
 						free(p);
 						p = NULL;
+#ifdef _WIN32
 						return dp->error;
+#else
+						return &(dp->error);
+#endif
 					}
 				}
 				
@@ -507,14 +590,22 @@ unsigned int __stdcall reduce_t(void *param){
 						/* Now release p */
 						free(p);
 						p = NULL;
+#ifdef _WIN32
 						return dp->error;
+#else
+						return &(dp->error);
+#endif
 					}
 				}
 				
 				//Left and right child of this node are null, 
 				// I'm not sure that this piece of code can be reached
 				if( ((dp->t)->left == NULL) || ((dp->t)->right == NULL) )
-					return dp->error;
+#ifdef _WIN32
+				return dp->error;
+#else
+				return &(dp->error);
+#endif
 			}
 			
 			if((dp->t)->type == MULTIPLY){
@@ -529,9 +620,13 @@ unsigned int __stdcall reduce_t(void *param){
 					(dp->t)->value = 0;
 					(dp->t)->sign = 1;
 					(dp->t)->variable = 0;
-
+					
 					/* MUST return here */
+#ifdef _WIN32
 					return dp->error;
+#else
+					return &(dp->error);
+#endif
 				}
 				
 				/* (1 * something) */
@@ -552,7 +647,11 @@ unsigned int __stdcall reduce_t(void *param){
 
 					free(p);
 					
+#ifdef _WIN32
 					return dp->error;
+#else
+					return &(dp->error);
+#endif
 				}
 
 				/* (something * 1) */
@@ -569,7 +668,11 @@ unsigned int __stdcall reduce_t(void *param){
 					(dp->t)->left = p->left;
 					(dp->t)->right = p->right;
 					free(p);
+#ifdef _WIN32
 					return dp->error;
+#else
+					return &(dp->error);
+#endif
 				}
 			}
 						
@@ -589,7 +692,11 @@ unsigned int __stdcall reduce_t(void *param){
 						//(dp->t)->priority = COE_VAL_PRIORITY;
 						(dp->t)->sign = 1;
 						(dp->t)->left = (dp->t)->right = NULL;
+#ifdef _WIN32
 						return dp->error;
+#else
+						return &(dp->error);
+#endif
 					}
 					
 					if( ((dp->t)->right)->value == 1.0 ){
@@ -611,7 +718,11 @@ unsigned int __stdcall reduce_t(void *param){
 						
 						free(p);
 						
+#ifdef _WIN32
 						return dp->error;
+#else
+						return &(dp->error);
+#endif
 					}
 				}
 				
@@ -632,7 +743,11 @@ unsigned int __stdcall reduce_t(void *param){
 					(dp->t)->sign = p->sign;
 					(dp->t)->left = (dp->t)->right = NULL;
 					 
+#ifdef _WIN32
 					return dp->error;
+#else
+					return &(dp->error);
+#endif
 				}
 				
 				// number ^ number, this is a trivial case
@@ -642,7 +757,11 @@ unsigned int __stdcall reduce_t(void *param){
 					(dp->t)->value = doCalculate(((dp->t)->left)->value, ((dp->t)->right)->value, (dp->t)->type, &(dp->error));
 					
 					if(dp->error != 0)
+#ifdef _WIN32
 						return dp->error;
+#else
+						return &(dp->error);
+#endif
 						
 					(dp->t)->type = NUMBER;
 					p = (dp->t)->left;
@@ -650,7 +769,11 @@ unsigned int __stdcall reduce_t(void *param){
 					p = (dp->t)->right;
 					free(p);
 					(dp->t)->left = (dp->t)->right = NULL;
+#ifdef _WIN32
 					return dp->error;
+#else
+					return &(dp->error);
+#endif
 				}
 			} // END OPERATOR POWER
 			
@@ -659,14 +782,22 @@ unsigned int __stdcall reduce_t(void *param){
 				/*printf("doCalculate %c\n", t->type);*/
 				(dp->t)->value = doCalculate(((dp->t)->left)->value, ((dp->t)->right)->value, (dp->t)->type, &(dp->error));
 				if(dp->error != 0)
+#ifdef _WIN32
 					return dp->error;
+#else
+					return &(dp->error);
+#endif
 				(dp->t)->type = NUMBER;
 				p = (dp->t)->left;
 				free(p);
 				p = (dp->t)->right;
 				free(p);
 				(dp->t)->left = (dp->t)->right = NULL;
+#ifdef _WIN32
 				return dp->error;
+#else
+				return &(dp->error);
+#endif
 			}
 		}
 	}
@@ -689,7 +820,11 @@ unsigned int __stdcall reduce_t(void *param){
 				if(((dp->t)->right)->type==NUMBER){
 					(dp->t)->value = doCalculate(0, ((dp->t)->right)->value, (dp->t)->type, &(dp->error));
 					if(dp->error != 0)
+#ifdef _WIN32
 						return dp->error;
+#else
+						return &(dp->error);
+#endif
 					(dp->t)->type = NUMBER;
 					if((dp->t)->left != NULL){
 						p = (dp->t)->left;
@@ -698,7 +833,11 @@ unsigned int __stdcall reduce_t(void *param){
 					p = (dp->t)->right;
 					free(p);
 					(dp->t)->left = (dp->t)->right = NULL;
+#ifdef _WIN32
 					return dp->error;
+#else
+					return &(dp->error);
+#endif
 				}
 			}
 			/*printf("End Process function %d\n", t->type);*/
@@ -716,7 +855,11 @@ unsigned int __stdcall reduce_t(void *param){
 				(dp->t)->value = doCalculate(((dp->t)->left)->value, ((dp->t)->right)->value, (dp->t)->type, &(dp->error));
 				
 				if(dp->error != 0)
+#ifdef _WIN32
 					return dp->error;
+#else
+					return &(dp->error);
+#endif
 					
 				(dp->t)->type = NUMBER;
 				p = (dp->t)->left;
@@ -724,27 +867,40 @@ unsigned int __stdcall reduce_t(void *param){
 				p = (dp->t)->right;
 				free(p);
 				(dp->t)->left = (dp->t)->right = NULL;
-				return dp->error;
+#ifdef _WIN32
+					return dp->error;
+#else
+					return &(dp->error);
+#endif
 			}
 		break;
 	}
-	return dp->error;
-} // 2.0 get done here
+#ifdef _WIN32
+					return dp->error;
+#else
+					return &(dp->error);
+#endif
+}
 
 int reduce(Function *f, int *error){
-	DParam dp;
-	dp.t = *(f->prefix);
+	RParam dp;
+	dp.t = *(f->prefix->list);
 	dp.error = 0;
 	reduce_t(&dp);
 	return 0;
 }
-
+#ifdef _WIN32
 unsigned int __stdcall calc_t(void *param){
+	HANDLE thread_1 = 0, thread_2 = 0;
+#else
+void* calc_t(void *param){
+	pthread_t thrLeft, thrRight;
+	int idThrLeft=-1, idThrRight = -1;
+#endif	
 	RParam *dp = (RParam *)param;
 	NMAST *t = dp->t;
 	RParam this_param_left;
 	RParam this_param_right;
-	HANDLE thread_1 = 0, thread_2 = 0;
 	int var_index = -1;
 
 	this_param_left.error = this_param_right.error = 0;
@@ -759,20 +915,27 @@ unsigned int __stdcall calc_t(void *param){
 	if(t->type == VARIABLE){
 		var_index = isInArray(dp->variables, t->variable);
 		dp->retv = dp->values[var_index];
+#ifdef _WIN32
 		return dp->error;
+#else
+		return &(dp->error);
+#endif
 	}
 		
 	if( (t->type == NUMBER) || (t->type == PI_TYPE) ||(t->type == E_TYPE) ){
 		dp->retv = t->value;
+#ifdef _WIN32
 		return dp->error;
+#else
+		return &(dp->error);
+#endif
 	}
 
 	this_param_left.t = t->left;
-	thread_1 = (HANDLE)_beginthreadex(NULL, 0, &calc_t, (void*)&this_param_left, 0, NULL);
-		
 	this_param_right.t = t->right;
+#ifdef _WIN32
+	thread_1 = (HANDLE)_beginthreadex(NULL, 0, &calc_t, (void*)&this_param_left, 0, NULL);
 	thread_2 = (HANDLE)_beginthreadex(NULL, 0, &calc_t, (void*)&this_param_right, 0, NULL);
-	
 	if(thread_1 != 0){
 		WaitForSingleObject(thread_1, INFINITE);
 		CloseHandle(thread_1);
@@ -781,6 +944,16 @@ unsigned int __stdcall calc_t(void *param){
 		WaitForSingleObject(thread_2, INFINITE);
 		CloseHandle(thread_2);
 	}
+#else
+	idThrLeft = pthread_create(&thrLeft, NULL, calc_t, (void*)&this_param_left);
+	idThrRight = pthread_create(&thrRight, NULL, calc_t, (void*)&this_param_right);
+	if(idThrLeft == 0){
+		pthread_join(thrLeft, NULL);
+	}
+	if(idThrRight == 0){
+		pthread_join(thrRight, NULL);
+	}
+#endif
 	/*******************************************************************************/
 
 	/* Actually, we don't need to check error here b'cause the reduce phase does that
@@ -795,15 +968,22 @@ unsigned int __stdcall calc_t(void *param){
 	}*/
 		
 	dp->retv = doCalculate(this_param_left.retv, this_param_right.retv, t->type, &(dp->error));
+#ifdef _WIN32
 	return dp->error;
 }
 
 double calc(Function *f, double *values, int numOfValue, int *error){
+#else
+	return &(dp->error);
+}
+
+DATA_TYPE_FP calc(Function *f, DATA_TYPE_FP *values, int numOfValue, int *error){
+#endif
 	RParam rp;
 	//int i;
 
 	rp.error = 0;
-	rp.t = *(f->prefix);
+	rp.t = *(f->prefix->list);
 	rp.values = values;
 	rp.variables = f->variable;
 
@@ -819,6 +999,9 @@ double calc(Function *f, double *values, int numOfValue, int *error){
 
 NMAST *createTreeNode(){
 	NMAST *p = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	p->valueType = TYPE_FLOATING_POINT;
 	p->value = 0.0f;
 	(p->frValue).numerator = 0;
@@ -835,6 +1018,9 @@ NMAST * cloneTree(NMAST *t, NMAST *cloneParent){
 		return NULL;
 	
 	c = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	memcpy(c, t, sizeof(NMAST));
 	c->parent = cloneParent;
 	c->left = cloneTree(t->left, c);
@@ -842,21 +1028,34 @@ NMAST * cloneTree(NMAST *t, NMAST *cloneParent){
 	return c;
 }
 
+#ifdef _WIN32
 unsigned int __stdcall derivative(void *p){
+	HANDLE tdu = 0, tdv = 0;
+#else
+void* derivative(void *p){
+	pthread_t tdu, tdv;
+	int id_du = -1, id_dv = -1;
+#endif
 	DParam *dp = (DParam*)p;
 	NMAST *t = dp->t;
 	char x = dp->x;
 	NMAST *u, *du, *v, *dv;
-	HANDLE tdu = 0, tdv = 0;
 	DParam pdu, pdv;
 	
 	if(t==NULL){
+#ifdef _WIN32
 		dp->returnValue = NULL;
 		return 0;
+#else
+		return NULL;
+#else
 	}
 	
 	if(t->type == NUMBER || t->type == PI_TYPE|| t->type == E_TYPE ){
 		u = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 		u->type = NUMBER;
 		u->value = 0.0;
 		u->parent = NULL;
@@ -872,8 +1071,11 @@ unsigned int __stdcall derivative(void *p){
 	*/
 	if(t->type == VARIABLE){
 		u = (NMAST*)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 		u->type = NUMBER;
-		u->value = 0.0;
+		u->value = 1.0;
 		u->parent = NULL;
 		u->left = u->right = NULL;
 		if(dp->x == t->variable){
@@ -971,10 +1173,16 @@ NMAST* d_product(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 	NMAST *r = NULL;
 	
 	r = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	r->type = PLUS;
 	r->parent = NULL;
 	
 	r->left = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	r->left->type = MULTIPLY;
 	r->left->parent = r;
 	r->left->left = cloneTree(u, r->left);
@@ -983,6 +1191,9 @@ NMAST* d_product(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 		dv->parent = r->left;
 		
 	r->right = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	r->right->type = MULTIPLY;
 	r->right->parent = r;
 	r->right->left = du;
@@ -1058,6 +1269,9 @@ NMAST* d_sum_subtract(NMAST *t, int type, NMAST *u, NMAST *du, NMAST *v, NMAST *
 	NMAST *r;
 	
 	r = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	r->type = type;
 	r->value = 0.0;
 	r->parent = NULL;
@@ -1250,12 +1464,18 @@ NMAST* d_sqrt(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 NMAST* d_sin(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 	NMAST *r;
 	/* (cos(v))' = -sin(v)*dv */
-	r = (NMAST *)malloc(sizeof(NMAST));	
+	r = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	r->type = MULTIPLY;
 	r->sign = 1;
 	r->parent = NULL;
 	
 	r->left = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	r->left->type = COS;
 	r->left->sign = 1;
 	r->left->parent = r;
@@ -1274,11 +1494,17 @@ NMAST* d_cos(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 	NMAST *r;
 	/* (cos(v))' = -sin(v)*dv */
 	r = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	r->type = MULTIPLY;
 	r->sign = 1;
 	r->parent = NULL;
 	
 	r->left = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 	r->left->type = SIN; /* <== negative here */
 	r->left->sign = -1;
 	r->left->parent = r;
