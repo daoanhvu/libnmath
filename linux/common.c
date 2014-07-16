@@ -48,7 +48,7 @@ void pushASTStack(NMASTList *sk, NMAST* ele){
 		*/
 		tmpP = (NMAST**)realloc(sk->list, sizeof(NMAST*) * sk->loggedSize);
 		if(tmpP == NULL){
-			gErrorCode = ERROR_NOT_ENOUGH_MEMORY;
+			gErrorCode = E_NOT_ENOUGH_MEMORY;
 			return;
 		}
 		sk->list = tmpP;

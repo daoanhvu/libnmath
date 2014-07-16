@@ -2,9 +2,9 @@
 #include "nmath.h"
 #include "criteria.h"
 
-int andTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria *out);
-int orTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria *out);
-int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out);
+int andTwoSimpleCriteria(const Criteria* c1, const Criteria* c2, OutBuiltCriteria* out);
+int orTwoSimpleCriteria(const Criteria* c1, const Criteria* c2, OutBuiltCriteria* out);
+int andTwoCriteria(const void* c1, const void* c2, OutBuiltCriteria* out);
 
 void copyCombinedCriteria(CombinedCriteria *from, CombinedCriteria *target){
 	int i;
@@ -58,7 +58,7 @@ CombinedCriteria *newCombinedInterval() {
 }
 
 CompositeCriteria *newCompositeInterval() {
-	CompositeCriteria *result = (CompositeCriteria *)malloc(sizeof(CompositeCriteria));
+	CompositeCriteria *result = (CompositeCriteria*)malloc(sizeof(CompositeCriteria));
 	result->objectType = COMPOSITE_CRITERIA;
 	result->fcheck = isInCompositeInterval;
 	result->fgetInterval = getCompositeInterval;
@@ -73,7 +73,7 @@ CompositeCriteria *newCompositeInterval() {
 
 int isInInterval(const void *interval, DATA_TYPE_FP *values, int varCount) {
 	int result = FALSE;
-	Criteria *criteria = (Criteria*)interval;
+	Criteria* criteria = (Criteria*)interval;
 	if( (criteria->flag & 0x03) == 0x03) //Check left and right infinity is set (bit 0 and 1 = TRUE)
 		return (values!=NULL)?TRUE:FALSE;
 		

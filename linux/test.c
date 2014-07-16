@@ -80,7 +80,7 @@ void testCriteria1(int argc, char *agr[]){
 	ci1 = newCriteria(GT_LT, 'x', -1.0, 2.1, FALSE, FALSE);
 	vals = (DATA_TYPE_FP*)malloc(sizeof(DATA_TYPE_FP));
 	vals[0] = parseFloatingPoint(agr[1], 0, strlen(agr[1]), &error);	
-	if(error != NO_ERROR)
+	if(error != NMATH_NO_ERROR)
 		return;
 	
 	chk = ci1->fcheck(ci1, vals, 1);
@@ -323,7 +323,7 @@ int test1(int argc, char *agr[]){
 	//resetFunction(&f, agr[1], "xy", 2, &error);
 	l = strlen(agr[1]);
 	parseFunction(agr[1], l, f);
-	if(getErrorCode() != NO_ERROR) {
+	if(getErrorCode() != NMATH_NO_ERROR) {
 		printError(getErrorColumn(), getErrorCode());
 		releaseFunct(f);
 		free(f);
@@ -370,7 +370,7 @@ int test2(int argc, char *agr[]){
 #endif	
 	l = strlen(agr[1]);
 	parseFunction(agr[1], l, f);
-	if(getErrorCode() != NO_ERROR) {
+	if(getErrorCode() != NMATH_NO_ERROR) {
 		printError(getErrorColumn(), getErrorCode());
 		releaseFunct(f);
 		free(f);
