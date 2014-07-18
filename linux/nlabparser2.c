@@ -71,7 +71,7 @@ Function* parseFunctionExpression(TokenList *tokens){
 						returnFunction->domain = returnedAst;
 						returnedAst = NULL;
 						//Clear error status
-						gErrorCode = NO_ERROR;
+						gErrorCode = NMATH_NO_ERROR;
 						gErrorColumn = -1;
 					}else{
 						//ERROR: NOT match domain rule but it has NOT reached the end of token list yet
@@ -81,14 +81,14 @@ Function* parseFunctionExpression(TokenList *tokens){
 				}else{
 					//Here is the end of token list, it's OK
 					//Clear error status
-					gErrorCode = NO_ERROR;
+					gErrorCode = NMATH_NO_ERROR;
 					gErrorColumn = -1;
 				}
 			}
 		}
 	}
 	
-	if(gErrorCode != NO_ERROR){
+	if(gErrorCode != NMATH_NO_ERROR){
 		if(returnFunction != NULL){
 			for(k=0;k<returnFunction->prefixLen;k++){
 				clearTree(&(returnFunction->prefix[k]));
@@ -200,7 +200,7 @@ int functionNotation(int index){
 					for(i=0;i<varsize;i++)
 						returnFunction->variable[i] = vars[i];
 						
-					gErrorCode = NO_ERROR;
+					gErrorCode = NMATH_NO_ERROR;
 					gErrorColumn = -1;
 					return (index + 1);
 				}
@@ -588,7 +588,7 @@ int functionCall(int index){
 				}
 				f->right = returnedAst;
 				returnedAst = f;
-				gErrorCode = NO_ERROR;
+				gErrorCode = NMATH_NO_ERROR;
 				gErrorColumn = -1;
 				return k+1;
 			}else{

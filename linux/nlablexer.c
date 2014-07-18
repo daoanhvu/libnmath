@@ -155,7 +155,7 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 		
 	gTokens = tokens;
 	gErrorColumn = -1;
-	gErrorCode = NO_ERROR;
+	gErrorCode = NMATH_NO_ERROR;
 	
 	while( idx < length ){
 		if( isNumericOperatorOREQ(inStr[idx])){

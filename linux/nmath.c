@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#ifdef _WIN32
+#ifdef WINDOWS
 	#include <Windows.h>
 	#include <process.h>
 #else
@@ -425,26 +425,23 @@ void resetFunction(Function *f, const char *str, const char *vars, int varCount,
 	(*error) = 0;
 }
 
-#ifdef _WIN32
+#ifdef WINDOWS
 unsigned int __stdcall reduce_t(void *param){
+	HANDLE thread_1 = 0, thread_2 = 0;
 #else
 void* reduce_t(void *param){
+	pthread_t thrLeft, thrRight;
+	int idThrLeft=-1, idThrRight = -1;
 #endif
 	RParam *dp = (RParam *)param;
 	NMAST *p;
 	RParam this_param_left;
 	RParam this_param_right;
-#ifdef _WIN32
-	HANDLE thread_1 = 0, thread_2 = 0;
-#else
-	pthread_t thrLeft, thrRight;
-	int idThrLeft=-1, idThrRight = -1;
-#endif
 	this_param_left.error = this_param_right.error = 0;
 	
 	/* If the tree is NULL */
 	if((dp->t)==NULL){
-#ifdef _WIN32
+#ifdef WINDOWS
 		return 0;
 #else
 		return NULL;
@@ -457,7 +454,7 @@ void* reduce_t(void *param){
 	*/
 	if( ((dp->t)->left) != NULL && isFunctionOROperator(((dp->t)->left)->type) ){
 		this_param_left.t = (dp->t)->left;
-#ifdef _WIN32
+#ifdef WINDOWS
 		thread_1 = (HANDLE)_beginthreadex(NULL, 0, &reduce_t, (void*)&this_param_left, 0, NULL);
 #else
 		idThrLeft = pthread_create(&thrLeft, NULL, reduce_t, (void*)(&this_param_left));		return &(dp->error);
@@ -468,7 +465,7 @@ void* reduce_t(void *param){
 		If this node is has right child, and the right child is an operator or a function then we
 		create a thread to reduce the right child.
 	*/
-#ifdef _WIN32
+#ifdef WINDOWS
 	if( ((dp->t)->right) != NULL && isFunctionOROperator(((dp->t)->right)->type) ){
 		this_param_right.t = (dp->t)->right;
 		thread_2 = (HANDLE)_beginthreadex(NULL, 0, &reduce_t, (void*)&this_param_right, 0, NULL);
@@ -495,7 +492,7 @@ void* reduce_t(void *param){
 
 	if(this_param_left.error != 0){
 		dp->error = this_param_left.error;
-#ifdef _WIN32
+#ifdef WINDOWS
 		return dp->error;
 #else
 		return &(dp->error);
@@ -504,7 +501,7 @@ void* reduce_t(void *param){
 	
 	if(this_param_right.error != 0){
 		dp->error = this_param_right.error;
-#ifdef _WIN32
+#ifdef WINDOWS
 		return dp->error;
 #else
 		return &(dp->error);
@@ -516,7 +513,7 @@ void* reduce_t(void *param){
 		We don't reduce a node if it's a variable, a number, PI, E
 	*/
 	if(((dp->t)->type == VARIABLE) || isConstant((dp->t)->type))
-#ifdef _WIN32
+#ifdef WINDOWS
 		return dp->error;
 #else
 		return &(dp->error);
@@ -554,7 +551,7 @@ void* reduce_t(void *param){
 						/* Now release p */
 						free(p);
 						p = NULL;
-#ifdef _WIN32
+#ifdef WINDOWS
 						return dp->error;
 #else
 						return &(dp->error);
@@ -588,7 +585,7 @@ void* reduce_t(void *param){
 						/* Now release p */
 						free(p);
 						p = NULL;
-#ifdef _WIN32
+#ifdef WINDOWS
 						return dp->error;
 #else
 						return &(dp->error);
@@ -599,7 +596,7 @@ void* reduce_t(void *param){
 				//Left and right child of this node are null, 
 				// I'm not sure that this piece of code can be reached
 				if( ((dp->t)->left == NULL) || ((dp->t)->right == NULL) )
-#ifdef _WIN32
+#ifdef WINDOWS
 				return dp->error;
 #else
 				return &(dp->error);
@@ -620,7 +617,7 @@ void* reduce_t(void *param){
 					(dp->t)->variable = 0;
 					
 					/* MUST return here */
-#ifdef _WIN32
+#ifdef WINDOWS
 					return dp->error;
 #else
 					return &(dp->error);
@@ -645,7 +642,7 @@ void* reduce_t(void *param){
 
 					free(p);
 					
-#ifdef _WIN32
+#ifdef WINDOWS
 					return dp->error;
 #else
 					return &(dp->error);
@@ -666,7 +663,7 @@ void* reduce_t(void *param){
 					(dp->t)->left = p->left;
 					(dp->t)->right = p->right;
 					free(p);
-#ifdef _WIN32
+#ifdef WINDOWS
 					return dp->error;
 #else
 					return &(dp->error);
@@ -690,7 +687,7 @@ void* reduce_t(void *param){
 						//(dp->t)->priority = COE_VAL_PRIORITY;
 						(dp->t)->sign = 1;
 						(dp->t)->left = (dp->t)->right = NULL;
-#ifdef _WIN32
+#ifdef WINDOWS
 						return dp->error;
 #else
 						return &(dp->error);
@@ -716,7 +713,7 @@ void* reduce_t(void *param){
 						
 						free(p);
 						
-#ifdef _WIN32
+#ifdef WINDOWS
 						return dp->error;
 #else
 						return &(dp->error);
@@ -741,7 +738,7 @@ void* reduce_t(void *param){
 					(dp->t)->sign = p->sign;
 					(dp->t)->left = (dp->t)->right = NULL;
 					 
-#ifdef _WIN32
+#ifdef WINDOWS
 					return dp->error;
 #else
 					return &(dp->error);
@@ -755,7 +752,7 @@ void* reduce_t(void *param){
 					(dp->t)->value = doCalculate(((dp->t)->left)->value, ((dp->t)->right)->value, (dp->t)->type, &(dp->error));
 					
 					if(dp->error != 0)
-#ifdef _WIN32
+#ifdef WINDOWS
 						return dp->error;
 #else
 						return &(dp->error);
@@ -767,7 +764,7 @@ void* reduce_t(void *param){
 					p = (dp->t)->right;
 					free(p);
 					(dp->t)->left = (dp->t)->right = NULL;
-#ifdef _WIN32
+#ifdef WINDOWS
 					return dp->error;
 #else
 					return &(dp->error);
@@ -780,7 +777,7 @@ void* reduce_t(void *param){
 				/*printf("doCalculate %c\n", t->type);*/
 				(dp->t)->value = doCalculate(((dp->t)->left)->value, ((dp->t)->right)->value, (dp->t)->type, &(dp->error));
 				if(dp->error != 0)
-#ifdef _WIN32
+#ifdef WINDOWS
 					return dp->error;
 #else
 					return &(dp->error);
@@ -791,7 +788,7 @@ void* reduce_t(void *param){
 				p = (dp->t)->right;
 				free(p);
 				(dp->t)->left = (dp->t)->right = NULL;
-#ifdef _WIN32
+#ifdef WINDOWS
 				return dp->error;
 #else
 				return &(dp->error);
@@ -818,7 +815,7 @@ void* reduce_t(void *param){
 				if(((dp->t)->right)->type==NUMBER){
 					(dp->t)->value = doCalculate(0, ((dp->t)->right)->value, (dp->t)->type, &(dp->error));
 					if(dp->error != 0)
-#ifdef _WIN32
+#ifdef WINDOWS
 						return dp->error;
 #else
 						return &(dp->error);
@@ -831,7 +828,7 @@ void* reduce_t(void *param){
 					p = (dp->t)->right;
 					free(p);
 					(dp->t)->left = (dp->t)->right = NULL;
-#ifdef _WIN32
+#ifdef WINDOWS
 					return dp->error;
 #else
 					return &(dp->error);
@@ -853,7 +850,7 @@ void* reduce_t(void *param){
 				(dp->t)->value = doCalculate(((dp->t)->left)->value, ((dp->t)->right)->value, (dp->t)->type, &(dp->error));
 				
 				if(dp->error != 0)
-#ifdef _WIN32
+#ifdef WINDOWS
 					return dp->error;
 #else
 					return &(dp->error);
@@ -865,7 +862,7 @@ void* reduce_t(void *param){
 				p = (dp->t)->right;
 				free(p);
 				(dp->t)->left = (dp->t)->right = NULL;
-#ifdef _WIN32
+#ifdef WINDOWS
 					return dp->error;
 #else
 					return &(dp->error);
@@ -873,7 +870,7 @@ void* reduce_t(void *param){
 			}
 		break;
 	}
-#ifdef _WIN32
+#ifdef WINDOWS
 					return dp->error;
 #else
 					return &(dp->error);
@@ -887,7 +884,7 @@ int reduce(Function *f, int *error){
 	reduce_t(&dp);
 	return 0;
 }
-#ifdef _WIN32
+#ifdef WINDOWS
 unsigned int __stdcall calc_t(void *param){
 	HANDLE thread_1 = 0, thread_2 = 0;
 #else
@@ -913,7 +910,7 @@ void* calc_t(void *param){
 	if(t->type == VARIABLE){
 		var_index = isInArray(dp->variables, t->variable);
 		dp->retv = dp->values[var_index];
-#ifdef _WIN32
+#ifdef WINDOWS
 		return dp->error;
 #else
 		return &(dp->error);
@@ -922,7 +919,7 @@ void* calc_t(void *param){
 		
 	if( (t->type == NUMBER) || (t->type == PI_TYPE) ||(t->type == E_TYPE) ){
 		dp->retv = t->value;
-#ifdef _WIN32
+#ifdef WINDOWS
 		return dp->error;
 #else
 		return &(dp->error);
@@ -931,7 +928,7 @@ void* calc_t(void *param){
 
 	this_param_left.t = t->left;
 	this_param_right.t = t->right;
-#ifdef _WIN32
+#ifdef WINDOWS
 	thread_1 = (HANDLE)_beginthreadex(NULL, 0, &calc_t, (void*)&this_param_left, 0, NULL);
 	thread_2 = (HANDLE)_beginthreadex(NULL, 0, &calc_t, (void*)&this_param_right, 0, NULL);
 	if(thread_1 != 0){
@@ -966,17 +963,14 @@ void* calc_t(void *param){
 	}*/
 		
 	dp->retv = doCalculate(this_param_left.retv, this_param_right.retv, t->type, &(dp->error));
-#ifdef _WIN32
+#ifdef WINDOWS
 	return dp->error;
-}
-
-double calc(Function *f, double *values, int numOfValue, int *error){
 #else
 	return &(dp->error);
-}
-
-DATA_TYPE_FP calc(Function *f, DATA_TYPE_FP *values, int numOfValue, int *error){
 #endif
+}
+DATA_TYPE_FP calc(Function *f, DATA_TYPE_FP *values, int numOfValue, int *error){
+
 	RParam rp;
 	//int i;
 
@@ -1026,7 +1020,7 @@ NMAST * cloneTree(NMAST *t, NMAST *cloneParent){
 	return c;
 }
 
-#ifdef _WIN32
+#ifdef WINDOWS
 unsigned int __stdcall derivative(void *p){
 	HANDLE tdu = 0, tdv = 0;
 #else
@@ -1041,7 +1035,7 @@ void* derivative(void *p){
 	DParam pdu, pdv;
 	
 	if(t==NULL){
-#ifdef _WIN32
+#ifdef WINDOWS
 		dp->returnValue = NULL;
 		return 0;
 #else
@@ -1058,7 +1052,7 @@ void* derivative(void *p){
 		u->value = 0.0;
 		u->parent = NULL;
 		u->left = u->right = NULL;
-#ifdef _WIN32
+#ifdef WINDOWS
 		dp->returnValue = u;
 		return 0;
 #else
@@ -1082,7 +1076,7 @@ void* derivative(void *p){
 		u->left = u->right = NULL;		
 		if(dp->x == t->variable){
 			u->value = 1.0;
-#ifdef _WIN32
+#ifdef WINDOWS
 		}
 		dp->returnValue = u;
 		return 0;
@@ -1098,7 +1092,7 @@ void* derivative(void *p){
 	
 	u = t->left;
 	v = t->right;
-#ifdef _WIN32
+#ifdef WINDOWS
 	if(u!=NULL){
 		pdu.t = t->left;
 		pdu.x = x;

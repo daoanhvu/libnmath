@@ -56,7 +56,7 @@ void pushItem2Stack(Token ***st, int *top, int *allocLen, Token *item){
 		(*allocLen) += INCLEN;
 		tmp = (Token**)realloc(*st, sizeof(Token*) * (*allocLen) );
 		if(tmp == NULL){
-			gErrorCode = ERROR_NOT_ENOUGH_MEMORY;
+			gErrorCode = E_NOT_ENOUGH_MEMORY;
 			return;
 		}
 		(*st) = tmp;
@@ -174,13 +174,14 @@ void addFunction2Tree(NMASTList *t, Token * stItm){
 */	
 int parseFunctionExpression(TokenList *tokens, Function *outF){
 	int k, l, i, idx = 0;
+	char variables[8];
+	int variableCount = 0;
+	
 	gTokens = tokens;
 	gErrorCode = ERROR_NOT_A_FUNCTION;
 	gErrorColumn = tokens->list[idx]->column;
 	
-	/** This array will hold the variables of the function */
-	char variables[8];
-	int variableCount = 0;
+	/** This array will hold the variables of the function */	
 	if( (k=functionNotation(idx, variables, &variableCount)) > idx ){
 		if(tokens->list[k]->type == EQ){
 
@@ -208,7 +209,7 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 			do{
 				parseFunct(tokens, &k, outF);
 				/** after parseFunct, we may get error, so MUST check if it's OK here */
-				if( (gErrorCode!=NO_ERROR) || (k >= tokens->size) ) break;
+				if( (gErrorCode!=NMATH_NO_ERROR) || (k >= tokens->size) ) break;
 				
 				if(tokens->list[k]->type == DOMAIN_NOTATION){
 					gErrorCode = ERROR_MISSING_DOMAIN;
@@ -219,11 +220,11 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 						k = l;
 					}
 				}
-			}while( gErrorCode==NO_ERROR && k < tokens->size );
+			}while( gErrorCode==NMATH_NO_ERROR && k < tokens->size );
 		}
 	}
 	
-	if(gErrorCode != NO_ERROR){
+	if(gErrorCode != NMATH_NO_ERROR){
 		if(outF->prefix != NULL) {
 			for(k=0; k<outF->prefix->size; k++){
 				clearTree(&(outF->prefix->list[k]));
@@ -284,7 +285,7 @@ int functionNotation(int index, char *variables, int *variableCount){
 				gErrorCode = ERROR_PARENTHESE_MISSING;
 				gErrorColumn = gTokens->list[index]->column;
 				if( (index<gTokens->size) && (gTokens->list[index]->type == RPAREN)){
-					gErrorCode = NO_ERROR;
+					gErrorCode = NMATH_NO_ERROR;
 					gErrorColumn = -1;
 					return (index + 1);
 				}
@@ -324,7 +325,7 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 	prefix->list = NULL;
 	
 	gErrorColumn = -1;
-	gErrorCode = NO_ERROR;
+	gErrorCode = NMATH_NO_ERROR;
 	
 	f->numVarNode = 0;
 	i = (*start);
@@ -429,7 +430,7 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 				}
 				//push operation o1 (tk) into stack
 				pushItem2Stack(&stack, &top, &allocLen, tk);
-				if(gErrorCode == ERROR_NOT_ENOUGH_MEMORY){
+				if(gErrorCode == E_NOT_ENOUGH_MEMORY){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
 #ifdef DEBUG
@@ -450,7 +451,7 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 
 			case LPAREN:/*If it an open parentheses then put it to stack*/
 				pushItem2Stack(&stack, &top, &allocLen, tk);
-				if(gErrorCode == ERROR_NOT_ENOUGH_MEMORY){
+				if(gErrorCode == E_NOT_ENOUGH_MEMORY){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
 #ifdef DEBUG
@@ -558,7 +559,7 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 				}
 				
 				pushItem2Stack(&stack, &top, &allocLen, tk);
-				if(gErrorCode == ERROR_NOT_ENOUGH_MEMORY){
+				if(gErrorCode == E_NOT_ENOUGH_MEMORY){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
 #ifdef DEBUG
@@ -699,7 +700,7 @@ short parseFunction(const char *str, short len, Function *outF){
 	printf("\n[NLabParser] Number of dynamic objects after parsing tokens: %d \n", numberOfDynamicObject() );
 #endif
 	
-	if( gErrorCode == NO_ERROR ){
+	if( gErrorCode == NMATH_NO_ERROR ){
 		result = parseFunctionExpression(&lst, outF);
 		for(i = 0; i<lst.size; i++){
 			free(lst.list[i]);
@@ -739,7 +740,7 @@ void domain(int *start, Function *f){
 	d->list = NULL;
 	
 	gErrorColumn = -1;
-	gErrorCode = NO_ERROR;
+	gErrorCode = NMATH_NO_ERROR;
 	
 	index = *start;
 	while(index < gTokens->size && !isEndExp){
@@ -786,7 +787,7 @@ void domain(int *start, Function *f){
 				switch(tk->type){
 					case NUMBER:
 						val = parseFloatingPoint(tk->text, 0, tk->textLength, &gErrorCode);
-						if(val == 0 && gErrorCode != NO_ERROR){
+						if(val == 0 && gErrorCode != NMATH_NO_ERROR){
 							clearStackWithoutFreeItem(stack, top+1);
 							free(stack);
 #ifdef DEBUG
@@ -888,7 +889,7 @@ void domain(int *start, Function *f){
 				}
 				//push operation o1 (tk) into stack
 				pushItem2Stack(&stack, &top, &allocLen, tk);
-				if(gErrorCode == ERROR_NOT_ENOUGH_MEMORY){
+				if(gErrorCode == E_NOT_ENOUGH_MEMORY){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
 #ifdef DEBUG
@@ -963,7 +964,7 @@ void domain(int *start, Function *f){
 				
 			case LPAREN:
 				pushItem2Stack(&stack, &top, &allocLen, tk);
-				if(gErrorCode == ERROR_NOT_ENOUGH_MEMORY){
+				if(gErrorCode == E_NOT_ENOUGH_MEMORY){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
 #ifdef DEBUG
@@ -1002,7 +1003,7 @@ void domain(int *start, Function *f){
 						switch(gTokens->list[index+3]->type){
 							case NUMBER:
 								val = parseFloatingPoint(gTokens->list[index+3]->text, 0, gTokens->list[index+3]->textLength, &gErrorCode);
-								if(val == 0 && gErrorCode != NO_ERROR){
+								if(val == 0 && gErrorCode != NMATH_NO_ERROR){
 									clearStackWithoutFreeItem(stack, top+1);
 									free(stack);
 	#ifdef DEBUG
@@ -1031,7 +1032,7 @@ void domain(int *start, Function *f){
 						switch(gTokens->list[index+5]->type){
 							case NUMBER:
 								val2 = parseFloatingPoint(gTokens->list[index+5]->text, 0, gTokens->list[index+5]->textLength, &gErrorCode);
-								if(val2 == 0 && gErrorCode != NO_ERROR){
+								if(val2 == 0 && gErrorCode != NMATH_NO_ERROR){
 									clearStackWithoutFreeItem(stack, top+1);
 									free(stack);
 	#ifdef DEBUG
@@ -1205,7 +1206,7 @@ NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, T
 	switch(valtk1->type){
 		case NUMBER:
 			val1 = parseFloatingPoint(valtk1->text, 0, valtk1->textLength, &gErrorCode);
-			if(val1 == 0 && gErrorCode != NO_ERROR){
+			if(val1 == 0 && gErrorCode != NMATH_NO_ERROR){
 				gErrorColumn = valtk1->column;
 				return NULL;
 			}
@@ -1222,7 +1223,7 @@ NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, T
 	switch(valtk2->type){
 		case NUMBER:
 			val2 = parseFloatingPoint(valtk2->text, 0, valtk2->textLength, &gErrorCode);
-			if(val2 == 0 && gErrorCode != NO_ERROR){
+			if(val2 == 0 && gErrorCode != NMATH_NO_ERROR){
 				gErrorColumn = valtk2->column;
 				return NULL;
 			}
