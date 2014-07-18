@@ -10,6 +10,7 @@
 #include "nlabparser.h"
 #include "criteria.h"
 #include "nmath.h"
+#include "../graphutil.h"
 
 void printError(int col, int code);
 int test1(int argc, char *agr[]);
@@ -357,11 +358,13 @@ int test1(int argc, char *agr[]){
 
 int test2(int argc, char *agr[]){
 	Function *f;
-	int cmd, numOfV=0, i, j, vcount, l = 0;
+	int cmd, k, numOfV=0, i, j, vcount, l = 0;
 	DATA_TYPE_FP bd[]={-2, 2, -2, 2};
 	DATA_TYPE_FP eps = 0.2f;
 	ListFData *data;
 	FILE *file;
+	short *indice;
+	int indiceSize = 0, indiceLoggedSize;
 	char strbuff[256];
 
 	f = (Function*)malloc(sizeof(Function));
@@ -399,11 +402,30 @@ int test2(int argc, char *agr[]){
 		fscanf(file, "%s\n", agr[1]);
 		for(i=0; i<data->size; i++){
 			vcount = data->list[i]->dataSize/data->list[i]->dimension;
-			printf("Mesh %d, row count: %d number of vertex: %d%c%c", i, data->list[i]->rowCount, vcount, 10, 13);
+			printf("Mesh %d, row count: %d number of vertex: %d\n", i, data->list[i]->rowCount, vcount);
 			fprintf(file, "number of vertex = %d\n", vcount );
 			
 			for(j=0; j<vcount; j++){
-				fprintf(file, "%lf \t %lf \t %lf%c%c", data->list[i]->data[j*3], data->list[i]->data[j*3+1], data->list[i]->data[j*3+2], 10, 13);
+				fprintf(file, "%lf \t %lf \t %lf\n", data->list[i]->data[j*3], data->list[i]->data[j*3+1], data->list[i]->data[j*3+2]);
+			}
+			
+			indice = buildIndicesForGLLINEs(vcount, data->list[i]->rowInfo, data->list[i]->rowCount, &indiceSize, &indiceLoggedSize);
+			if(indice != NULL) {
+				cmd = 0;
+				for(j=0; j<data->list[i]->rowCount; j++) {
+					fprintf(file, "\n ");
+					for(k=0; k<data->list[i]->rowInfo[j]; k++)
+						fprintf(file, "%d \t ", cmd++);
+				}
+				
+				fprintf(file, "\nIndices length: %d \n", indiceSize);
+				k = indiceSize/20;
+				for(j=0; j<indiceSize; j++) {
+					fprintf(file, "\t %d", indice[j] );
+					if(j>0 && (j%k==0))
+						fprintf(file, "\n");
+				}
+				free(indice);
 			}
 			
 			free(data->list[i]->data);
