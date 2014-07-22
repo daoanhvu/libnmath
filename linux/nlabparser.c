@@ -263,13 +263,14 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 int functionNotation(int index, char *variables, int *variableCount){
 	int oldIndex = index;
 
-	if(index >= gTokens->size)
+	if( (index < 0) || index >= gTokens->size)
 		return index;
 		
 	*variableCount = 0;
+	gErrorCode = ERROR_NOT_A_FUNCTION;
+	gErrorColumn = gTokens->list[index]->column;
 	if(gTokens->list[index]->type == NAME ){
 		gErrorCode = ERROR_PARENTHESE_MISSING;
-		gErrorColumn = gTokens->list[index]->column;
 		if(gTokens->list[index+1]->type == LPAREN){
 			gErrorCode = ERROR_MISSING_VARIABLE;
 			gErrorColumn = gTokens->list[index+1]->column;
@@ -292,7 +293,6 @@ int functionNotation(int index, char *variables, int *variableCount){
 			}
 		}
 	}
-	gErrorColumn = gTokens->list[index-2]->column;
 	return oldIndex;
 }//done
 

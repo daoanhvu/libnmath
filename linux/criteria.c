@@ -404,56 +404,73 @@ void getCompositeInterval(const void *interval, const DATA_TYPE_FP *values, int 
 }
 
 /**
-	obj [OUT] MUST an level-2 NOT-NULL pointer
+	@param domain
+	result [OUT] MUST an level-2 NOT-NULL pointer
 */
-void buildCompositeCriteria(NMAST *ast, OutBuiltCriteria *result){
+void buildCompositeCriteria(const NMAST *domain, const char *vars, int varCount, OutBuiltCriteria *result){
 	OutBuiltCriteria leftResult;
 	OutBuiltCriteria rightResult;
-	int objTypeLeft, objTypeRight /*, type*/;
+	CombinedCriteria *outCombinedCriteria;
+	Criteria *interval;
+	int i, objTypeLeft, objTypeRight /*, type*/;
 	
-	if(ast == NULL){
+	if(domain == NULL){
+		if(varCount == 1){
+			result->cr = newCriteria(GT_LT, vars[0], -9999, 9999, TRUE, TRUE);
+			return;
+		}
+
+		outCombinedCriteria = newCombinedInterval();
+		outCombinedCriteria->loggedSize = varCount;
+		outCombinedCriteria->size = 0;
+		outCombinedCriteria->list = (Criteria**)malloc(sizeof(Criteria*) * outCombinedCriteria->loggedSize);
+		for(i=0; i<varCount; i++) {
+			interval = newCriteria(GT_LT, vars[i], -9999, 9999, TRUE, TRUE);
+			outCombinedCriteria->list[(outCombinedCriteria->size)++] = interval;
+		}
+		result->cr = outCombinedCriteria;
 		return;
 	}
 	
 	leftResult.cr = NULL;
 	rightResult.cr = NULL;
-	switch(ast->type){
+	switch(domain->type){
 		case GT_LT:
 		case GTE_LT:
 		case GT_LTE:
 		case GTE_LTE:
-			result->cr = (void*)newCriteria(ast->type, ast->variable, ast->left->value, ast->right->value, FALSE, FALSE);
+			result->cr = (void*)newCriteria(domain->type, domain->variable, domain->left->value, domain->right->value, FALSE, FALSE);
 		break;
 		
 		case LT:
-			result->cr = (void*)newCriteria(GT_LT, ast->left->variable, 99999, ast->right->value, TRUE, FALSE);
+			result->cr = (void*)newCriteria(GT_LT, domain->left->variable, 99999, domain->right->value, TRUE, FALSE);
 		break;
 		
 		case LTE:
-			result->cr = (void*)newCriteria(GT_LTE, ast->left->variable, 99999, ast->right->value, TRUE, FALSE);
+			result->cr = (void*)newCriteria(GT_LTE, domain->left->variable, 99999, domain->right->value, TRUE, FALSE);
 		break;
 		
 		case GT:
-			result->cr = (void*)newCriteria(GT_LT, ast->left->variable, ast->right->value, 99999, FALSE, TRUE);
+			result->cr = (void*)newCriteria(GT_LT, domain->left->variable, domain->right->value, 99999, FALSE, TRUE);
 		break;
 		
 		case GTE:
-			result->cr = (void*)newCriteria(GTE_LT, ast->left->variable, ast->right->value, 99999, FALSE, TRUE);
+			result->cr = (void*)newCriteria(GTE_LT, domain->left->variable, domain->right->value, 99999, FALSE, TRUE);
 		break;
 		
 		case AND:
-			if(ast->left == NULL || ast->right == NULL) //Do we need check NULL here?
+			if(domain->left == NULL || domain->right == NULL) //Do we need check NULL here?
 				return;
-			buildCompositeCriteria(ast->left, &leftResult);
-			buildCompositeCriteria(ast->right, &rightResult);
+			buildCompositeCriteria(domain->left, vars, varCount, &leftResult);
+			buildCompositeCriteria(domain->right, vars, varCount, &rightResult);
 			andTwoCriteria(leftResult.cr, rightResult.cr, result);
 		break;
 		
 		case OR:
-			if(ast->left == NULL || ast->right == NULL) //Do we need check NULL here?
+			if(domain->left == NULL || domain->right == NULL) //Do we need check NULL here?
 				return;
-			buildCompositeCriteria(ast->left, &leftResult);
-			buildCompositeCriteria(ast->right, &rightResult);
+			buildCompositeCriteria(domain->left, vars, varCount, &leftResult);
+			buildCompositeCriteria(domain->right, vars, varCount, &rightResult);
 
 			objTypeLeft = *((char*)(leftResult.cr));
 			objTypeRight = *((char*)(rightResult.cr));
@@ -492,6 +509,9 @@ int andTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteri
 		c1->fgetInterval(c1, d, 1, (void*)interval);
 		if( (interval->flag & AVAILABLE) != AVAILABLE){
 			free(interval);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
 			return FALSE;
 		}
 		out->cr = interval;
@@ -953,7 +973,7 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 					lst->list[0] = sp;
 				}
 			} else {
-				buildCompositeCriteria(f->domain->list[0], &outCriteria);
+				buildCompositeCriteria(f->domain->list[0], f->variable, f->valLen, &outCriteria);
 				outCriteriaType = *((char*)(outCriteria.cr));
 				switch(outCriteriaType){
 					case SIMPLE_CRITERIA:
@@ -996,7 +1016,7 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 							free(comb->list);
 							free(comb);
 #ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
+	descNumberOfDynamicObjectBy(j+1+2);
 #endif
 						}
 						free(composite->list);
@@ -1033,17 +1053,14 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 				}
 				for(i=0; i<comb->size; i++) {
 					free(comb->list[i]);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
 				}
 				free(comb->list);
 				free(comb);
 #ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
+	descNumberOfDynamicObjectBy(i+1+2);
 #endif
 			} else {
-				buildCompositeCriteria(f->domain->list[0], &outCriteria);
+				buildCompositeCriteria(f->domain->list[0], f->variable, f->valLen, &outCriteria);
 				outCriteriaType = *((char*)(outCriteria.cr));
 				switch(outCriteriaType){
 					case SIMPLE_CRITERIA:
@@ -1067,14 +1084,11 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 						}
 						for(i=0; i<comb->size; i++){
 							free(comb->list[i]);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
 						}
 						free(comb->list);
 						free(comb);
 #ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
+	descNumberOfDynamicObjectBy(i+1+2);
 #endif
 					break;
 					
@@ -1093,14 +1107,11 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 								lst->list[lst->size++] = sp;
 							for(j=0; j<comb->size; j++){
 								free(comb->list[j]);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
 							}
 							free(comb->list);
 							free(comb);
 #ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
+	descNumberOfDynamicObjectBy(j+1+2);
 #endif
 						}
 						free(composite->list);
@@ -1120,4 +1131,38 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 		break;
 	}
 	return lst;
+}
+
+DATA_TYPE_FP *getNormalAt(Function *f, const DATA_TYPE_FP *value){
+
+	switch(f->valLen){
+		case 1:
+		break;
+
+		case 2:
+		break;
+
+		case 3:
+		break;
+	}
+	
+	return NULL;
+}
+
+void buildCriteria(Function *f) {
+	int i;
+	OutBuiltCriteria outResult;
+
+	f->criterias = (ListCriteria*)malloc(sizeof(ListCriteria));
+	f->criterias->loggedSize = f->prefix->loggedSize;
+	f->criterias->size = 0;
+	f->criterias->list = (void**)malloc(sizeof(void*) * f->criterias->loggedSize);
+	for(i=0; i<f->prefix->size; i++){
+		outResult.cr = NULL;
+		if(f->domain==NULL || i>=f->domain->size)
+			buildCompositeCriteria(NULL, f->variable, f->valLen, &outResult);
+		else
+			buildCompositeCriteria(f->domain->list[i], f->variable, f->valLen, &outResult);
+		f->criterias->list[(f->criterias->size)++] = outResult.cr;
+	}
 }

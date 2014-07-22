@@ -73,6 +73,14 @@
 #define ERROR_MISSING_DOMAIN -16
 #define E_NOT_ENOUGH_MEMORY -17
 
+#define SIMPLE_CRITERIA 		0
+#define COMBINED_CRITERIA 		1
+#define COMPOSITE_CRITERIA 		2
+
+#define LEFT_INF	0x02
+#define RIGHT_INF	0x01
+#define AVAILABLE	0x04
+
 #ifndef TRUE
 	#define TRUE -1
 	#define FALSE 0
@@ -102,14 +110,25 @@
 #endif
 
 #ifdef __cplusplus
-extern "C" {
+	extern "C" {
 #endif
 
+typedef struct tagCriteria Criteria;
+typedef struct tagCombinedCriteria CombinedCriteria;
+typedef struct tagCompositeCriteria CompositeCriteria;
+typedef struct tagListCriteria ListCriteria;
+typedef struct tagFData FData;
+typedef struct tagListFData ListFData;
+typedef struct tagOutBuiltCriteria OutBuiltCriteria;
 typedef struct tagFraction Fraction;
 typedef struct tagToken Token;
 typedef struct tagTokenList TokenList;
 typedef struct tagNMAST NMAST;
 typedef struct tagNMASTList NMASTList;
+
+//Function poiters
+typedef void (*FPGetIntervalF)(const void *, const DATA_TYPE_FP *, int, void *);
+typedef int (*FPCheck)(const void *, DATA_TYPE_FP *, int);
 
 struct tagFraction{
 	int numerator;
@@ -126,6 +145,7 @@ typedef struct tagFunct{
 
 	NMASTList *prefix;
 	NMASTList *domain;
+	ListCriteria *criterias;
 
 	NMAST **variableNode;
 	short numVarNode;
@@ -176,6 +196,88 @@ struct tagNMASTList{
 	unsigned short size;
 	struct tagNMAST **list;
 };
+
+/** ================================================================================================ */
+
+/**
+	This is a single continuous interval for one variable
+	Example:
+		variable = 'x' and type=GT_LT we read it out like this:
+		x is greater than leftVal and x is less than rightValue
+*/
+struct tagCriteria{
+	char objectType;
+	FPCheck fcheck;
+	FPGetIntervalF fgetInterval;
+	
+	/** GT_LT, GTE_LT, GT_LTE, GTE_LTE */
+	short type;
+	char variable;
+	DATA_TYPE_FP leftVal;
+	DATA_TYPE_FP rightVal;
+	
+	/*
+		bit 0: right infinity
+		bit 1: left infinity
+		bit 2: available
+	*/
+	char flag;
+};
+
+//AND
+/**
+	In case our expression has multiple variables
+	this type of interval express for a continuous space for the expression
+	
+	For example: 0<x<=5 AND y>3
+ */
+struct tagCombinedCriteria{
+	char objectType;
+	FPCheck fcheck;
+	FPGetIntervalF fgetInterval;
+	Criteria **list;
+	unsigned short loggedSize;
+	unsigned short size;
+};
+
+//OR
+struct tagCompositeCriteria{
+	char objectType;
+	FPCheck fcheck;
+	FPGetIntervalF fgetInterval;
+	CombinedCriteria **list;
+	unsigned short loggedSize;
+	unsigned short size;
+};
+
+struct tagListCriteria {
+	void **list;
+	unsigned short loggedSize;
+	unsigned short size;
+};
+
+struct tagFData{
+	DATA_TYPE_FP *data;
+	unsigned short dataSize;
+	unsigned short loggedSize;
+	char dimension;
+	
+	int *rowInfo;
+	unsigned short rowCount;
+	unsigned short loggedRowCount;
+};
+
+struct tagListFData{
+	FData **list;
+	unsigned short loggedSize;
+	unsigned short size;
+};
+
+struct tagOutBuiltCriteria{
+	void *cr;
+};
+
+/* ====================================================================================================== */
 
 void pushASTStack(NMASTList *sk, NMAST* ele);
 NMAST* popASTStack(NMASTList *sk);

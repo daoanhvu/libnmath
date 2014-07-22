@@ -309,20 +309,28 @@ void initFunct(Function *f){
 	f->valLen = 0;
 
 	f->prefix = NULL;
-	f->domain = 0;
-	
+	f->domain = NULL;
+	f->criterias = NULL;
 
 	f->variableNode = NULL;
 	f->numVarNode = 0;
 }
 
 void releaseFunct(Function *f){
-	int i;
+	int i, j=0, k=0;
+	char crType;
+	CombinedCriteria *cbc;
+	CompositeCriteria *cpc;
 	
 	if(f==NULL) return;
 
-	if(f->str != NULL)
+	if(f->str != NULL) {
 		free(f->str);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+	}
+		
 	f->str = NULL;
 	f->len = 0;
 
@@ -363,6 +371,49 @@ void releaseFunct(Function *f){
 #endif
 		f->domain = NULL;
 	}
+
+	if(f->criterias != NULL){
+		for(i=0; i<f->criterias->size; i++){
+			crType = *((char*)(f->criterias->list[i]));
+			switch(crType){
+
+				case COMBINED_CRITERIA:
+					cbc = (CombinedCriteria*)(f->criterias->list[i]);
+					for(j=0; j<cbc->size; j++){
+						free(cbc->list[i]);
+					}
+				break;
+
+				case COMPOSITE_CRITERIA:
+					cpc = (CompositeCriteria*)(f->criterias->list[i]);
+					for(j=0; j<cpc->size; j++){
+						cbc = cpc->list[j];
+						for(k=0; k<cbc->size; k++) {
+							free(cbc->list[k]);
+						}
+						free(cpc->list[j]);
+					}
+				break;
+			}
+			free(f->criterias->list[i]);
+		}
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy((i+1)*(j+1)*(k+1));
+#endif
+		if(f->criterias->list != NULL){
+			free(f->criterias->list);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+		}
+		f->criterias->size = 0;
+		f->criterias->loggedSize = 0;
+		free(f->criterias);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+		f->criterias = NULL;
+	}	
 
 	if(f->numVarNode > 0){
 		free(f->variableNode);

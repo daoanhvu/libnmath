@@ -13,24 +13,44 @@
 #include "../graphutil.h"
 
 void printError(int col, int code);
-int test1(int argc, char *agr[]);
-int test2(int argc, char *agr[]);
+int testDerivative(Function *f);
+int testGetSpaces(Function *f);
 void testCriteria1(int argc, char *agr[]);
 void testCriteria2(int argc, char *agr[]);
 
 int main(int argc, char *agr[]){
-
+	Function *f;
+	int l;
 	if(argc < 2){
 		printf("An mathematics function must be entered.\n");
 		printf("Ex: f(x,y) = x + 2 * y\n");
 		return 0;
 	}
+
+	f = (Function*)malloc(sizeof(Function));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+	printf("%s\n", agr[1]);
+	//resetFunction(&f, agr[1], "xy", 2, &error);
+	l = strlen(agr[1]);
+	parseFunction(agr[1], l, f);
+	if(getErrorCode() != NMATH_NO_ERROR) {
+		printError(getErrorColumn(), getErrorCode());
+		releaseFunct(f);
+		free(f);
+		return getErrorCode();
+	}
 	
-	//test1(argc, agr);
-	test2(argc, agr);
+	testDerivative(f);
+	testGetSpaces(f);
 	//testCriteria1(argc, agr);
 	//testCriteria2(argc, agr);
+
+	releaseFunct(f);
+	free(f);
 #ifdef DEBUG
+	descNumberOfDynamicObject();
 	printf("\n[EndOfProgram] Number of dynamic object alive: %d \n", numberOfDynamicObject());
 #endif
 
@@ -247,7 +267,7 @@ void testCriteria2(int argc, char *agr[]){
 	ast->right->left = ast->right->right = NULL;
 	ast->right->parent = ast;
 	
-	buildCompositeCriteria(ast, &outCriteria);
+	buildCompositeCriteria(ast, "x", 1, &outCriteria);
 	
 	if(outCriteria.cr != NULL){
 		outType = *((int*)(outCriteria.cr));
@@ -299,6 +319,10 @@ void printError(int col, int code){
 			printf("Bad expression found at %d\n", col);
 			break;
 
+		case ERROR_NOT_A_FUNCTION:
+			printf("Bad function notation found at %d\n", col);
+			break;
+
 		case ERROR_BAD_TOKEN:
 			printf("A bad token found at %d\n", col);
 			break;
@@ -311,26 +335,14 @@ void printError(int col, int code){
 	}
 }
 
-int test1(int argc, char *agr[]){
-	Function *f = (Function*)malloc(sizeof(Function));
+int testDerivative(Function *f){
 	DParam d;
 	int error;
 	DATA_TYPE_FP vars[] = {4, 1};
 	DATA_TYPE_FP ret;
 	char dstr[64];
 	int l = 0;
-
-	printf("%s\n", agr[1]);
-	//resetFunction(&f, agr[1], "xy", 2, &error);
-	l = strlen(agr[1]);
-	parseFunction(agr[1], l, f);
-	if(getErrorCode() != NMATH_NO_ERROR) {
-		printError(getErrorColumn(), getErrorCode());
-		releaseFunct(f);
-		free(f);
-		return getErrorCode();
-	}
-	l = 0;
+	
 	ret = calc(f, vars, 2, &error);
 	printf("Ret = %lf \n", ret );
 	d.t = f->prefix->list[0];
@@ -338,27 +350,20 @@ int test1(int argc, char *agr[]){
 	d.returnValue = NULL;
 	d.x = 'x';
 
-//#ifdef __unix
+#ifdef WINDOWS
+	derivative(&d);
+#else
 	d.returnValue = derivative(&d);
-//#else
-//	derivative(&d);
-//#endif
+#endif
 
 	toString(d.returnValue, dstr, &l, 64);
 	printf("f' = %s\n", dstr);
 	clearTree(&(d.returnValue));
-
-	releaseFunct(f);
-	free(f);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
 	return 0;
 }
 
-int test2(int argc, char *agr[]){
-	Function *f;
-	int cmd, k, numOfV=0, i, j, vcount, l = 0;
+int testGetSpaces(Function *f){
+	int cmd, k, numOfV=0, i, j, vcount;
 	DATA_TYPE_FP bd[]={-2, 2, -2, 2};
 	DATA_TYPE_FP eps = 0.2f;
 	ListFData *data;
@@ -366,29 +371,14 @@ int test2(int argc, char *agr[]){
 	short *indice;
 	int indiceSize = 0, indiceLoggedSize;
 	char strbuff[256];
-
-	f = (Function*)malloc(sizeof(Function));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif	
-	l = strlen(agr[1]);
-	parseFunction(agr[1], l, f);
-	if(getErrorCode() != NMATH_NO_ERROR) {
-		printError(getErrorColumn(), getErrorCode());
-		releaseFunct(f);
-		free(f);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-		return getErrorCode();
-	}
 	
 	printf("The range for each variable is [-2, 2]\n");
 	printf("The epsilon = %lf \n", eps);
 	printf("Do you want to change these values? Press 1 and Enter to change otherwise you will use the default\n");
 	scanf("%d", &cmd);
 	if(cmd == 1){
-		printf("Enter the range for each variable, use comma as delimiter: ");
+		printf("Enter the range for each variable, use space as delimiter: ");
+		fflush(stdin);
 		gets(strbuff);
 		printf("Enter epsilon: ");
 		scanf("%lf", &eps);
@@ -399,7 +389,6 @@ int test2(int argc, char *agr[]){
 	data = getSpaces(f, bd, f->valLen * 2, eps);
 	if(data != NULL){
 		file = fopen("../data.txt", "w+");
-		fscanf(file, "%s\n", agr[1]);
 		for(i=0; i<data->size; i++){
 			vcount = data->list[i]->dataSize/data->list[i]->dimension;
 			printf("Mesh %d, row count: %d number of vertex: %d\n", i, data->list[i]->rowCount, vcount);
@@ -442,11 +431,5 @@ int test2(int argc, char *agr[]){
 	descNumberOfDynamicObject(2);
 #endif
 	}
-
-	releaseFunct(f);
-	free(f);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
 	return 0;
 }
