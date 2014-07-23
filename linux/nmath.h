@@ -8,22 +8,15 @@
 extern "C" {
 #endif
 
-/* Derivative param */
+/* Parameter used for derivative_t & reduce_t * calc_t */
 typedef struct tagDParam{
 	NMAST *t;
-	char x;
-	short error;
-	NMAST *returnValue;
-}DParam;
-
-/* Reduce param */
-typedef struct tagRParam{
-	NMAST *t;
 	char *variables;
+	short error;
 	DATA_TYPE_FP *values;
 	DATA_TYPE_FP retv;
-	short error;
-}RParam;
+	NMAST *returnValue;
+}DParam;
 
 void initFunct(Function *);
 void toString(const NMAST *t, char *str, int *curpos, int len);

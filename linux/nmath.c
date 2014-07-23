@@ -484,10 +484,10 @@ void* reduce_t(void *param){
 	pthread_t thrLeft, thrRight;
 	int idThrLeft=-1, idThrRight = -1;
 #endif
-	RParam *dp = (RParam *)param;
+	DParam *dp = (DParam *)param;
 	NMAST *p;
-	RParam this_param_left;
-	RParam this_param_right;
+	DParam this_param_left;
+	DParam this_param_right;
 	this_param_left.error = this_param_right.error = 0;
 	
 	/* If the tree is NULL */
@@ -914,27 +914,102 @@ void* reduce_t(void *param){
 				free(p);
 				(dp->t)->left = (dp->t)->right = NULL;
 #ifdef WINDOWS
-					return dp->error;
+				return dp->error;
 #else
-					return &(dp->error);
+				return &(dp->error);
 #endif
 			}
 		break;
 	}
 #ifdef WINDOWS
-					return dp->error;
+	return dp->error;
 #else
-					return &(dp->error);
+	return &(dp->error);
 #endif
 }
 
 int reduce(Function *f, int *error){
-	RParam dp;
+	DParam dp;
 	dp.t = *(f->prefix->list);
 	dp.error = 0;
 	reduce_t(&dp);
 	return 0;
 }
+
+/** ================================================================================================================================ */
+/**
+	This is my try to get lim of f when variable -> M
+*/
+#ifdef WINDOWS
+unsigned int __stdcall lim_t(void *param){
+	HANDLE thread_1 = 0, thread_2 = 0;
+#else
+void lim_t(void *param){
+	pthread_t thrLeft, thrRight;
+	int idThrLeft=-1, idThrRight = -1;
+#endif
+	DParam *dp = (DParam *)param;
+	NMAST *p;
+	DParam this_param_left;
+	DParam this_param_right;
+
+	this_param_left.error = this_param_right.error = 0;
+	this_param_left.variables = this_param_right.variables = dp->variables;
+	this_param_left.values = this_param_right.values = dp->values;
+	
+	/* If the tree is NULL */
+	if((dp->t)==NULL){
+		return 0;
+	}
+
+	if(t->type == VARIABLE){
+		var_index = isInArray(dp->variables[0], t->variable);
+		dp->retv = dp->values[var_index];
+#ifdef WINDOWS
+		return dp->error;
+#else
+		return &(dp->error);
+#endif
+	}
+
+	if( (t->type == NUMBER) || (t->type == PI_TYPE) ||(t->type == E_TYPE) ){
+		dp->retv = t->value;
+#ifdef WINDOWS
+		return dp->error;
+#else
+		return &(dp->error);
+#endif
+	}
+
+	this_param_left.t = t->left;
+	this_param_right.t = t->right;
+
+#ifdef WINDOWS
+	thread_1 = (HANDLE)_beginthreadex(NULL, 0, &lim_t, (void*)&this_param_left, 0, NULL);
+	thread_2 = (HANDLE)_beginthreadex(NULL, 0, &lim_t, (void*)&this_param_right, 0, NULL);
+	if(thread_1 != 0){
+		WaitForSingleObject(thread_1, INFINITE);
+		CloseHandle(thread_1);
+	}
+	if(thread_2 != 0){
+		WaitForSingleObject(thread_2, INFINITE);
+		CloseHandle(thread_2);
+	}
+#else
+	idThrLeft = pthread_create(&thrLeft, NULL, lim_t, (void*)&this_param_left);
+	idThrRight = pthread_create(&thrRight, NULL, lim_t, (void*)&this_param_right);
+	if(idThrLeft == NMATH_NO_ERROR){
+		pthread_join(thrLeft, NULL);
+	}
+	if(idThrRight == NMATH_NO_ERROR){
+		pthread_join(thrRight, NULL);
+	}
+#endif
+
+	
+}
+/** ================================================================================================================================ */
+
 #ifdef WINDOWS
 unsigned int __stdcall calc_t(void *param){
 	HANDLE thread_1 = 0, thread_2 = 0;
@@ -942,11 +1017,11 @@ unsigned int __stdcall calc_t(void *param){
 void* calc_t(void *param){
 	pthread_t thrLeft, thrRight;
 	int idThrLeft=-1, idThrRight = -1;
-#endif	
-	RParam *dp = (RParam *)param;
+#endif
+	DParam *dp = (DParam *)param;
 	NMAST *t = dp->t;
-	RParam this_param_left;
-	RParam this_param_right;
+	DParam this_param_left;
+	DParam this_param_right;
 	int var_index = -1;
 
 	this_param_left.error = this_param_right.error = 0;
@@ -959,7 +1034,7 @@ void* calc_t(void *param){
 	}
 
 	if(t->type == VARIABLE){
-		var_index = isInArray(dp->variables, t->variable);
+		var_index = isInArray(dp->variables[0], t->variable);
 		dp->retv = dp->values[var_index];
 #ifdef WINDOWS
 		return dp->error;
@@ -993,10 +1068,10 @@ void* calc_t(void *param){
 #else
 	idThrLeft = pthread_create(&thrLeft, NULL, calc_t, (void*)&this_param_left);
 	idThrRight = pthread_create(&thrRight, NULL, calc_t, (void*)&this_param_right);
-	if(idThrLeft == 0){
+	if(idThrLeft == NMATH_NO_ERROR){
 		pthread_join(thrLeft, NULL);
 	}
-	if(idThrRight == 0){
+	if(idThrRight == NMATH_NO_ERROR){
 		pthread_join(thrRight, NULL);
 	}
 #endif
@@ -1020,9 +1095,10 @@ void* calc_t(void *param){
 	return &(dp->error);
 #endif
 }
+
 DATA_TYPE_FP calc(Function *f, DATA_TYPE_FP *values, int numOfValue, int *error){
 
-	RParam rp;
+	DParam rp;
 	//int i;
 
 	rp.error = 0;
@@ -1081,7 +1157,7 @@ void* derivative(void *p){
 #endif
 	DParam *dp = (DParam*)p;
 	NMAST *t = dp->t;
-	char x = dp->x;
+	char x = dp->variables[0];
 	NMAST *u, *du, *v, *dv;
 	DParam pdu, pdv;
 	
@@ -1125,7 +1201,7 @@ void* derivative(void *p){
 		u->value = 1.0;
 		u->parent = NULL;
 		u->left = u->right = NULL;		
-		if(dp->x == t->variable){
+		if(dp->variables[0] == t->variable){
 			u->value = 1.0;
 			dp->returnValue = u;
 #ifdef WINDOWS
@@ -1222,13 +1298,13 @@ void* derivative(void *p){
 #else
 	if(u!=NULL) {
 		pdu.t = t->left;
-		pdu.x = x;
+		pdu.variables[0] = x;
 		id_du = pthread_create(&tdu, NULL, derivative, (void*)(&pdu));
 	}
 	
 	if(v != NULL){
 		pdv.t = t->right;
-		pdv.x = x;
+		pdv.variables[0] = x;
 		id_dv = pthread_create(&tdv, NULL, derivative, (void*)(&pdv));
 	}
 	if(id_du == 0)
@@ -1248,23 +1324,23 @@ void* derivative(void *p){
 			return dp->returnValue;
 
 		case TAN:
-			dp->returnValue = d_tan(t, u, du, v, dv, dp->x);
+			dp->returnValue = d_tan(t, u, du, v, dv, dp->variables[0]);
 			return dp->returnValue;
 
 		case COTAN:
-			dp->returnValue = d_cotan(t, u, du, v, dv, dp->x);
+			dp->returnValue = d_cotan(t, u, du, v, dv, dp->variables[0]);
 			return dp->returnValue;
 				
 		case ASIN:
-			dp->returnValue = d_asin(t, u, du, v, dv, dp->x);
+			dp->returnValue = d_asin(t, u, du, v, dv, dp->variables[0]);
 			return dp->returnValue;
 				
 		case ACOS:
-			dp->returnValue = d_acos(t, u, du, v, dv, dp->x);
+			dp->returnValue = d_acos(t, u, du, v, dv, dp->variables[0]);
 			return dp->returnValue;
 				
 		case ATAN:
-			dp->returnValue = d_atan(t, u, du, v, dv, dp->x);
+			dp->returnValue = d_atan(t, u, du, v, dv, dp->variables[0]);
 			return dp->returnValue;
 				
 		case SQRT:

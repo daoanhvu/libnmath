@@ -2,6 +2,8 @@
 #include "nmath.h"
 #include "criteria.h"
 
+extern short gErrorCode;
+
 int andTwoSimpleCriteria(const Criteria* c1, const Criteria* c2, OutBuiltCriteria* out);
 int orTwoSimpleCriteria(const Criteria* c1, const Criteria* c2, OutBuiltCriteria* out);
 int andTwoCriteria(const void* c1, const void* c2, OutBuiltCriteria* out);
@@ -758,7 +760,7 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
 	DATA_TYPE_FP right1, y;
 	void *tmpP;
 	FData *mesh = NULL;
-	RParam param;
+	DParam param;
 	
 	out1.objectType = SIMPLE_CRITERIA;
 	out1.type = GT_LT;
@@ -834,7 +836,7 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 	DATA_TYPE_FP right1, left2, right2, y;
 	void *tmpP;
 	FData *mesh = NULL;
-	RParam param;
+	DParam param;
 	
 	out1.objectType = SIMPLE_CRITERIA;
 	out1.flag = AVAILABLE;
@@ -1154,19 +1156,19 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 /**
 	Get the normal vector at each point in values
 */
-DATA_TYPE_FP *getNormalVectors(Function *f, const DATA_TYPE_FP *values, int numOfPoint) {
+DATA_TYPE_FP *getNormalVectors(Function *f, DATA_TYPE_FP *values, int numOfPoint) {
 	DParam d;
-	RParam rp;
+	DParam rp;
 	NMAST *dx;
-	NMAST *dy;
-	NMAST *dz;
+	//NMAST *dy;
+	//NMAST *dz;
 
 	switch(f->valLen){
 		case 1:
 			d.t = f->prefix->list[0];
 			d.error = 0;
 			d.returnValue = NULL;
-			d.x = f->variable[0];
+			d.variables = f->variable;
 	
 			derivative(&d);
 			if(d.error != NMATH_NO_ERROR) {
@@ -1181,20 +1183,30 @@ DATA_TYPE_FP *getNormalVectors(Function *f, const DATA_TYPE_FP *values, int numO
 			rp.variables = f->variable;
 			calc_t((void*)&rp);
 
-			/** y = dx(x0)(x-x0)+y0 */
+			/**
+				The tangen of the f at (x0) is:
+				y = dx(x0)(x-x0)+y0 
 
-	return rp.retv;
+				Note that if above calc_t produces a ERROR_DIV_BY_ZERO then its very likely the tangen is 
+				perspendicular X axis and it have form as x = x0
+			*/
+			if(rp.error == NMATH_NO_ERROR){
+
+			}else if(rp.error == ERROR_DIV_BY_ZERO){
+
+			}
+			//return rp.retv;
 		break;
 
 		case 2:
 			d.t = f->prefix->list[0];
 			d.error = 0;
 			d.returnValue = NULL;
-			d.x = f->variable[0];
+			d.variables = f->variable;
 	
 			derivative(&d);
-			if(error != NMATH_NO_ERROR) {
-				gErrorCode = error;
+			if(d.error != NMATH_NO_ERROR) {
+				gErrorCode = d.error;
 				return NULL;
 			}
 			dx = d.returnValue;

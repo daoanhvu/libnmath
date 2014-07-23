@@ -342,13 +342,14 @@ int testDerivative(Function *f){
 	DATA_TYPE_FP ret;
 	char dstr[64];
 	int l = 0;
+	char var[1] = {'x'};
 	
 	ret = calc(f, vars, 2, &error);
 	printf("Ret = %lf \n", ret );
 	d.t = f->prefix->list[0];
 	d.error = 0;
 	d.returnValue = NULL;
-	d.x = 'x';
+	d.variables = var;
 
 #ifdef WINDOWS
 	derivative(&d);
