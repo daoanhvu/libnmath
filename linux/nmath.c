@@ -1085,9 +1085,9 @@ void* derivative(void *p){
 	NMAST *u, *du, *v, *dv;
 	DParam pdu, pdv;
 	
+	dp->returnValue = NULL;
 	if(t==NULL){
 #ifdef WINDOWS
-		dp->returnValue = NULL;
 		return 0;
 #else
 		return NULL;
@@ -1103,8 +1103,8 @@ void* derivative(void *p){
 		u->value = 0.0;
 		u->parent = NULL;
 		u->left = u->right = NULL;
-#ifdef WINDOWS
 		dp->returnValue = u;
+#ifdef WINDOWS
 		return 0;
 #else
 		return u;
@@ -1127,12 +1127,12 @@ void* derivative(void *p){
 		u->left = u->right = NULL;		
 		if(dp->x == t->variable){
 			u->value = 1.0;
+			dp->returnValue = u;
 #ifdef WINDOWS
 		}
-		dp->returnValue = u;
 		return 0;
 #else
-			return u;
+		return u;
 		}
 		u->value = 0.0;
 		return u;
@@ -1240,41 +1240,53 @@ void* derivative(void *p){
 	// 2.0 get done here	
 	switch(t->type){
 		case SIN:
-			return d_sin(t, u, du, v, dv, x);
+			dp->returnValue = d_sin(t, u, du, v, dv, x);
+			return dp->returnValue;
 			
 		case COS:
-			return d_cos(t, u, du, v, dv, x);
+			dp->returnValue = d_cos(t, u, du, v, dv, x);
+			return dp->returnValue;
 
 		case TAN:
-			return d_tan(t, u, du, v, dv, dp->x);
+			dp->returnValue = d_tan(t, u, du, v, dv, dp->x);
+			return dp->returnValue;
 
 		case COTAN:
-			return d_cotan(t, u, du, v, dv, dp->x);
+			dp->returnValue = d_cotan(t, u, du, v, dv, dp->x);
+			return dp->returnValue;
 				
 		case ASIN:
-			return d_asin(t, u, du, v, dv, dp->x);
+			dp->returnValue = d_asin(t, u, du, v, dv, dp->x);
+			return dp->returnValue;
 				
 		case ACOS:
-			return d_acos(t, u, du, v, dv, dp->x);
+			dp->returnValue = d_acos(t, u, du, v, dv, dp->x);
+			return dp->returnValue;
 				
 		case ATAN:
-			return d_atan(t, u, du, v, dv, dp->x);
+			dp->returnValue = d_atan(t, u, du, v, dv, dp->x);
+			return dp->returnValue;
 				
 		case SQRT:
-			return d_sqrt(t, u, du, v, dv, x);
+			dp->returnValue = d_sqrt(t, u, du, v, dv, x);
+			return dp->returnValue;
 
 		case PLUS:
 		case MINUS:
-			return d_sum_subtract(t, t->type, u, du, v, dv, x);
+			dp->returnValue = d_sum_subtract(t, t->type, u, du, v, dv, x);
+			return dp->returnValue;
 			
 		case MULTIPLY:
-			return d_product(t, u, du, v, dv, x);
+			dp->returnValue = d_product(t, u, du, v, dv, x);
+			return dp->returnValue;
 				
 		case DIVIDE:
-			return d_quotient(t, u, du, v, dv, x);
+			dp->returnValue = d_quotient(t, u, du, v, dv, x);
+			return dp->returnValue;
 				
 		case POWER:
-			return d_pow_exp(t, u, du, v, dv, x);
+			dp->returnValue = d_pow_exp(t, u, du, v, dv, x);
+			return dp->returnValue;
 	}
 	/* WHERE du AND dv GO IF WE NOT TO USE THEM ????? */
 	return NULL;

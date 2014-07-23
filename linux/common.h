@@ -44,6 +44,7 @@
 #define GTE_LT			41
 #define GT_LTE			42
 #define GTE_LTE			43
+#define INFINITY		44
 
 #define TYPE_FLOATING_POINT 0
 #define TYPE_FRACTION 1

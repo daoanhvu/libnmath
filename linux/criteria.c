@@ -936,6 +936,24 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 	return mesh;
 }
 
+ListFData *getValueRangeForOneVariableF(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
+	ListFData *lst = NULL;
+	FData *sp;
+	int i;
+
+	lst = (ListFData*)malloc(sizeof(ListFData));
+	lst->loggedSize = f->prefix->size;
+	lst->size = 0;
+	lst->list = (FData**)malloc(sizeof(FData*) * f->prefix->size);
+	for(i=0; i<f->prefix->size; i++){
+		sp = generateOneUnknows(f->prefix->list[i], f->variable, f->criterias->list[i], bd, 2, epsilon);
+		if(sp != NULL)
+			lst->list[(lst->size)++] = sp;
+	}
+
+	return lst;
+}
+
 ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
 	ListFData *lst = NULL;
 	FData *sp;
@@ -1133,13 +1151,53 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 	return lst;
 }
 
-DATA_TYPE_FP *getNormalAt(Function *f, const DATA_TYPE_FP *value){
+/**
+	Get the normal vector at each point in values
+*/
+DATA_TYPE_FP *getNormalVectors(Function *f, const DATA_TYPE_FP *values, int numOfPoint) {
+	DParam d;
+	RParam rp;
+	NMAST *dx;
+	NMAST *dy;
+	NMAST *dz;
 
 	switch(f->valLen){
 		case 1:
+			d.t = f->prefix->list[0];
+			d.error = 0;
+			d.returnValue = NULL;
+			d.x = f->variable[0];
+	
+			derivative(&d);
+			if(d.error != NMATH_NO_ERROR) {
+				gErrorCode = d.error;
+				return NULL;
+			}
+			dx = d.returnValue;
+
+			rp.error = 0;
+			rp.t = dx;
+			rp.values = values;
+			rp.variables = f->variable;
+			calc_t((void*)&rp);
+
+			/** y = dx(x0)(x-x0)+y0 */
+
+	return rp.retv;
 		break;
 
 		case 2:
+			d.t = f->prefix->list[0];
+			d.error = 0;
+			d.returnValue = NULL;
+			d.x = f->variable[0];
+	
+			derivative(&d);
+			if(error != NMATH_NO_ERROR) {
+				gErrorCode = error;
+				return NULL;
+			}
+			dx = d.returnValue;
 		break;
 
 		case 3:
