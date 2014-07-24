@@ -15,6 +15,7 @@
 void printError(int col, int code);
 int testDerivative(Function *f);
 int testGetSpaces(Function *f);
+void testReuseFunction(Function *f);
 void testCriteria1(int argc, char *agr[]);
 void testCriteria2(int argc, char *agr[]);
 
@@ -44,7 +45,7 @@ int main(int argc, char *agr[]){
 	
 	testDerivative(f);
 	testGetSpaces(f);
-	//testCriteria1(argc, agr);
+	testReuseFunction(f);
 	//testCriteria2(argc, agr);
 
 	releaseFunct(f);
@@ -342,14 +343,13 @@ int testDerivative(Function *f){
 	DATA_TYPE_FP ret;
 	char dstr[64];
 	int l = 0;
-	char var[1] = {'x'};
 	
 	ret = calc(f, vars, 2, &error);
 	printf("Ret = %lf \n", ret );
 	d.t = f->prefix->list[0];
 	d.error = 0;
 	d.returnValue = NULL;
-	d.variables = var;
+	d.variables[0] = 'x';
 
 #ifdef WINDOWS
 	derivative(&d);
@@ -433,4 +433,22 @@ int testGetSpaces(Function *f){
 #endif
 	}
 	return 0;
+}
+
+void testReuseFunction(Function *f) {
+	DATA_TYPE_FP val;
+	int error;
+	DATA_TYPE_FP var[1] = {10};
+
+	releaseFunct(f);
+	parseFunction("f(x)=x + 1/2", 12, f);
+	if(getErrorCode() != NMATH_NO_ERROR) {
+		printError(getErrorColumn(), getErrorCode());
+		releaseFunct(f);
+		free(f);
+	}
+
+	val = calc(f, var, 1, &error);
+	printf("Ret = %lf \n", val );
+
 }

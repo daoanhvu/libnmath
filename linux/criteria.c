@@ -778,7 +778,6 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
 	}
 	
 	param.t = exp;
-	param.variables = (char*)malloc(1); //size of 1 character
 	param.variables[0] = variables[0];
 	param.values = (DATA_TYPE_FP*)malloc(sizeof(DATA_TYPE_FP));
 	param.error = 0;
@@ -818,7 +817,6 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
 	mesh->rowInfo[mesh->rowCount++] = elementOnRow;
 	
 	free(param.values);
-	free(param.variables);
 	return mesh;
 }
 
@@ -864,7 +862,6 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 	}
 	
 	param.t = exp;
-	param.variables = (char*)malloc(2);  //size of 1 character
 	param.variables[0] = variables[0];
 	param.variables[1] = variables[1];
 	param.values = (DATA_TYPE_FP*)malloc(sizeof(DATA_TYPE_FP) * 2);
@@ -931,7 +928,6 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 		param.values[0] += epsilon;
 	}
 	free(param.values);
-	free(param.variables);
 #ifdef DEBUG
 	descNumberOfDynamicObjectBy(2);
 #endif
@@ -1168,7 +1164,7 @@ DATA_TYPE_FP *getNormalVectors(Function *f, DATA_TYPE_FP *values, int numOfPoint
 			d.t = f->prefix->list[0];
 			d.error = 0;
 			d.returnValue = NULL;
-			d.variables = f->variable;
+			d.variables[0] = f->variable[0];
 	
 			derivative(&d);
 			if(d.error != NMATH_NO_ERROR) {
@@ -1180,7 +1176,7 @@ DATA_TYPE_FP *getNormalVectors(Function *f, DATA_TYPE_FP *values, int numOfPoint
 			rp.error = 0;
 			rp.t = dx;
 			rp.values = values;
-			rp.variables = f->variable;
+			rp.variables[0] = f->variable[0];
 			calc_t((void*)&rp);
 
 			/**
@@ -1202,7 +1198,8 @@ DATA_TYPE_FP *getNormalVectors(Function *f, DATA_TYPE_FP *values, int numOfPoint
 			d.t = f->prefix->list[0];
 			d.error = 0;
 			d.returnValue = NULL;
-			d.variables = f->variable;
+			d.variables[0] = f->variable[0];
+			d.variables[1] = f->variable[1];
 	
 			derivative(&d);
 			if(d.error != NMATH_NO_ERROR) {

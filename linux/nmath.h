@@ -11,7 +11,7 @@ extern "C" {
 /* Parameter used for derivative_t & reduce_t * calc_t */
 typedef struct tagDParam{
 	NMAST *t;
-	char *variables;
+	char variables[4];
 	short error;
 	DATA_TYPE_FP *values;
 	DATA_TYPE_FP retv;

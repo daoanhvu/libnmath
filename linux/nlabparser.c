@@ -99,6 +99,7 @@ void addFunction2Tree(NMASTList *t, Token * stItm){
 			ast->valueType = TYPE_FLOATING_POINT;
 			ast->sign = 1;
 			ast->type = stItm->type;
+			ast->variable = 0;
 			//ast->priority = stItm->priority;
 			ast->parent = NULL;
 			ast->left = t->list[t->size-2];
@@ -361,6 +362,7 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 				ast->sign = 1;
 				ast->left = ast->right = ast->parent = NULL;
 				ast->value = val;
+				ast->variable = 0;
 				ast->type = tk->type;
 				pushASTStack(prefix, ast); //add this item to prefix
 				i++;
@@ -374,6 +376,7 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 				ast->left = ast->right = ast->parent = NULL;
 				ast->valueType = 0;
 				ast->value = E;
+				ast->variable = 0;
 				ast->type = E_TYPE;
 				pushASTStack(prefix, ast); //add this item to prefix
 				i++;
@@ -388,6 +391,7 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 				ast->value = PI;
 				ast->type = PI_TYPE;
 				ast->valueType = 0;
+				ast->variable = 0;
 				pushASTStack(prefix, ast); //add this item to prefix
 				i++;
 				break;
@@ -409,6 +413,7 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 #endif
 						ast->left = ast->right = NULL;
 						ast->type = stItm->type;
+						ast->variable = 0;
 						ast->priority = stItm->priority;
 						ast->left = prefix->list[prefix->size-2];
 						ast->right = prefix->list[prefix->size-1];
@@ -780,10 +785,15 @@ void domain(int *start, Function *f){
 					index += 5;
 				}// end if
 				
+/*
+				Line 824 below is also have a malloc, why?
 				ast = (NMAST*)malloc(sizeof(NMAST));
+				
+
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
+*/
 				switch(tk->type){
 					case NUMBER:
 						val = parseFloatingPoint(tk->text, 0, tk->textLength, &gErrorCode);
@@ -813,6 +823,7 @@ void domain(int *start, Function *f){
 				}
 
 				ast = (NMAST*)malloc(sizeof(NMAST));
+				ast->variable = 0;
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
@@ -841,7 +852,7 @@ void domain(int *start, Function *f){
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
-						//ast->left = ast->right = NULL;
+						ast->variable = 0;
 						ast->type = tokenItm->type;
 						ast->priority = tokenItm->priority;
 						ast->left = d->list[d->size-2];
@@ -1059,16 +1070,18 @@ void domain(int *start, Function *f){
 						}
 						/** ========END parsing floating point values=====*/
 						
+						/**
+							This case, x element_of [number1, number2]
+							We parse to a tree that have root got:
+								- type GT_LT or GTE_LT or GT_TLE or GTE_LTE and
+								- variable = x
+						*/
 						ast = (NMAST*)malloc(sizeof(NMAST));
 						ast->valueType = TYPE_FLOATING_POINT;
 						ast->sign = 1;
 						ast->value = 0;
 						ast->parent = NULL;
 						ast->variable = tk->text[0];
-						
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
 						if((gTokens->list[index+2]->type == LPAREN ) && (gTokens->list[index+6]->type == RPAREN))
 							ast->type = GT_LT;
 						else if((gTokens->list[index+2]->type == LPRACKET ) && (gTokens->list[index+6]->type == RPAREN))
@@ -1077,6 +1090,9 @@ void domain(int *start, Function *f){
 							ast->type = GT_LTE;
 						else if((gTokens->list[index+2]->type == LPRACKET ) && (gTokens->list[index+6]->type == RPRACKET))
 							ast->type = GTE_LTE;
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
 						
 						//ast->Left number 1
 						ast->left = (NMAST*)malloc(sizeof(NMAST));
@@ -1238,6 +1254,7 @@ NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, T
 	}
 	
 	valNode1 = (NMAST*)malloc(sizeof(NMAST));
+	valNode1->variable = 0;
 	valNode1->type = valtk1->type;
 	valNode1->value = val1;
 	valNode1->valueType = TYPE_FLOATING_POINT;
@@ -1246,6 +1263,7 @@ NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, T
 	incNumberOfDynamicObject();
 #endif	
 	valNode2 = (NMAST*)malloc(sizeof(NMAST));
+	valNode2->variable = 0;
 	valNode2->type = valtk2->type;
 	valNode2->value = val2;
 	valNode2->valueType = TYPE_FLOATING_POINT;

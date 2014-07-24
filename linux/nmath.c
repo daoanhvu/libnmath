@@ -944,7 +944,7 @@ int reduce(Function *f, int *error){
 unsigned int __stdcall lim_t(void *param){
 	HANDLE thread_1 = 0, thread_2 = 0;
 #else
-void lim_t(void *param){
+void* lim_t(void *param){
 	pthread_t thrLeft, thrRight;
 	int idThrLeft=-1, idThrRight = -1;
 #endif
@@ -952,9 +952,15 @@ void lim_t(void *param){
 	NMAST *p;
 	DParam this_param_left;
 	DParam this_param_right;
+	int var_index = -1;
 
 	this_param_left.error = this_param_right.error = 0;
-	this_param_left.variables = this_param_right.variables = dp->variables;
+	this_param_left.variables[0] = this_param_right.variables[0] = dp->variables[0];
+	this_param_left.variables[1] = this_param_right.variables[1] = dp->variables[1];
+	this_param_left.variables[2] = this_param_right.variables[2] = dp->variables[2];
+	this_param_left.variables[3] = this_param_right.variables[3] = dp->variables[3];
+	//memcpy(this_param_left.variables, dp->variables, 4);
+	//memcpy(this_param_right.variables, dp->variables, 4);
 	this_param_left.values = this_param_right.values = dp->values;
 	
 	/* If the tree is NULL */
@@ -962,9 +968,22 @@ void lim_t(void *param){
 		return 0;
 	}
 
-	if(t->type == VARIABLE){
-		var_index = isInArray(dp->variables[0], t->variable);
+	/**
+		lim(x)(x->k) = k
+		lim(k)(x->t) = k
+		k is a constant
+	*/
+	if((dp->t)->type == VARIABLE){
+		var_index = isInArray(dp->variables, (dp->t)->variable);
 		dp->retv = dp->values[var_index];
+		p = (NMAST*)malloc(sizeof(NMAST));
+		p->type = NUMBER;
+		p->value = dp->retv;
+		p->valueType = TYPE_FLOATING_POINT;
+		p->variable = dp->variables[var_index];
+		p->sign = 1;
+		p->parent = p->left = p->right = NULL;
+		dp->returnValue = p;
 #ifdef WINDOWS
 		return dp->error;
 #else
@@ -972,8 +991,16 @@ void lim_t(void *param){
 #endif
 	}
 
-	if( (t->type == NUMBER) || (t->type == PI_TYPE) ||(t->type == E_TYPE) ){
-		dp->retv = t->value;
+	if( ((dp->t)->type == NUMBER) || ((dp->t)->type == PI_TYPE) ||((dp->t)->type == E_TYPE) ){
+		dp->retv = (dp->t)->value;
+		p = (NMAST*)malloc(sizeof(NMAST));
+		p->type = NUMBER;
+		p->value = dp->retv;
+		p->valueType = TYPE_FLOATING_POINT;
+		p->variable = 0;
+		p->sign = 1;
+		p->parent = p->left = p->right = NULL;
+		dp->returnValue = p;
 #ifdef WINDOWS
 		return dp->error;
 #else
@@ -981,8 +1008,8 @@ void lim_t(void *param){
 #endif
 	}
 
-	this_param_left.t = t->left;
-	this_param_right.t = t->right;
+	this_param_left.t = (dp->t)->left;
+	this_param_right.t = (dp->t)->right;
 
 #ifdef WINDOWS
 	thread_1 = (HANDLE)_beginthreadex(NULL, 0, &lim_t, (void*)&this_param_left, 0, NULL);
@@ -1006,7 +1033,22 @@ void lim_t(void *param){
 	}
 #endif
 
-	
+	/** Case 1 */
+	switch(dp->t->type){
+		case PLUS:
+		break;
+
+		case MINUS:
+		break;
+
+		case MULTIPLY:
+		break;
+
+		case DIVIDE:
+		break;
+	}
+
+	return NULL;
 }
 /** ================================================================================================================================ */
 
@@ -1025,7 +1067,12 @@ void* calc_t(void *param){
 	int var_index = -1;
 
 	this_param_left.error = this_param_right.error = 0;
-	this_param_left.variables = this_param_right.variables = dp->variables;
+	this_param_left.variables[0] = this_param_right.variables[0] = dp->variables[0];
+	this_param_left.variables[1] = this_param_right.variables[1] = dp->variables[1];
+	this_param_left.variables[2] = this_param_right.variables[2] = dp->variables[2];
+	this_param_left.variables[3] = this_param_right.variables[3] = dp->variables[3];
+	//memcpy(this_param_left.variables, dp->variables, 4);
+	//memcpy(this_param_right.variables, dp->variables, 4);
 	this_param_left.values = this_param_right.values = dp->values;
 	
 	/* If the input tree is NULL, we do nothing */
@@ -1034,7 +1081,7 @@ void* calc_t(void *param){
 	}
 
 	if(t->type == VARIABLE){
-		var_index = isInArray(dp->variables[0], t->variable);
+		var_index = isInArray(dp->variables, t->variable);
 		dp->retv = dp->values[var_index];
 #ifdef WINDOWS
 		return dp->error;
@@ -1103,8 +1150,8 @@ DATA_TYPE_FP calc(Function *f, DATA_TYPE_FP *values, int numOfValue, int *error)
 
 	rp.error = 0;
 	rp.t = *(f->prefix->list);
-	rp.values = values;
-	rp.variables = f->variable;
+	rp.values = values;	
+	memcpy(rp.variables, f->variable, 4);
 
 	//replace variable by value
 	//for(i=0; i<f->numVarNode; i++){
@@ -1126,6 +1173,7 @@ NMAST *createTreeNode(){
 	(p->frValue).numerator = 0;
 	(p->frValue).denomerator = 1;
 	p->sign = 1;
+	p->variable = 0;
 	p->parent = p->left = p->right;
 	return p;
 }
@@ -1179,6 +1227,7 @@ void* derivative(void *p){
 		u->value = 0.0;
 		u->parent = NULL;
 		u->left = u->right = NULL;
+		u->variable = 0;
 		dp->returnValue = u;
 #ifdef WINDOWS
 		return 0;
@@ -1200,7 +1249,8 @@ void* derivative(void *p){
 		u->type = NUMBER;
 		u->value = 1.0;
 		u->parent = NULL;
-		u->left = u->right = NULL;		
+		u->left = u->right = NULL;
+		u->variable = 0;
 		if(dp->variables[0] == t->variable){
 			u->value = 1.0;
 			dp->returnValue = u;
@@ -1374,13 +1424,15 @@ NMAST* d_product(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 	NMAST *r = NULL;
 	
 	r = (NMAST *)malloc(sizeof(NMAST));
+	r->variable = 0;
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
 	r->type = PLUS;
-	r->parent = NULL;
+	r->parent = NULL;	
 	
 	r->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->variable = 0;
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
@@ -1392,6 +1444,7 @@ NMAST* d_product(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 		dv->parent = r->left;
 		
 	r->right = (NMAST *)malloc(sizeof(NMAST));
+	r->right->variable = 0;
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
@@ -1412,12 +1465,14 @@ NMAST* d_quotient(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 	NMAST *r;
 	
 	r = (NMAST*)malloc(sizeof(NMAST));
+	r->variable = 0;
 	r->type = DIVIDE;
 	r->value = 0;
 	r->sign = 1;
 	r->parent = NULL;
 			
 	r->left = (NMAST*)malloc(sizeof(NMAST));
+	r->left->variable = 0;
 	(r->left)->parent = r;
 	(r->left)->type = MINUS;
 	(r->left)->value = 0;
@@ -1425,6 +1480,7 @@ NMAST* d_quotient(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 	
 	/* ========================================== */
 	(r->left)->left = (NMAST*)malloc(sizeof(NMAST));
+	r->left->left->variable = 0;
 	(r->left)->left->type = MULTIPLY;
 	(r->left)->left->sign = 1;
 	(r->left)->left->parent = r->right;
