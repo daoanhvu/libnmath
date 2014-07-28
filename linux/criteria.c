@@ -2,6 +2,15 @@
 #include "nmath.h"
 #include "criteria.h"
 
+#ifdef _TARGET_HOST_ANDROID
+	#include <jni.h>
+	#include <android/log.h>
+	#define LOG_TAG "NMATH2"
+	#define LOG_LEVEL 10
+	#define LOGI(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__);}
+	#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
+#endif
+
 extern short gErrorCode;
 
 int andTwoSimpleCriteria(const Criteria* c1, const Criteria* c2, OutBuiltCriteria* out);

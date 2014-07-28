@@ -12,6 +12,7 @@
 
 #include "nmath.h"
 
+/**
 #ifdef _TARGET_HOST_ANDROID
 	#include<android/log.h>
 	#define LOG_TAG "NMATH2"
@@ -19,7 +20,7 @@
 	#define LOGI(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__);}
 	#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
 #endif
-
+*/
 
 NMAST* d_product(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
 NMAST* d_quotient(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
@@ -1712,6 +1713,7 @@ NMAST* d_sqrt(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 	r->right->left->sign = 1;
 	r->right->left->valueType = TYPE_FLOATING_POINT;
 	r->right->left->parent = r->right;
+	r->right->left->right = r->right->left->left = NULL;
 		
 	r->right->right = cloneTree(t, r->right);
 	return r;

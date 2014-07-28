@@ -45,7 +45,7 @@ int main(int argc, char *agr[]){
 	
 	testDerivative(f);
 	testGetSpaces(f);
-	testReuseFunction(f);
+	//testReuseFunction(f);
 	//testCriteria2(argc, agr);
 
 	releaseFunct(f);
@@ -336,7 +336,7 @@ void printError(int col, int code){
 	}
 }
 
-int testDerivative(Function *f){
+int testDerivative(Function *f) {
 	DParam d;
 	int error;
 	DATA_TYPE_FP vars[] = {4, 1};
@@ -351,11 +351,7 @@ int testDerivative(Function *f){
 	d.returnValue = NULL;
 	d.variables[0] = 'x';
 
-#ifdef WINDOWS
 	derivative(&d);
-#else
-	d.returnValue = derivative(&d);
-#endif
 
 	toString(d.returnValue, dstr, &l, 64);
 	printf("f' = %s\n", dstr);

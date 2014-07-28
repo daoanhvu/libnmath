@@ -8,6 +8,17 @@
 #include "common.h"
 #include "nlabparser.h"
 
+/**
+#ifdef _TARGET_HOST_ANDROID
+	#include <jni.h>
+	#include <android/log.h>
+	#define LOG_TAG "NMATH2"
+	#define LOG_LEVEL 10
+	#define LOGI(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__);}
+	#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
+#endif
+*/
+
 extern short gErrorColumn;
 extern short gErrorCode;
 extern TokenList *gTokens;
@@ -709,10 +720,10 @@ short parseFunction(const char *str, short len, Function *outF){
 		result = parseFunctionExpression(&lst, outF);
 		for(i = 0; i<lst.size; i++){
 			free(lst.list[i]);
-#ifdef DEBUG
-			descNumberOfDynamicObject();
-#endif
 		}
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(lst.size + 1);
+#endif
 	}
 	free(lst.list);
 #ifdef DEBUG
@@ -1160,7 +1171,6 @@ void domain(int *start, Function *f){
 			break;
 		}
 	}
-	
 	while(top >= 0){
 		tokenItm = popFromStack(stack, &top);
 		
@@ -1190,13 +1200,14 @@ void domain(int *start, Function *f){
 	*/
 	if(f->domain == NULL){
 		f->domain = (NMASTList*)malloc(sizeof(NMASTList));
+		f->domain->list = NULL;
+		f->domain->loggedSize = 0;
+		f->domain->size = 0;
 #ifdef DEBUG
 		incNumberOfDynamicObject();
 #endif
 	}
-		
 	pushASTStack(f->domain, d->list[0]);
-	
 	free(stack);
 	free(d);
 #ifdef DEBUG

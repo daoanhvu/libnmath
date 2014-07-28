@@ -147,9 +147,9 @@ void clearTree(NMAST **prf){
 		return;
 	
 	if((*prf)->left != NULL)
-		clearTree(&(*prf)->left);
+		clearTree(&((*prf)->left));
 	if((*prf)->right != NULL)
-		clearTree(&(*prf)->right);
+		clearTree(&((*prf)->right));
 		
 	free(*prf);
 	(*prf) = NULL;
@@ -158,6 +158,23 @@ void clearTree(NMAST **prf){
 	descNumberOfDynamicObject();
 #endif
 	
+}
+
+void clearTreeContent(NMAST *prf){
+	if(prf == NULL)
+		return;
+	
+	if(prf->left != NULL){
+		clearTreeContent(prf->left);
+		free(prf->left);
+		prf->left = NULL;
+	}
+
+	if(prf->right != NULL){
+		clearTreeContent(prf->right);
+		free(prf->right);
+		prf->right = NULL;
+	}
 }
 
 long l_cast(DATA_TYPE_FP val, DATA_TYPE_FP *fr){
