@@ -17,7 +17,7 @@ int testDerivative(Function *f);
 int testGetSpaces(Function *f);
 void testReuseFunction(Function *f);
 void testCriteria1(int argc, char *agr[]);
-void testCriteria2(int argc, char *agr[]);
+void testCriteria2(Function *f);
 
 int main(int argc, char *agr[]){
 	Function *f;
@@ -29,6 +29,12 @@ int main(int argc, char *agr[]){
 	}
 
 	f = (Function*)malloc(sizeof(Function));
+	f->str = NULL;
+	f->len = 0;
+	f->valLen = 0;
+	f->prefix = NULL;
+	f->domain = NULL;
+	f->criterias = NULL;
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
@@ -43,10 +49,10 @@ int main(int argc, char *agr[]){
 		return getErrorCode();
 	}
 	
-	testDerivative(f);
-	testGetSpaces(f);
+	//testDerivative(f);
+	//testGetSpaces(f);
 	//testReuseFunction(f);
-	//testCriteria2(argc, agr);
+	testCriteria2(f);
 
 	releaseFunct(f);
 	free(f);
@@ -230,57 +236,65 @@ void testCriteria1(int argc, char *agr[]){
 	Date: 6 Jul 2014
 	Result: Passed
 */
-void testCriteria2(int argc, char *agr[]){
-	NMAST *ast;
-	OutBuiltCriteria outCriteria;
-	Criteria *ci1; 
-	//Criteria *ci2;
-	//CombinedCriteria *cc1;
-	//CombinedCriteria *cc2;
-	//CompositeCriteria *cp1;
-	//int i;
-	//int j; 
-	//int error;
-	//int outlen;
-	//int chk;
-	int outType;
-	//DATA_TYPE_FP *vals;
-	//CombinedCriteria *outIntList;
-	//CompositeCriteria *outDomain;
-	
-	outCriteria.cr = NULL;
-	
-	//Tes1
-	ast = (NMAST*)malloc(sizeof(NMAST));
-	ast->type = GT_LT;
-	ast->variable = 'x';
-	ast->parent = NULL;
-	ast->left = (NMAST*)malloc(sizeof(NMAST));
-	ast->left->type = NUMBER;
-	ast->left->value = -1;
-	ast->left->valueType = TYPE_FLOATING_POINT;
-	ast->left->left = ast->left->right = NULL;
-	ast->left->parent = ast;
-	ast->right = (NMAST*)malloc(sizeof(NMAST));
-	ast->right->type = NUMBER;
-	ast->right->value = 1.5;
-	ast->right->valueType = TYPE_FLOATING_POINT;
-	ast->right->left = ast->right->right = NULL;
-	ast->right->parent = ast;
-	
-	buildCompositeCriteria(ast, "x", 1, &outCriteria);
-	
-	if(outCriteria.cr != NULL){
-		outType = *((int*)(outCriteria.cr));
-		if( outType == SIMPLE_CRITERIA ){
-			ci1 = (Criteria*)(outCriteria.cr);
-			printf("Got a simple criteria from %lf to %lf\n", ci1->leftVal, ci1->rightVal );
-			free(outCriteria.cr);
-		} else if( outType == COMBINED_CRITERIA ){
-		} else if( outType == COMPOSITE_CRITERIA ){
+void testCriteria2(Function *f) {
+	int i, j;
+	char type;
+	Criteria *cr;
+	CombinedCriteria *cc;
+	CompositeCriteria *cp;
+	buildCriteria(f);
+
+	if(f->criterias != NULL) {
+		for(i=0; i<f->criterias->size; i++) {
+			type = *((char*)(f->criterias->list[i]));
+			switch(type) {
+				case SIMPLE_CRITERIA:
+					cr = (Criteria*)f->criterias->list[i];
+					switch(cr->type) {
+						case LT:
+							printf("Simple Criteria type: LT; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
+						break;
+
+						case GT:
+							printf("Simple Criteria type: GT; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
+						break;
+
+						case LTE:
+							printf("Simple Criteria type: LTE; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
+						break;
+
+						case GTE:
+							printf("Simple Criteria type: GTE; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
+						break;
+
+						case GT_LT:
+							printf("Simple Criteria type: GT_LT; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
+						break;
+
+						case GTE_LT:
+							printf("Simple Criteria type: GTE_LT; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
+						break;
+
+						case GT_LTE:
+							printf("Simple Criteria type: GT_LTE; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
+						break;
+					}
+					
+				break;
+
+				case COMBINED_CRITERIA:
+					cc = (CombinedCriteria*)f->criterias->list[i];
+					printf("CombinedCriteria size: %d\n", cc->size);
+				break;
+
+				case COMPOSITE_CRITERIA:
+					cp = (CompositeCriteria*)f->criterias->list[i];
+					
+					printf("CompositeCriteria size: %d\n", cp->size);
+				break;
+			}
 		}
 	}
-	clearTree(&ast);
 }
 
 
