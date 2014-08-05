@@ -1049,7 +1049,12 @@ void* lim_t(void *param){
 		break;
 	}
 
+	
+#ifdef WINDOWS
+	return 0;
+#else
 	return NULL;
+#endif
 }
 /** ================================================================================================================================ */
 
@@ -1273,13 +1278,13 @@ void* derivative(void *p){
 #ifdef WINDOWS
 	if(u!=NULL){
 		pdu.t = t->left;
-		pdu.x = x;
+		pdu.variables[0] = x;
 		tdu = (HANDLE)_beginthreadex(NULL, 0, &derivative, (void*)&pdu, 0, NULL);
 	}
 	
 	if(v != NULL){
 		pdv.t = t->right;
-		pdv.x = x;
+		pdv.variables[0] = x;
 		tdv = (HANDLE)_beginthreadex(NULL, 0, &derivative, (void*)&pdv, 0, NULL);
 	}
 
@@ -1304,23 +1309,23 @@ void* derivative(void *p){
 			return 0;
 
 		case TAN:
-			dp->returnValue = d_tan(t, u, du, v, dv, dp->x);
+			dp->returnValue = d_tan(t, u, du, v, dv, x);
 			return 0;
 
 		case COTAN:
-			dp->returnValue = d_cotan(t, u, du, v, dv, dp->x);
+			dp->returnValue = d_cotan(t, u, du, v, dv, x);
 			return 0;
 				
 		case ASIN:
-			dp->returnValue = d_asin(t, u, du, v, dv, dp->x);
+			dp->returnValue = d_asin(t, u, du, v, dv, x);
 			return 0;
 				
 		case ACOS:
-			dp->returnValue = d_acos(t, u, du, v, dv, dp->x);
+			dp->returnValue = d_acos(t, u, du, v, dv, x);
 			return 0;
 				
 		case ATAN:
-			dp->returnValue = d_atan(t, u, du, v, dv, dp->x);
+			dp->returnValue = d_atan(t, u, du, v, dv, x);
 			return 0;
 				
 		case SQRT:
