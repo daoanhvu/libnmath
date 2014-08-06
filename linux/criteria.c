@@ -19,7 +19,6 @@ int andTwoCriteria(const void* c1, const void* c2, OutBuiltCriteria* out);
 
 void copyCombinedCriteria(CombinedCriteria *from, CombinedCriteria *target){
 	int i;
-	
 	target->loggedSize = from->loggedSize;
 	target->size = from->size;
 	target->list = (Criteria**)malloc(sizeof(Criteria*) * target->loggedSize);
@@ -586,7 +585,35 @@ int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out){
 			}
 			i++;
 		}
-		
+
+		/*
+			We got here because c1 (SimpleCriteria) has variable that not same as vaiable of any criteria in CombinedCriteria
+		*/
+		cr = (Criteria*)c1;
+		comb1 = newCombinedInterval();
+		int i;
+		comb1->loggedSize = cb->loggedSize + 1;
+		comb1->size = 0;
+		comb1->list = (Criteria**)malloc(sizeof(Criteria*) * comb1->loggedSize);
+#ifdef DEBUG
+		incNumberOfDynamicObject();
+#endif
+		for(i=0; i<cb->size; i++){
+			comb1->list[(comb1->size)++] = newCriteria(cb->list[i]->type, 
+												cb->list[i]->variable,
+												cb->list[i]->leftVal,
+												cb->list[i]->rightVal, 
+												(cb->list[i]->flag & LEFT_INF) >> 1,
+												cb->list[i]->flag & RIGHT_INF);
+		}
+		comb1->list[(comb1->size)++] = newCriteria(cr->type, 
+												cr->variable,
+												cr->leftVal,
+												cr->rightVal, 
+												(cr->flag & LEFT_INF) >> 1,
+												cr->flag & RIGHT_INF);
+		result = TRUE;
+		out->cr = comb1;
 	} else if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
 		/**
 			c1 and (c2 or  c3) = (c1 and c2) or (c1 and c3)
@@ -633,8 +660,38 @@ int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out){
 				}
 				break;
 			}
+
 			i++;
 		}
+
+		/*	
+			We got here because c1 (SimpleCriteria) has variable that not same as vaiable of any criteria in CombinedCriteria
+		*/
+		cr = (Criteria*)c2;
+		comb1 = newCombinedInterval();
+		int i;
+		comb1->loggedSize = cb->loggedSize + 1;
+		comb1->size = 0;
+		comb1->list = (Criteria**)malloc(sizeof(Criteria*) * comb1->loggedSize);
+#ifdef DEBUG
+		incNumberOfDynamicObject();
+#endif
+		for(i=0; i<cb->size; i++){
+			comb1->list[(comb1->size)++] = newCriteria(cb->list[i]->type, 
+												cb->list[i]->variable,
+												cb->list[i]->leftVal,
+												cb->list[i]->rightVal, 
+												(cb->list[i]->flag & LEFT_INF) >> 1,
+												cb->list[i]->flag & RIGHT_INF);
+		}
+		comb1->list[(comb1->size)++] = newCriteria(cr->type, 
+												cr->variable,
+												cr->leftVal,
+												cr->rightVal, 
+												(cr->flag & LEFT_INF) >> 1,
+												cr->flag & RIGHT_INF);
+		result = TRUE;
+		out->cr = comb1;
 	} else if( objTypeLeft == COMBINED_CRITERIA && objTypeRight == COMBINED_CRITERIA ) {
 		comb1 = (CombinedCriteria*)c1;
 		comb2 = (CombinedCriteria*)c2;
@@ -1055,6 +1112,203 @@ ListFData *getValueRangeForOneVariableF(Function *f, const DATA_TYPE_FP *bd, int
 }
 
 ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
+	ListFData *lst = NULL;
+	FData *sp;
+	CombinedCriteria *comb;
+	CompositeCriteria *composite;
+	Criteria c;
+	OutBuiltCriteria outCriteria;
+	int i, j, outCriteriaType;
+	
+	outCriteria.cr = NULL;
+	switch(f->valLen){
+		case 1:
+			lst = (ListFData*)malloc(sizeof(ListFData));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+			if(f->domain == NULL){
+				c.objectType = SIMPLE_CRITERIA;
+				c.flag = AVAILABLE;
+				c.type = GT_LT;
+				c.variable = f->variable[0];
+				c.leftVal = bd[0];
+				c.rightVal = bd[1];
+				c.fcheck = isInInterval;
+				c.fgetInterval = getInterval;
+				
+				sp = generateOneUnknows(f->prefix->list[0], f->variable, &c, bd, 2, epsilon);
+				if(sp != NULL){
+					lst->loggedSize = 1;
+					lst->size = 1;
+					lst->list = (FData**)malloc(sizeof(FData*));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+					lst->list[0] = sp;
+				}
+			} else {
+				buildCompositeCriteria(f->domain->list[0], f->variable, f->valLen, &outCriteria);
+				outCriteriaType = *((char*)(outCriteria.cr));
+				switch(outCriteriaType){
+					case SIMPLE_CRITERIA:
+						sp = generateOneUnknows(f->prefix->list[0], f->variable, (Criteria*)(outCriteria.cr), bd, 2, epsilon);
+						if(sp != NULL){
+							lst->loggedSize = 1;
+							lst->size = 1;
+							lst->list = (FData**)malloc(sizeof(FData*));
+							lst->list[0] = sp;
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+						}
+						free(outCriteria.cr);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+					break;
+					
+					case COMBINED_CRITERIA:
+					break;
+					
+					case COMPOSITE_CRITERIA:
+						composite = (CompositeCriteria*)(outCriteria.cr);
+						lst->list = (FData**)malloc(sizeof(FData*) * composite->size );
+						lst->loggedSize = composite->size;
+						lst->size = 0;
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+						for(i=0; i<composite->size; i++){
+							comb = composite->list[i];
+							sp = generateOneUnknows(f->prefix->list[0], f->variable, comb->list[0], bd, 2, epsilon);
+							if(sp != NULL){
+								lst->list[lst->size++] = sp;
+							}
+							for(j=0; j<comb->size; j++){
+								free(comb->list[j]);
+							}
+							free(comb->list);
+							free(comb);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(j+1+2);
+#endif
+						}
+						free(composite->list);
+						free(composite);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(2);
+#endif
+					break;
+				}//end switch
+			}
+		break;
+		
+		case 2:
+			lst = (ListFData*)malloc(sizeof(ListFData));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+			if(f->domain == NULL){
+				comb = newCombinedInterval();
+				comb->loggedSize = 2;
+				comb->size = 2;
+				comb->list = (Criteria **)malloc(sizeof(Criteria *) * comb->loggedSize);
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+				comb->list[0] = newCriteria(GT_LT, f->variable[0], bd[0], bd[1], TRUE, TRUE);
+				comb->list[1] = newCriteria(GT_LT, f->variable[1], bd[2], bd[3], TRUE, TRUE);
+				sp = generateTwoUnknowsFromCombinedCriteria(f->prefix->list[0], f->variable, comb, bd, 4, epsilon);
+				if(sp != NULL){
+					lst->loggedSize = 1;
+					lst->size = 1;
+					lst->list = (FData**)malloc(sizeof(FData*));
+					lst->list[0] = sp;
+				}
+				for(i=0; i<comb->size; i++) {
+					free(comb->list[i]);
+				}
+				free(comb->list);
+				free(comb);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(i+1+2);
+#endif
+			} else {
+				buildCompositeCriteria(f->domain->list[0], f->variable, f->valLen, &outCriteria);
+				outCriteriaType = *((char*)(outCriteria.cr));
+				switch(outCriteriaType){
+					case SIMPLE_CRITERIA:
+						free(outCriteria.cr);
+#ifdef DEBUG
+	descNumberOfDynamicObject();
+#endif
+					break;
+					
+					case COMBINED_CRITERIA:
+						comb = (CombinedCriteria*)(outCriteria.cr);
+						sp = generateTwoUnknowsFromCombinedCriteria(f->prefix->list[0], f->variable, comb, bd, 4, epsilon);
+						if(sp != NULL){
+							lst->loggedSize = 1;
+							lst->size = 1;
+							lst->list = (FData**)malloc(sizeof(FData*));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+							lst->list[0] = sp;
+						}
+						for(i=0; i<comb->size; i++){
+							free(comb->list[i]);
+						}
+						free(comb->list);
+						free(comb);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(i+1+2);
+#endif
+					break;
+					
+					case COMPOSITE_CRITERIA:
+						composite = (CompositeCriteria*)(outCriteria.cr);
+						lst->list = (FData**)malloc(sizeof(FData*) * composite->size );
+						lst->loggedSize = composite->size;
+						lst->size = 0;
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+						for(i=0; i<composite->size; i++){
+							comb = composite->list[i];
+							sp = generateTwoUnknowsFromCombinedCriteria(f->prefix->list[0], f->variable, comb, bd, 4, epsilon);
+							if(sp != NULL)
+								lst->list[lst->size++] = sp;
+							for(j=0; j<comb->size; j++){
+								free(comb->list[j]);
+							}
+							free(comb->list);
+							free(comb);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(j+1+2);
+#endif
+						}
+						free(composite->list);
+						free(composite);
+#ifdef DEBUG
+	descNumberOfDynamicObjectBy(2);
+#endif
+					break;
+				}
+			}
+		break;
+		
+		case 3:
+		break;
+		
+		default:
+		break;
+	}
+	return lst;
+}
+
+ListFData *getSpaces2(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
 	ListFData *lst = NULL;
 	FData *sp;
 	CombinedCriteria *comb;

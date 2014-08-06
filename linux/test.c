@@ -50,9 +50,9 @@ int main(int argc, char *agr[]){
 	}
 	
 	//testDerivative(f);
-	//testGetSpaces(f);
+	testGetSpaces(f);
 	//testReuseFunction(f);
-	testCriteria2(f);
+	//testCriteria2(f);
 
 	releaseFunct(f);
 	free(f);
@@ -326,17 +326,17 @@ void printDomainTree(NMAST *ast, int level) {
 	Result: Passed
 */
 void testCriteria2(Function *f) {
-	//int i, j;
-	//char type;
-	//Criteria *cr;
-	//CombinedCriteria *cc;
-	//CompositeCriteria *cp;
+	int i, j;
+	char type;
+	Criteria *cr;
+	CombinedCriteria *cc;
+	CompositeCriteria *cp;
 
 	if(f->domain != NULL && f->domain->size>0)
 		printDomainTree(f->domain->list[0], 0);
 
-	/*
 	buildCriteria(f);
+
 	if(f->criterias != NULL) {
 		for(i=0; i<f->criterias->size; i++) {
 			type = *((char*)(f->criterias->list[i]));
@@ -366,7 +366,7 @@ void testCriteria2(Function *f) {
 			}
 		}
 	}
-	*/
+	
 }
 
 
