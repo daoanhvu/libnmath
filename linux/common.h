@@ -296,6 +296,7 @@ int contains(short type, const short *aset, short len);
 DATA_TYPE_FP logab(DATA_TYPE_FP a, DATA_TYPE_FP b, short *error);
 DATA_TYPE_FP doCalculate(DATA_TYPE_FP val1, DATA_TYPE_FP val2, short type, short *error);
 void clearTree(NMAST **prf);
+void clearTreeContent(NMAST *prf);
 int getErrorColumn();
 int getErrorCode();
 int isAFunctionType(int type);

@@ -231,70 +231,142 @@ void testCriteria1(int argc, char *agr[]){
 	free(outDomain);
 }
 
+void printSimpleCriteria(const Criteria *cr) {
+	switch(cr->type) {
+		case LT:
+			printf("Simple Criteria type: LT; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
+		break;
+
+		case GT:
+			printf("Simple Criteria type: GT; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
+		break;
+
+		case LTE:
+			printf("Simple Criteria type: LTE; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
+		break;
+
+		case GTE:
+			printf("Simple Criteria type: GTE; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
+		break;
+
+		case GT_LT:
+			printf("Simple Criteria type: GT_LT; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
+		break;
+
+		case GTE_LT:
+			printf("Simple Criteria type: GTE_LT; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
+		break;
+
+		case GT_LTE:
+			printf("Simple Criteria type: GT_LTE; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
+		break;
+	}
+}
+
+void printCombinedCriteria(const CombinedCriteria *cc) {
+	int i;
+	Criteria *cr;
+	if(cc != NULL) {
+		printf("CombinedCriteria size: %d\n", cc->size);
+		for(i=0; i<cc->size; i++) {
+			cr = cc->list[i];
+			printSimpleCriteria(cr);
+		}
+		printf("\n");
+	}
+}
+
+void printDomainTree(NMAST *ast, int level) {
+	int i;
+
+	if(ast == NULL) return;
+
+	if(level > 0){
+		for(i=0; i<level-1; i++)
+			printf("\t");
+		printf("|-----");
+	}
+
+	switch(ast->type) {
+		case AND:
+			printf("AND \n");
+		break;
+
+		case OR:
+			printf("OR \n");
+		break;
+
+		case LT:
+			printf("LT \n");
+		break;
+
+		case GT:
+			printf("GT \n");
+		break;
+
+		case VARIABLE:
+			printf("%c \n", ast->variable);
+		break;
+
+		case NUMBER:
+			printf("%lf \n", ast->value);
+		break;
+	}
+
+	if(ast->left != NULL)
+		printDomainTree(ast->left, level+1);
+
+	if(ast->right != NULL)
+		printDomainTree(ast->right, level+1);
+}
+
 /**
 	Test convert from NMAST tree to Criteria
 	Date: 6 Jul 2014
 	Result: Passed
 */
 void testCriteria2(Function *f) {
-	int i, j;
-	char type;
-	Criteria *cr;
-	CombinedCriteria *cc;
-	CompositeCriteria *cp;
-	buildCriteria(f);
+	//int i, j;
+	//char type;
+	//Criteria *cr;
+	//CombinedCriteria *cc;
+	//CompositeCriteria *cp;
 
+	if(f->domain != NULL && f->domain->size>0)
+		printDomainTree(f->domain->list[0], 0);
+
+	/*
+	buildCriteria(f);
 	if(f->criterias != NULL) {
 		for(i=0; i<f->criterias->size; i++) {
 			type = *((char*)(f->criterias->list[i]));
 			switch(type) {
 				case SIMPLE_CRITERIA:
 					cr = (Criteria*)f->criterias->list[i];
-					switch(cr->type) {
-						case LT:
-							printf("Simple Criteria type: LT; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
-						break;
-
-						case GT:
-							printf("Simple Criteria type: GT; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
-						break;
-
-						case LTE:
-							printf("Simple Criteria type: LTE; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
-						break;
-
-						case GTE:
-							printf("Simple Criteria type: GTE; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
-						break;
-
-						case GT_LT:
-							printf("Simple Criteria type: GT_LT; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
-						break;
-
-						case GTE_LT:
-							printf("Simple Criteria type: GTE_LT; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
-						break;
-
-						case GT_LTE:
-							printf("Simple Criteria type: GT_LTE; variable: %c; left: %lf; right: %lf\n", cr->variable, cr->leftVal, cr->rightVal);
-						break;
-					}
-					
+					printSimpleCriteria(cr);
 				break;
 
 				case COMBINED_CRITERIA:
 					cc = (CombinedCriteria*)f->criterias->list[i];
 					printf("CombinedCriteria size: %d\n", cc->size);
+					for(j=0; j<cc->size; j++){
+						cr = cc->list[j];
+						printSimpleCriteria(cr);
+					}
 				break;
 
 				case COMPOSITE_CRITERIA:
 					cp = (CompositeCriteria*)f->criterias->list[i];
-					
 					printf("CompositeCriteria size: %d\n", cp->size);
+					for(j=0; j<cp->size; j++){
+						cc = cp->list[j];
+						printCombinedCriteria(cc);
+					}
 				break;
 			}
 		}
 	}
+	*/
 }
 
 

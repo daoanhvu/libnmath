@@ -552,9 +552,9 @@ int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out){
 	int objTypeRight = *((char*)c2);
 	int i, result = FALSE;
 	DATA_TYPE_FP d[2];
-	Criteria *interval;
-	CombinedCriteria *cb;
-	CompositeCriteria *inputComp, *comp1;
+	Criteria *interval, *cr;
+	CombinedCriteria *cb, *comb1, *comb2;
+	CompositeCriteria *inputComp, *outComp, *comp1, *comp2;
 	void *tmp;
 	OutBuiltCriteria outTmp;
 	
@@ -636,12 +636,105 @@ int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out){
 			i++;
 		}
 	} else if( objTypeLeft == COMBINED_CRITERIA && objTypeRight == COMBINED_CRITERIA ) {
+		comb1 = (CombinedCriteria*)c1;
+		comb2 = (CombinedCriteria*)c2;
+		cb = newCombinedInterval();
+		cb->loggedSize = comb2->size;
+		cb->list = (Criteria**)malloc(sizeof(Criteria*) * cb->loggedSize);
+		for(i=0; i<comb2->size; i++) {
+			cr = comb2->list[i];
+			andTwoCriteria(comb1, cr, &outTmp);
+
+			if(cb->size >= cb->loggedSize){
+				cb->loggedSize += 5;
+				tmp = realloc(cb->list, sizeof(Criteria*) * cb->loggedSize);
+				cb->list = (tmp==NULL)?cb->list:((Criteria**)tmp);
+			}
+			cb->list[cb->size++] = outTmp.cr;
+			outTmp.cr = NULL;
+		}
+		out->cr = cb;
+		result = TRUE;
 	} else if( objTypeLeft == COMBINED_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
-			
+		comb1 = (CombinedCriteria*)c1;
+		comp2 = (CompositeCriteria*)c2;
+		outComp = newCompositeInterval();
+		outComp->loggedSize = comp2->size;
+		outComp->list = (CombinedCriteria**)malloc(sizeof(CombinedCriteria*) * outComp->loggedSize);
+		for(i=0; i<comp2->size; i++) {
+			cb = comp2->list[i];
+			andTwoCriteria(comb1, cb, &outTmp);
+
+			if(outComp->size >= outComp->loggedSize) {
+				outComp->loggedSize += 5;
+				tmp = realloc(outComp->list, sizeof(CombinedCriteria*) * outComp->loggedSize);
+				outComp->list = (tmp==NULL)?outComp->list:((CombinedCriteria**)tmp);
+			}
+
+			outComp->list[(outComp->size)++] = outTmp.cr;
+			outTmp.cr = NULL;
+		}
+		out->cr = outComp;
+		result = TRUE;
 	} else if( objTypeLeft == COMPOSITE_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
+		inputComp = (CompositeCriteria*)c1;
+		comp1 = newCompositeInterval();
+		for(i=0; i<inputComp->size; i++) {
+			cb = inputComp->list[i];
+			outTmp.cr = NULL;
+			if( andTwoCriteria((Criteria*)c2, cb, &outTmp) ){
+				if(comp1->size >= comp1->loggedSize){
+					comp1->loggedSize += 5;
+					tmp = realloc(comp1->list, sizeof(CombinedCriteria*) * comp1->loggedSize);
+					comp1->list = tmp==NULL?comp1->list:tmp;
+				}
+				comp1->list[comp1->size++] = (CombinedCriteria*)(outTmp.cr);
+			}
+		}
+		result = TRUE;
+		out->cr = comp1;
 	} else if( objTypeLeft == COMPOSITE_CRITERIA && objTypeRight == COMBINED_CRITERIA ) {
+		comb1 = (CombinedCriteria*)c2;
+		comp2 = (CompositeCriteria*)c1;
+		outComp = newCompositeInterval();
+		outComp->loggedSize = comp2->size;
+		outComp->list = (CombinedCriteria**)malloc(sizeof(CombinedCriteria*) * outComp->loggedSize);
+		for(i=0; i<comp2->size; i++) {
+			cb = comp2->list[i];
+			andTwoCriteria(comb1, cb, &outTmp);
+
+			if(outComp->size >= outComp->loggedSize) {
+				outComp->loggedSize += 5;
+				tmp = realloc(outComp->list, sizeof(CombinedCriteria*) * outComp->loggedSize);
+				outComp->list = (tmp==NULL)?outComp->list:((CombinedCriteria**)tmp);
+			}
+
+			outComp->list[(outComp->size)++] = outTmp.cr;
+			outTmp.cr = NULL;
+		}
+		out->cr = outComp;
+		result = TRUE;
 	} else if( objTypeLeft == COMPOSITE_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
-			
+		comp1 = (CompositeCriteria*)c1;
+		comp2 = (CompositeCriteria*)c2;
+		outComp = newCompositeInterval();
+		outComp->loggedSize = comp2->size;
+		outComp->list = (CombinedCriteria**)malloc(sizeof(CombinedCriteria*) * outComp->loggedSize);
+		for(i=0; i<comp2->size; i++) {
+			cb = comp2->list[i];
+			andTwoCriteria(comp1, cb, &outTmp);
+
+			if(outComp->size >= outComp->loggedSize) {
+				outComp->loggedSize += 5;
+				tmp = realloc(outComp->list, sizeof(CombinedCriteria*) * outComp->loggedSize);
+				outComp->list = (tmp==NULL)?outComp->list:((CombinedCriteria**)tmp);
+			}
+
+			outComp->list[(outComp->size)++] = outTmp.cr;
+			outTmp.cr = NULL;
+		}
+		out->cr = outComp;
+		result = TRUE;
 	}
 	return result;
 }
