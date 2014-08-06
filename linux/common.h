@@ -73,6 +73,7 @@
 #define ERROR_LOG -15
 #define ERROR_MISSING_DOMAIN -16
 #define E_NOT_ENOUGH_MEMORY -17
+#define ERROR_MISSING_FUNCTION_NOTATION -18
 
 #define SIMPLE_CRITERIA 		0
 #define COMBINED_CRITERIA 		1
@@ -297,6 +298,7 @@ DATA_TYPE_FP logab(DATA_TYPE_FP a, DATA_TYPE_FP b, short *error);
 DATA_TYPE_FP doCalculate(DATA_TYPE_FP val1, DATA_TYPE_FP val2, short type, short *error);
 void clearTree(NMAST **prf);
 void clearTreeContent(NMAST *prf);
+char getPriorityOfType(int type);
 int getErrorColumn();
 int getErrorCode();
 int isAFunctionType(int type);

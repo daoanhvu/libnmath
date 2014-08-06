@@ -487,6 +487,7 @@ void* reduce_t(void *param){
 #endif
 	DParam *dp = (DParam *)param;
 	NMAST *p;
+	NMAST *o1, *o2;
 	DParam this_param_left;
 	DParam this_param_right;
 	this_param_left.error = this_param_right.error = 0;
@@ -499,25 +500,21 @@ void* reduce_t(void *param){
 		return NULL;
 #endif
 	}
-
+		
+#ifdef WINDOWS
 	/*
 		If this node is has left child, and the left child is an operator or a function then we
 		create a thread to reduce the left child.
 	*/
 	if( ((dp->t)->left) != NULL && isFunctionOROperator(((dp->t)->left)->type) ){
 		this_param_left.t = (dp->t)->left;
-#ifdef WINDOWS
 		thread_1 = (HANDLE)_beginthreadex(NULL, 0, &reduce_t, (void*)&this_param_left, 0, NULL);
-#else
-		idThrLeft = pthread_create(&thrLeft, NULL, reduce_t, (void*)(&this_param_left));		return &(dp->error);
-#endif
 	}
-		
+
 	/*
 		If this node is has right child, and the right child is an operator or a function then we
 		create a thread to reduce the right child.
 	*/
-#ifdef WINDOWS
 	if( ((dp->t)->right) != NULL && isFunctionOROperator(((dp->t)->right)->type) ){
 		this_param_right.t = (dp->t)->right;
 		thread_2 = (HANDLE)_beginthreadex(NULL, 0, &reduce_t, (void*)&this_param_right, 0, NULL);
@@ -532,6 +529,14 @@ void* reduce_t(void *param){
 		CloseHandle(thread_2);
 	}
 #else
+	/*
+		If this node is has left child, and the left child is an operator or a function then we
+		create a thread to reduce the left child.
+	*/
+	if( ((dp->t)->left) != NULL && isFunctionOROperator(((dp->t)->left)->type) ){
+		this_param_left.t = (dp->t)->left;
+		idThrLeft = pthread_create(&thrLeft, NULL, reduce_t, (void*)(&this_param_left));
+	}
 	if( ((dp->t)->right) != NULL && isFunctionOROperator(((dp->t)->right)->type) ){
 		this_param_right.t = (dp->t)->right;
 		idThrRight = pthread_create(&thrRight, NULL, reduce_t, (void*)(&this_param_right));
@@ -562,9 +567,9 @@ void* reduce_t(void *param){
 	/*************************************************************************************/
 	
 	/*
-		We don't reduce a node if it's a variable, a number, PI, E
+		We don't reduce a node if it's a variable, a NAME, a number, PI, E
 	*/
-	if(((dp->t)->type == VARIABLE) || isConstant((dp->t)->type))
+	if(((dp->t)->type == VARIABLE) || ((dp->t)->type == NAME) || isConstant((dp->t)->type))
 #ifdef WINDOWS
 		return dp->error;
 #else
@@ -573,8 +578,174 @@ void* reduce_t(void *param){
 		
 	//if this node is an operator
 	if( ((dp->t)->type == PLUS) || ((dp->t)->type == MINUS) || ((dp->t)->type == MULTIPLY)
-					|| ((dp->t)->type == DIVIDE) || ((dp->t)->type == POWER) ){	
-		if(((dp->t)->left!=NULL) && ((dp->t)->right!=NULL)){
+					|| ((dp->t)->type == DIVIDE) || ((dp->t)->type == POWER) ) {
+		if(((dp->t)->left!=NULL) && ((dp->t)->right!=NULL)) {
+
+			/*****************************************************************/
+			if( isConstant((dp->t)->right->type) && 
+				( (dp->t)->left->type == PLUS || (dp->t)->left->type == MINUS || 
+					(dp->t)->left->type == MULTIPLY /*|| (dp->t)->left->type == DIVIDE */ ) ) {
+
+				o1 = dp->t;
+				o2 = (dp->t)->left;
+				if(o1->priority == o2->priority){
+					if( isConstant(o2->left->type)) {						
+						switch(o1->type){
+							case PLUS:
+								o2->left->value += o1->right->value;
+							break;
+
+							case MINUS:
+								o2->left->value -= o1->right->value;
+							break;
+
+							case MULTIPLY:
+								o2->left->value *= o1->right->value;
+							break;
+
+							//case DIVIDE:
+							//break;
+						}
+						
+						if( (o1->parent != NULL) && (o1 == o1->parent->left) ) {
+							//o1 is left child
+							o1->parent->left = o2;
+						} else if (o1->parent != NULL) {
+							o1->parent->right = o2;
+						}
+						o2->parent = o1->parent;
+						dp->t = o2;
+						
+						//remove o1 from the current tree
+						o1->parent = NULL;
+						o1->left = NULL;
+						clearTree(&o1);
+						//free(o1);
+					} else if( isConstant(o2->right->type)){
+						switch(o1->type){
+							case PLUS:
+								o2->right->value += o1->right->value;
+							break;
+
+							case MINUS:
+								o2->right->value -= o1->right->value;
+							break;
+
+							case MULTIPLY:
+								o2->right->value *= o1->right->value;
+							break;
+
+							//case DIVIDE:
+							//break;
+
+						}
+
+						if( (o1->parent != NULL) && o1 == o1->parent->left) {
+							//o1 is left child
+							o1->parent->left = o2;
+						} else if(o1->parent != NULL) {
+							o1->parent->right = o2;
+						}
+
+						//remove o1 from the current tree
+						o2->parent = o1->parent;
+						dp->t = o2;
+						o1->parent = NULL;
+						o1->left = NULL;
+						clearTree(&o1);
+						//free(o1);
+					}
+
+					if(o2->type == PLUS && o2->left->value < 0){
+						o2->type = MINUS;
+						o2->left->value = -(o2->left->value);
+					}
+				}
+
+			} else if( isConstant((dp->t)->left->type) && 
+				( (dp->t)->right->type == PLUS || (dp->t)->right->type == MINUS || 
+					(dp->t)->right->type == MULTIPLY /*|| (dp->t)->right->type == DIVIDE */ ) ) {
+
+				o1 = dp->t;
+				o2 = (dp->t)->right;
+				if(o1->priority == o2->priority){
+					if( isConstant(o2->left->type)){
+						switch(o1->type) {
+							case PLUS:
+								o2->left->value += o1->left->value;
+							break;
+
+							case MINUS:
+								o2->left->value -= o1->left->value;
+							break;
+
+							case MULTIPLY:
+								o2->left->value *= o1->left->value;
+							break;
+
+							//case DIVIDE:
+							//break;
+						}
+						
+						if( (o1->parent != NULL) && (o1 == o1->parent->left) ) {
+							//o1 is left child
+							o1->parent->left = o2;
+						} else if(o1->parent != NULL) {
+							o1->parent->right = o2;
+						}
+						o2->parent = o1->parent;
+						dp->t = o2;
+						
+						//remove o1 from the current tree
+						o1->parent = NULL;
+						o1->right = NULL;
+						clearTree(&o1);
+						//free(o1);
+					} else if( isConstant(o2->right->type)){
+						switch(o1->type){
+							case PLUS:
+								o2->right->value += o1->left->value;
+							break;
+
+							case MINUS:
+								o2->right->value -= o1->left->value;
+							break;
+
+							case MULTIPLY:
+								o2->right->value *= o1->left->value;
+							break;
+
+							//case DIVIDE:
+							//break;
+
+						}
+
+						if( (o1->parent != NULL) && o1 == o1->parent->left) {
+							//o1 is left child
+							o1->parent->left = o2;
+						} else if(o1->parent != NULL) {
+							o1->parent->right = o2;
+						}
+
+						//remove o1 from the current tree
+						o2->parent = o1->parent;
+						dp->t = o2;
+						o1->parent = NULL;
+						o1->right = NULL;
+						clearTree(&o1);
+						//free(o1);
+					}
+
+					if(o2->type == PLUS && o2->left->value < 0){
+						o2->type = MINUS;
+						o2->left->value = -(o2->left->value);
+					}
+				}
+
+			}
+			
+			/****************************************************************/
+
 			/* take care of special cases */
 			if((dp->t)->type == PLUS){
 				/* 0 + something */
@@ -594,7 +765,7 @@ void* reduce_t(void *param){
 						(dp->t)->value = p->value;
 						(dp->t)->valueType = p->valueType;
 						(dp->t)->frValue = p->frValue;
-						//(dp->t)->priority = p->priority;
+						(dp->t)->priority = getPriorityOfType((dp->t)->type);
 						(dp->t)->sign = p->sign;
 						/* NO copy parent */
 						(dp->t)->left = p->left;
@@ -627,7 +798,7 @@ void* reduce_t(void *param){
 						(dp->t)->value = p->value;
 						(dp->t)->valueType = p->valueType;
 						(dp->t)->frValue = p->frValue;
-						//(dp->t)->priority = p->priority;
+						(dp->t)->priority = getPriorityOfType((dp->t)->type);
 						(dp->t)->sign = p->sign;
 						
 						/* NO copy parent */
@@ -649,9 +820,9 @@ void* reduce_t(void *param){
 				// I'm not sure that this piece of code can be reached
 				if( ((dp->t)->left == NULL) || ((dp->t)->right == NULL) )
 #ifdef WINDOWS
-				return dp->error;
+					return dp->error;
 #else
-				return &(dp->error);
+					return &(dp->error);
 #endif
 			}
 			
@@ -687,7 +858,7 @@ void* reduce_t(void *param){
 					(dp->t)->sign = p->sign;
 					(dp->t)->variable = p->variable;
 					(dp->t)->frValue = p->frValue;
-					//(dp->t)->priority = p->priority;
+					(dp->t)->priority = getPriorityOfType((dp->t)->type);
 					(dp->t)->valueType = p->valueType;
 					(dp->t)->left = p->left;
 					(dp->t)->right = p->right;
@@ -710,7 +881,7 @@ void* reduce_t(void *param){
 					(dp->t)->sign = p->sign;
 					(dp->t)->variable = p->variable;
 					(dp->t)->frValue = p->frValue;
-					//(dp->t)->priority = p->priority;
+					(dp->t)->priority = getPriorityOfType((dp->t)->type);
 					(dp->t)->valueType = p->valueType;
 					(dp->t)->left = p->left;
 					(dp->t)->right = p->right;
@@ -736,7 +907,7 @@ void* reduce_t(void *param){
 						(dp->t)->value = 1.0;
 						((dp->t)->frValue).numerator = 1;
 						((dp->t)->frValue).denomerator = 1;
-						//(dp->t)->priority = COE_VAL_PRIORITY;
+						(dp->t)->priority = getPriorityOfType((dp->t)->type);
 						(dp->t)->sign = 1;
 						(dp->t)->left = (dp->t)->right = NULL;
 #ifdef WINDOWS
@@ -758,11 +929,10 @@ void* reduce_t(void *param){
 						(dp->t)->valueType = p->valueType;
 						(dp->t)->value = p->value;
 						(dp->t)->frValue = p->frValue;
-						//(dp->t)->priority = p->priority;
+						(dp->t)->priority = getPriorityOfType((dp->t)->type);
 						(dp->t)->sign = p->sign;
 						(dp->t)->left = p->left;
 						(dp->t)->right = p->right;
-						
 						free(p);
 						
 #ifdef WINDOWS

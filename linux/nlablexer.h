@@ -14,6 +14,6 @@ int parserLogicOperator(const char *inStr, int length, int i, char charAtI, int 
 Token* checkNumericOperator(const char *inStr, int length, int *idx);
 Token* parsSubtractSign(const char *inStr, int length, int *idx);
 int isFunctionName(int index, const char *inStr, int l, int *outType);
-int isVariable(int index, const char *inStr, int length);
+int isAName(int index, const char *inStr, int length);
 
 #endif

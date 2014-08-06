@@ -111,7 +111,7 @@ void addFunction2Tree(NMASTList *t, Token * stItm){
 			ast->sign = 1;
 			ast->type = stItm->type;
 			ast->variable = 0;
-			//ast->priority = stItm->priority;
+			ast->priority = stItm->priority;
 			ast->parent = NULL;
 			ast->left = t->list[t->size-2];
 			ast->right = t->list[t->size-1];
@@ -219,6 +219,9 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 			
 			k++;
 			do{
+				/*
+					Parse expression
+				*/
 				parseFunct(tokens, &k, outF);
 				/** after parseFunct, we may get error, so MUST check if it's OK here */
 				if( (gErrorCode!=NMATH_NO_ERROR) || (k >= tokens->size) ) break;
@@ -234,6 +237,24 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 				}
 			}while( gErrorCode==NMATH_NO_ERROR && k < tokens->size );
 		}
+	} else {
+		/*
+			The input tokens not started with a function notation then
+			we try to parse expression here.
+		*/
+		//reset errorCode
+		gErrorCode = NMATH_NO_ERROR;
+
+		outF->prefix = NULL;
+		outF->domain = NULL;
+		outF->str = NULL;
+		outF->len = 0;
+		outF->variableNode = NULL;
+		outF->numVarNode = 0;
+		outF->valLen = 0;
+		k = 0;
+		parseFunct(tokens, &k, outF);
+
 	}
 	
 	if(gErrorCode != NMATH_NO_ERROR){
@@ -597,7 +618,7 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 				i += 2;
 				break;
 
-			//case NAME:
+			case NAME:
 			case VARIABLE:
 				ast = (NMAST*)malloc(sizeof(NMAST));
 #ifdef DEBUG
@@ -606,6 +627,8 @@ void parseFunct(TokenList *tokens, int *start, Function *f){
 				ast->parent = ast->left = ast->right = NULL;
 				ast->type = tk->type;
 				ast->variable = tk->text[0];
+				ast->value = 0;
+				ast->sign = 1;
 				pushASTStack(prefix, ast); //add this item to prefix
 
 				//I save variable node to speed up the process of calculating value of the function later

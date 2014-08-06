@@ -199,6 +199,46 @@ DATA_TYPE_FP logab(DATA_TYPE_FP a, DATA_TYPE_FP b, short *error){
 	return 0;
 }
 
+char getPriorityOfType(int type) {
+	switch(type){
+		case OR:
+			return (char)1;
+		break;
+		
+		case AND:
+			return (char)2;
+		break;
+		
+		case LT:
+		case GT:
+		case LTE:
+		case GTE:
+			return (char)3;
+		break;
+		
+		case PLUS:
+		case MINUS:
+			return (char)4;
+		break;
+		
+		case MULTIPLY:
+		case DIVIDE:
+			return (char)5;
+		break;
+		
+		case POWER:
+			return (char)6;
+		break;
+		
+		case NE:
+			return (char)7;
+		break;
+		
+		default:
+			return (char)0;
+	}
+}
+
 DATA_TYPE_FP doCalculate(DATA_TYPE_FP val1, DATA_TYPE_FP val2, short type, short *error){
 	(*error) = 0;
 	switch(type){

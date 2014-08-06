@@ -18,6 +18,7 @@ int testGetSpaces(Function *f);
 void testReuseFunction(Function *f);
 void testCriteria1(int argc, char *agr[]);
 void testCriteria2(Function *f);
+void testReduce(Function *f);
 
 int main(int argc, char *agr[]){
 	Function *f;
@@ -47,10 +48,13 @@ int main(int argc, char *agr[]){
 		releaseFunct(f);
 		free(f);
 		return getErrorCode();
+	} else if( (getErrorCode() == NMATH_NO_ERROR) && (f->valLen==0)) {
+		printf("This expression is not a function due to variables not determined.\n");
 	}
 	
+	testReduce(f);
 	//testDerivative(f);
-	testGetSpaces(f);
+	//testGetSpaces(f);
 	//testReuseFunction(f);
 	//testCriteria2(f);
 
@@ -410,6 +414,10 @@ void printError(int col, int code){
 			printf("Bad function notation found at %d\n", col);
 			break;
 
+		case ERROR_MISSING_FUNCTION_NOTATION:
+			printf("This expression is not a function due to variables not determined.\n");
+			break;
+
 		case ERROR_BAD_TOKEN:
 			printf("A bad token found at %d\n", col);
 			break;
@@ -443,6 +451,26 @@ int testDerivative(Function *f) {
 	printf("f' = %s\n", dstr);
 	clearTree(&(d.returnValue));
 	return 0;
+}
+
+void testReduce(Function *f) {
+	DParam dp;
+	int l = 0;
+	char outString[256];
+
+	if(f==NULL || f->prefix == NULL) return;
+
+	dp.t = f->prefix->list[0];
+	dp.error = 0;
+	reduce_t(&dp);
+
+	/*
+		TODO: at this poit the pointer f->prefix->list[0] has been destroyed. Please investigate why
+	*/
+	toString(dp.t, outString, &l, 256);
+	printf("f = %s\n", outString);
+
+	f->prefix->list[0] = dp.t;
 }
 
 int testGetSpaces(Function *f){

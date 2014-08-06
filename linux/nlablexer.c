@@ -19,6 +19,9 @@ Token* createToken(short _type, const char *_text, char txtlen, short _col){
 	incNumberOfDynamicObject();
 #endif
 
+	/*
+		IMPORTANT: If you want to change this, PLEASE change function common:getPriorityOfType(int type) also
+	*/
 	switch(_type){
 		case OR:
 			tk->priority = 1;
@@ -229,7 +232,7 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 			tk = createToken(DOMAIN_NOTATION, "DOMAIN_NOTATION", 14, idx);
 			addToken(tokens, tk);
 			idx += 2;
-		}else if( isVariable(idx, inStr, length) ){
+		}else if( isAName(idx, inStr, length) ){
 			tk = createTokenIdx(NAME, inStr, idx, idx, idx);
 			addToken(tokens, tk);
 			idx++;
@@ -567,7 +570,7 @@ int isFunctionName(int index, const char *inputString, int l, int *outType){
 	A variable is always a single character NAME.
 	If a single character followed by (){}[];+-* / , ; > < ! space then it's a VARIABLE
 */
-int isVariable(int index, const char *inputString, int length){
+int isAName(int index, const char *inputString, int length){
 	char cc = inputString[index];
 	char nextC;
 		
