@@ -27,7 +27,6 @@ extern TokenList *gTokens;
 NMAST *returnedAst = NULL;
 
 int functionNotation(int index, char *vars, int *varCount);
-void parseFunct(TokenList *tokens, int *start, Function *f);
 void domain(int *start, Function *f);
 NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, Token* valtk2);
 
@@ -222,8 +221,8 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 				/*
 					Parse expression
 				*/
-				parseFunct(tokens, &k, outF);
-				/** after parseFunct, we may get error, so MUST check if it's OK here */
+				parseExpression(tokens, &k, outF);
+				/** after parseExpression, we may get error, so MUST check if it's OK here */
 				if( (gErrorCode!=NMATH_NO_ERROR) || (k >= tokens->size) ) break;
 				
 				if(tokens->list[k]->type == DOMAIN_NOTATION){
@@ -253,7 +252,7 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 		outF->numVarNode = 0;
 		outF->valLen = 0;
 		k = 0;
-		parseFunct(tokens, &k, outF);
+		parseExpression(tokens, &k, outF);
 
 	}
 	
@@ -333,7 +332,7 @@ int functionNotation(int index, char *variables, int *variableCount){
 /**
 	Parse the input string in object f to NMAST tree
 */
-void parseFunct(TokenList *tokens, int *start, Function *f){
+void parseExpression(TokenList *tokens, int *start, Function *f){
 	int i, top=-1, allocLen=0, isEndExp = FALSE;
 	short error;
 	DATA_TYPE_FP val;

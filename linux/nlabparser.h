@@ -9,5 +9,6 @@
 	@return errorCode
 */	
 short parseFunction(const char *str, short len, Function *outF);
+void parseExpression(TokenList *tokens, int *start, Function *f);
 
 #endif
