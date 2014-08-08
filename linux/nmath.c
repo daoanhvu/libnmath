@@ -12,6 +12,12 @@
 
 #include "nmath.h"
 
+#ifdef WINDOWS
+	#define NULL_ZERO 0
+#else
+	#define NULL_ZERO NULL
+#endif
+
 /**
 #ifdef _TARGET_HOST_ANDROID
 	#include<android/log.h>
@@ -21,6 +27,8 @@
 	#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
 #endif
 */
+
+void reduce_triple_divide(NMAST *ast);
 
 NMAST* d_product(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
 NMAST* d_quotient(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
@@ -116,9 +124,11 @@ void toString(const NMAST *t, char *str, int *curpos, int len){
 		case POWER:
 			getOperatorChar(t->type, &operatorChar);
 			
-			/*if( (t->parent != NULL) && (t->parent)->priority < t->priority)*/
-			str[(*curpos)] = '(';
-			(*curpos)++;
+			if( (t->parent != NULL) && ((t->parent)->priority < t->priority) ){
+				str[(*curpos)] = '(';
+				(*curpos)++;	
+			}
+			
 			
 			if(t->left != NULL)
 				toString(t->left, str, curpos, len);
@@ -128,9 +138,11 @@ void toString(const NMAST *t, char *str, int *curpos, int len){
 			
 			if(t->right != NULL)
 				toString(t->right, str, curpos, len);
-			/*if( (t->parent != NULL) && (t->parent)->priority < t->priority)*/
-			str[(*curpos)] = ')';
-			(*curpos)++;
+
+			if( (t->parent != NULL) && ((t->parent)->priority < t->priority) ) {
+				str[(*curpos)] = ')';
+				(*curpos)++;
+			}
 		break;
 		
 		case SIN:
@@ -1109,122 +1121,29 @@ int reduce(Function *f, int *error){
 
 /** ================================================================================================================================ */
 /**
-	This is my try to get lim of f when variable -> M
+	  a
+	 ---
+	  b           a     d
+	------  =    --- . ---
+	  c           b     c
+	 ---
+	  d
 */
-#ifdef WINDOWS
-unsigned int __stdcall lim_t(void *param){
-	HANDLE thread_1 = 0, thread_2 = 0;
-#else
-void* lim_t(void *param){
-	pthread_t thrLeft, thrRight;
-	int idThrLeft=-1, idThrRight = -1;
-#endif
-	DParam *dp = (DParam *)param;
-	NMAST *p;
-	DParam this_param_left;
-	DParam this_param_right;
-	int var_index = -1;
+void reduce_triple_divide(NMAST *ast) {
+	NMAST *temp;
 
-	this_param_left.error = this_param_right.error = 0;
-	this_param_left.variables[0] = this_param_right.variables[0] = dp->variables[0];
-	this_param_left.variables[1] = this_param_right.variables[1] = dp->variables[1];
-	this_param_left.variables[2] = this_param_right.variables[2] = dp->variables[2];
-	this_param_left.variables[3] = this_param_right.variables[3] = dp->variables[3];
-	//memcpy(this_param_left.variables, dp->variables, 4);
-	//memcpy(this_param_right.variables, dp->variables, 4);
-	this_param_left.values = this_param_right.values = dp->values;
-	
-	/* If the tree is NULL */
-	if((dp->t)==NULL){
-		return 0;
+	if(ast == NULL) return;
+
+	if(ast->type == DIVIDE) {
+		if( (ast->left != NULL) && (ast->right != NULL)  
+			&& (ast->left->type == DIVIDE) && (ast->right->type == DIVIDE) ) {
+			ast->type = MULTIPLY;
+
+			temp = ast->right->left;
+			ast->right->left = ast->right->right;
+			ast->right->right = temp;
+		}
 	}
-
-	/**
-		lim(x)(x->k) = k
-		lim(k)(x->t) = k
-		k is a constant
-	*/
-	if((dp->t)->type == VARIABLE){
-		var_index = isInArray(dp->variables, (dp->t)->variable);
-		dp->retv = dp->values[var_index];
-		p = (NMAST*)malloc(sizeof(NMAST));
-		p->type = NUMBER;
-		p->value = dp->retv;
-		p->valueType = TYPE_FLOATING_POINT;
-		p->variable = dp->variables[var_index];
-		p->sign = 1;
-		p->parent = p->left = p->right = NULL;
-		dp->returnValue = p;
-#ifdef WINDOWS
-		return dp->error;
-#else
-		return &(dp->error);
-#endif
-	}
-
-	if( ((dp->t)->type == NUMBER) || ((dp->t)->type == PI_TYPE) ||((dp->t)->type == E_TYPE) ){
-		dp->retv = (dp->t)->value;
-		p = (NMAST*)malloc(sizeof(NMAST));
-		p->type = NUMBER;
-		p->value = dp->retv;
-		p->valueType = TYPE_FLOATING_POINT;
-		p->variable = 0;
-		p->sign = 1;
-		p->parent = p->left = p->right = NULL;
-		dp->returnValue = p;
-#ifdef WINDOWS
-		return dp->error;
-#else
-		return &(dp->error);
-#endif
-	}
-
-	this_param_left.t = (dp->t)->left;
-	this_param_right.t = (dp->t)->right;
-
-#ifdef WINDOWS
-	thread_1 = (HANDLE)_beginthreadex(NULL, 0, &lim_t, (void*)&this_param_left, 0, NULL);
-	thread_2 = (HANDLE)_beginthreadex(NULL, 0, &lim_t, (void*)&this_param_right, 0, NULL);
-	if(thread_1 != 0){
-		WaitForSingleObject(thread_1, INFINITE);
-		CloseHandle(thread_1);
-	}
-	if(thread_2 != 0){
-		WaitForSingleObject(thread_2, INFINITE);
-		CloseHandle(thread_2);
-	}
-#else
-	idThrLeft = pthread_create(&thrLeft, NULL, lim_t, (void*)&this_param_left);
-	idThrRight = pthread_create(&thrRight, NULL, lim_t, (void*)&this_param_right);
-	if(idThrLeft == NMATH_NO_ERROR){
-		pthread_join(thrLeft, NULL);
-	}
-	if(idThrRight == NMATH_NO_ERROR){
-		pthread_join(thrRight, NULL);
-	}
-#endif
-
-	/** Case 1 */
-	switch(dp->t->type){
-		case PLUS:
-		break;
-
-		case MINUS:
-		break;
-
-		case MULTIPLY:
-		break;
-
-		case DIVIDE:
-		break;
-	}
-
-	
-#ifdef WINDOWS
-	return 0;
-#else
-	return NULL;
-#endif
 }
 /** ================================================================================================================================ */
 
@@ -1252,9 +1171,8 @@ void* calc_t(void *param){
 	this_param_left.values = this_param_right.values = dp->values;
 	
 	/* If the input tree is NULL, we do nothing */
-	if(t==NULL){
-		return 0;
-	}
+	if(t==NULL) return 0;
+	
 
 	if(t->type == VARIABLE){
 		var_index = isInArray(dp->variables, t->variable);
@@ -1357,8 +1275,9 @@ NMAST *createTreeNode(){
 NMAST * cloneTree(NMAST *t, NMAST *cloneParent){
 	NMAST *c;
 	
-	if(t == NULL)
-		return NULL;
+	if(t==NULL) {
+		return NULL_ZERO;
+	}
 	
 	c = (NMAST*)malloc(sizeof(NMAST));
 #ifdef DEBUG
@@ -1387,11 +1306,7 @@ void* derivative(void *p){
 	
 	dp->returnValue = NULL;
 	if(t==NULL){
-#ifdef WINDOWS
-		return 0;
-#else
-		return NULL;
-#endif
+		return NULL_ZERO;
 	}
 	
 	if(t->type == NUMBER || t->type == PI_TYPE|| t->type == E_TYPE ){
