@@ -232,11 +232,11 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 			tk = createToken(DOMAIN_NOTATION, "DOMAIN_NOTATION", 14, idx);
 			addToken(tokens, tk);
 			idx += 2;
-		}else if( isAName(idx, inStr, length) ){
+		}else if( isAName(idx, inStr, length) ) {
 			tk = createTokenIdx(NAME, inStr, idx, idx, idx);
 			addToken(tokens, tk);
 			idx++;
-		}else if(inStr[idx]=='o' || inStr[idx]=='O'){
+		}else if(inStr[idx]=='o' || inStr[idx]=='O') {
 			if(inStr[idx+1]=='r' || inStr[idx+1]=='R'){
 				tk = createTokenIdx(OR, inStr, idx, idx+1, idx);
 				addToken(tokens, tk);
@@ -567,12 +567,14 @@ int isFunctionName(int index, const char *inputString, int l, int *outType){
 }
 	
 /**
-	A variable is always a single character NAME.
-	If a single character followed by (){}[];+-* / , ; > < ! space then it's a VARIABLE
+	A NAME is a single character but not 'e' and placed at the end of inputString OR
+	followed by (){}[];+-* / , ; > < ! space
 */
 int isAName(int index, const char *inputString, int length){
 	char cc = inputString[index];
 	char nextC;
+
+	if(cc == 'e') return FALSE;
 		
 	if(( cc>= 'a' && cc<='z' ) || (cc>= 'A' && cc<='Z')){
 		if((index < length-1)){
