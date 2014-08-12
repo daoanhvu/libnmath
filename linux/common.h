@@ -83,6 +83,14 @@
 #define RIGHT_INF	0x01
 #define AVAILABLE	0x04
 
+#define MAXTEXTLEN 16
+#define INCLEN 8
+#define DATA_TYPE_FP double
+#define ZERO_FP	0.0
+#define ONE_FP	1.0
+#define PI		3.14159265358979323846
+#define E		2.718281828
+
 #ifndef TRUE
 	#define TRUE -1
 	#define FALSE 0
@@ -92,24 +100,6 @@
 	#define NULL ((void*)0)
 #endif
 
-/** Redirect building target */
-#ifdef _TARGET_HOST_ANDROID
-	#define MAXTEXTLEN 8
-	#define INCLEN 4
-	#define DATA_TYPE_FP float
-	#define ZERO_FP	0.0f
-	#define ONE_FP	1.0f
-	#define PI		3.141592653f
-	#define E			2.718281828f
-#else
-	#define MAXTEXTLEN 16
-	#define INCLEN 8
-	#define DATA_TYPE_FP double
-	#define ZERO_FP	0.0
-	#define ONE_FP	1.0
-	#define PI		3.14159265358979323846
-	#define E			2.718281828
-#endif
 
 #ifdef __cplusplus
 	extern "C" {
@@ -132,15 +122,15 @@ typedef struct tagNMASTList NMASTList;
 typedef void (*FPGetIntervalF)(const void *, const DATA_TYPE_FP *, int, void *);
 typedef int (*FPCheck)(const void *, DATA_TYPE_FP *, int);
 
-struct tagFraction{
+struct tagFraction {
 	int numerator;
 	int denomerator;
 };
 
 
-typedef struct tagFunct{
+typedef struct tagFunct {
 	char *str;
-	unsigned short len;
+	unsigned int len;
 
 	char variable[4];
 	char valLen;
@@ -150,27 +140,27 @@ typedef struct tagFunct{
 	ListCriteria *criterias;
 
 	NMAST **variableNode;
-	short numVarNode;
+	int numVarNode;
 } Function;
 
-struct tagToken{
-	short type;
+struct tagToken {
+	int type;
 	char text[MAXTEXTLEN];
-	short column;
+	int column;
 	unsigned char textLength;
 	
 	/* This is used for operators & functions */
 	char priority;
 };
 
-struct tagTokenList{
-	unsigned short loggedSize;
-	unsigned short size;
+struct tagTokenList {
+	unsigned int loggedSize;
+	unsigned int size;
 	struct tagToken **list;
 };
 
-struct tagNMAST{
-	short type;
+struct tagNMAST {
+	int type;
 
 	char priority;
 	/*
@@ -193,9 +183,9 @@ struct tagNMAST{
 	struct tagNMAST *right;
 };
 
-struct tagNMASTList{
-	unsigned short loggedSize;
-	unsigned short size;
+struct tagNMASTList {
+	unsigned int loggedSize;
+	unsigned int size;
 	struct tagNMAST **list;
 };
 
@@ -207,13 +197,13 @@ struct tagNMASTList{
 		variable = 'x' and type=GT_LT we read it out like this:
 		x is greater than leftVal and x is less than rightValue
 */
-struct tagCriteria{
+struct tagCriteria {
 	char objectType;
 	FPCheck fcheck;
 	FPGetIntervalF fgetInterval;
 	
 	/** GT_LT, GTE_LT, GT_LTE, GTE_LTE */
-	short type;
+	int type;
 	char variable;
 	DATA_TYPE_FP leftVal;
 	DATA_TYPE_FP rightVal;
@@ -233,49 +223,49 @@ struct tagCriteria{
 	
 	For example: 0<x<=5 AND y>3
  */
-struct tagCombinedCriteria{
+struct tagCombinedCriteria {
 	char objectType;
 	FPCheck fcheck;
 	FPGetIntervalF fgetInterval;
 	Criteria **list;
-	unsigned short loggedSize;
-	unsigned short size;
+	unsigned int loggedSize;
+	unsigned int size;
 };
 
 //OR
-struct tagCompositeCriteria{
+struct tagCompositeCriteria {
 	char objectType;
 	FPCheck fcheck;
 	FPGetIntervalF fgetInterval;
 	CombinedCriteria **list;
-	unsigned short loggedSize;
-	unsigned short size;
+	unsigned int loggedSize;
+	unsigned int size;
 };
 
 struct tagListCriteria {
 	void **list;
-	unsigned short loggedSize;
-	unsigned short size;
+	unsigned int loggedSize;
+	unsigned int size;
 };
 
-struct tagFData{
+struct tagFData {
 	DATA_TYPE_FP *data;
-	unsigned short dataSize;
-	unsigned short loggedSize;
+	unsigned int dataSize;
+	unsigned int loggedSize;
 	char dimension;
 	
 	int *rowInfo;
-	unsigned short rowCount;
-	unsigned short loggedRowCount;
+	unsigned int rowCount;
+	unsigned int loggedRowCount;
 };
 
-struct tagListFData{
+struct tagListFData {
 	FData **list;
-	unsigned short loggedSize;
-	unsigned short size;
+	unsigned int loggedSize;
+	unsigned int size;
 };
 
-struct tagOutBuiltCriteria{
+struct tagOutBuiltCriteria {
 	void *cr;
 };
 
@@ -292,10 +282,10 @@ int isPrime(long n);
 long gcd(long a, long b);
 long lcm(long a, long b);
 long l_cast(DATA_TYPE_FP val, DATA_TYPE_FP *fr);
-DATA_TYPE_FP parseFloatingPoint(const char *str, short start, short end, short *error);
-int contains(short type, const short *aset, short len);
-DATA_TYPE_FP logab(DATA_TYPE_FP a, DATA_TYPE_FP b, short *error);
-DATA_TYPE_FP doCalculate(DATA_TYPE_FP val1, DATA_TYPE_FP val2, short type, short *error);
+DATA_TYPE_FP parseFloatingPoint(const char *str, int start, int end, int *error);
+int contains(int type, const int *aset, int len);
+DATA_TYPE_FP logab(DATA_TYPE_FP a, DATA_TYPE_FP b, int *error);
+DATA_TYPE_FP doCalculate(DATA_TYPE_FP val1, DATA_TYPE_FP val2, int type, int *error);
 void clearTree(NMAST **prf);
 void clearTreeContent(NMAST *prf);
 char getPriorityOfType(int type);
@@ -309,10 +299,10 @@ int isConstant(int type);
 int isLetter(char c);
 
 #ifdef DEBUG
-short numberOfDynamicObject();
+int numberOfDynamicObject();
 void incNumberOfDynamicObject();
 void descNumberOfDynamicObject();
-void descNumberOfDynamicObjectBy(short k);
+void descNumberOfDynamicObjectBy(int k);
 #endif
 
 #ifdef __cplusplus

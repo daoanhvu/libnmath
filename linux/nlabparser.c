@@ -19,8 +19,8 @@
 #endif
 */
 
-extern short gErrorColumn;
-extern short gErrorCode;
+extern int gErrorColumn;
+extern int gErrorCode;
 extern TokenList *gTokens;
 
 //internal variables
@@ -334,7 +334,7 @@ int functionNotation(int index, char *variables, int *variableCount){
 */
 void parseExpression(TokenList *tokens, int *start, Function *f){
 	int i, top=-1, allocLen=0, isEndExp = FALSE;
-	short error;
+	int error;
 	DATA_TYPE_FP val;
 	Token *tk = NULL;
 	Token **stack = NULL;
@@ -720,7 +720,7 @@ void parseExpression(TokenList *tokens, int *start, Function *f){
 /*
 	Parse the input string in object f to NMAST tree
 */
-short parseFunction(const char *str, short len, Function *outF){
+int parseFunction(const char *str, int len, Function *outF){
 	TokenList lst;
 	int i, result;
 	

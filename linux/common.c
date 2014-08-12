@@ -2,21 +2,21 @@
 #include <math.h>
 #include "common.h"
 
-const short FUNCTIONS[] = {SIN, COS, TAN, COTAN, ASIN, ACOS, ATAN, LOG, LN, SQRT};
-const short FUNCTION_COUNT = 10;
+const int FUNCTIONS[] = {SIN, COS, TAN, COTAN, ASIN, ACOS, ATAN, LOG, LN, SQRT};
+const int FUNCTION_COUNT = 10;
 
-const short OPERATORS[] = {PLUS,MINUS,MULTIPLY,DIVIDE,POWER};
-const short OPERATOR_COUNT = 5;
+const int OPERATORS[] = {PLUS,MINUS,MULTIPLY,DIVIDE,POWER};
+const int OPERATOR_COUNT = 5;
 
-const short COMPARING_OPERATORS[] = {LT,LTE,EQ,GT,GTE};
-const short COMPARING_OPERATORS_COUNT = 5;
+const int COMPARING_OPERATORS[] = {LT,LTE,EQ,GT,GTE};
+const int COMPARING_OPERATORS_COUNT = 5;
 
-short gErrorColumn = -1;
-short gErrorCode = 0;
+int gErrorColumn = -1;
+int gErrorCode = 0;
 
 #ifdef DEBUG
-short gNumberOfDynamicObject = 0;
-short numberOfDynamicObject(){
+int gNumberOfDynamicObject = 0;
+int numberOfDynamicObject(){
 	return gNumberOfDynamicObject;
 }
 void incNumberOfDynamicObject(){
@@ -25,7 +25,7 @@ void incNumberOfDynamicObject(){
 void descNumberOfDynamicObject(){
 	gNumberOfDynamicObject--;
 }
-void descNumberOfDynamicObjectBy(short k){
+void descNumberOfDynamicObjectBy(int k){
 	gNumberOfDynamicObject -= k;
 }
 #endif
@@ -100,7 +100,7 @@ long lcm(long a, long b){
 	return (a*b)/gcd(a, b);
 }
 
-DATA_TYPE_FP parseFloatingPoint(const char *str, short start, short end, short *error){
+DATA_TYPE_FP parseFloatingPoint(const char *str, int start, int end, int *error){
 	int i;
 	DATA_TYPE_FP val = 0;
 	char isFloatingPoint = 0;
@@ -182,15 +182,15 @@ long l_cast(DATA_TYPE_FP val, DATA_TYPE_FP *fr){
 	return (long)val;
 }
 
-int contains(short type, const short *aset, short len){
-	short i;
+int contains(int type, const int *aset, int len){
+	int i;
 	for(i=0; i<len; i++)
 		if(type == aset[i])
 			return TRUE;
 	return FALSE;
 }
 
-DATA_TYPE_FP logab(DATA_TYPE_FP a, DATA_TYPE_FP b, short *error){
+DATA_TYPE_FP logab(DATA_TYPE_FP a, DATA_TYPE_FP b, int *error){
 	(*error) = 0;
 	if( (b > ZERO_FP) && (a > ZERO_FP) && (a != ONE_FP))
 		return log(b)/log(a);
@@ -239,7 +239,7 @@ char getPriorityOfType(int type) {
 	}
 }
 
-DATA_TYPE_FP doCalculate(DATA_TYPE_FP val1, DATA_TYPE_FP val2, short type, short *error){
+DATA_TYPE_FP doCalculate(DATA_TYPE_FP val1, DATA_TYPE_FP val2, int type, int *error){
 	(*error) = 0;
 	switch(type){
 		case PLUS:

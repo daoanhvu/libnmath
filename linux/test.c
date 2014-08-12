@@ -70,7 +70,7 @@ int main(int argc, char *agr[]){
 
 int parseRange(char *str, int len, DATA_TYPE_FP *bd, int *outlen){
 	int i=0, j, flag = FALSE;
-	short e;
+	int e;
 	int k = 0;
 	while(i<len){
 		if(str[i] >= 48 && str[i] <= 57){
@@ -102,7 +102,7 @@ void testCriteria1(int argc, char *agr[]){
 	Criteria *ci1, *ci2;
 	CombinedCriteria *cc1, *cc2;
 	CompositeCriteria *cp1;
-	short error;
+	int error;
 	int i, j, outlen, chk;
 	DATA_TYPE_FP *vals;
 	CombinedCriteria *outIntList;
@@ -479,7 +479,7 @@ int testGetSpaces(Function *f){
 	DATA_TYPE_FP eps = 0.2f;
 	ListFData *data;
 	FILE *file;
-	short *indice;
+	int *indice;
 	int indiceSize = 0, indiceLoggedSize;
 	char strbuff[256];
 	

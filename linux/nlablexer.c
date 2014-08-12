@@ -3,14 +3,14 @@
 #include "common.h"
 
 
-const short setLeadNegativeNumber[] = {LPAREN, LPRACKET,SEMI,COMMA,AND,OR,LT,LTE,GT,GTE,EQ,NE,IMPLY,RARROW};
-const short LeadNegativeNumberSize = 14;
+const int setLeadNegativeNumber[] = {LPAREN, LPRACKET,SEMI,COMMA,AND,OR,LT,LTE,GT,GTE,EQ,NE,IMPLY,RARROW};
+const int LeadNegativeNumberSize = 14;
 
 TokenList *gTokens = NULL;
-extern short gErrorColumn;
-extern short gErrorCode;
+extern int gErrorColumn;
+extern int gErrorCode;
 
-Token* createToken(short _type, const char *_text, char txtlen, short _col){
+Token* createToken(int _type, const char *_text, char txtlen, int _col){
 	unsigned char i;
 	Token *tk = (Token*)malloc(sizeof(Token));
 	tk->type = _type;
@@ -68,7 +68,7 @@ Token* createToken(short _type, const char *_text, char txtlen, short _col){
 	return tk;
 }
 
-Token* createTokenIdx(short _type, const char *_text, short frIdx, short toIdx, short _col){
+Token* createTokenIdx(int _type, const char *_text, int frIdx, int toIdx, int _col){
 	unsigned char i;
 	Token *tk = (Token*)malloc(sizeof(Token));
 	tk->type = _type;

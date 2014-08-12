@@ -8,7 +8,7 @@
 	@param outF a NOT-NULL Function pointer
 	@return errorCode
 */	
-short parseFunction(const char *str, short len, Function *outF);
+int parseFunction(const char *str, int len, Function *outF);
 void parseExpression(TokenList *tokens, int *start, Function *f);
 
 #endif

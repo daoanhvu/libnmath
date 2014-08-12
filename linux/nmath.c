@@ -437,7 +437,7 @@ void releaseFunct(Function *f){
 	}
 }
 
-void resetFunction(Function *f, const char *str, const char *vars, int varCount, short *error){
+void resetFunction(Function *f, const char *str, const char *vars, int varCount, int *error){
 	int i=0, l=0, flagFirst = 0;
 	char buf[1024];
 	
@@ -761,7 +761,7 @@ void* reduce_t(void *param){
 			/* take care of special cases */
 			if((dp->t)->type == PLUS){
 				/* 0 + something */
-				if( (  ((dp->t)->left)->type == NUMBER ) && ((dp->t)->left)->value == 0.0 ){
+				if( (  ((dp->t)->left)->type == NUMBER ) && ((dp->t)->left)->value == 0.0 ) {
 				
 					//remove the left child (value 0)
 					p = (dp->t)->left;
