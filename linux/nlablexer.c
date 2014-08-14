@@ -149,8 +149,44 @@ void addToken(TokenList *lst, Token *tk){
 	(lst->size)++;
 }
 /**********************************************************************/
+
+/*
+	return the UTF-8 character code at index of the string
+*/
+short getCharacter(const char *str, int length, int index, int *nextIdx) {
+
+	short result = 0xffff;
+
+	if(str[index] > 0) {
+		*nextIdx = index + 1;
+		return str[index];
+	}
+
+	gErrorCode = NMATH_NO_ERROR;
+	if(str[index] & 0xC0 == 0xC0) {
+		//We need to read two bytes more
+		*nextIdx = index + 3;
+	} else if (str[index] & 0x80 == 0x80) {
+		//We need to read one bytes more
+		result = ((short)(str[index]) << 6) | (str[index+1] & 0x003f);
+		*nextIdx = index + 2;
+	}else {
+		gErrorCode = ERROR_MALFORMED_ENCODING;
+	}
+
+	return result;
+}
+
+void lexicalAnalysisUTF8(const char *inStr, int length, TokenList *tokens) {
+	int type, k = 0;
+	int idx = 0;
+
+	while( idx < length ) {
+
+	}
+}
 	
-void parseTokens(const char *inStr, int length, TokenList *tokens){
+void lexicalAnalysis(const char *inStr, int length, TokenList *tokens) {
 	int type, k = 0;
 	int idx = 0;
 	int floatingPoint;
@@ -164,11 +200,11 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 		if( isNumericOperatorOREQ(inStr[idx])){
 			tk = checkNumericOperator(inStr, length, &idx);
 			//addToken(tokens, tk);
-		}else if( (tk = checkParenthesePrackets(inStr[idx], &idx)) != NULL ){
+		}else if( (tk = checkParenthesePrackets(inStr[idx], &idx)) != NULL ) {
 			addToken(tokens, tk);
-		}else if( (tk = checkCommaSemi(inStr[idx], &idx)) != NULL ){
+		}else if( (tk = checkCommaSemi(inStr[idx], &idx)) != NULL ) {
 			addToken(tokens, tk);
-		}else if(isLogicOperator(inStr[idx])){
+		}else if(isLogicOperator(inStr[idx])) {
 			k = idx+1;
 			k = parserLogicOperator(inStr, length, idx, inStr[idx], k, inStr[k] );
 			if( k<0 ) {
@@ -178,8 +214,8 @@ void parseTokens(const char *inStr, int length, TokenList *tokens){
 			}
 			idx = k;
 			
-		}else if(inStr[idx] == ':' ){
-			if(inStr[idx+1] == '-' ){
+		}else if(inStr[idx] == ':' ) {
+			if(inStr[idx+1] == '-' ) {
 				tk = createToken(ELEMENT_OF, ":-", 2, idx);
 				addToken(tokens, tk);
 				idx += 2;

@@ -52,9 +52,9 @@ int main(int argc, char *agr[]){
 		printf("This expression is not a function due to variables not determined.\n");
 	}
 	
-	testReduce(f);
+	//testReduce(f);
 	//testDerivative(f);
-	//testGetSpaces(f);
+	testGetSpaces(f);
 	//testReuseFunction(f);
 	//testCriteria2(f);
 
