@@ -185,7 +185,7 @@ void addFunction2Tree(NMASTList *t, Token * stItm){
 */	
 int parseFunctionExpression(TokenList *tokens, Function *outF){
 	int k, l, i, idx = 0;
-	char variables[8];
+	char variables[4];
 	int variableCount = 0;
 	
 	gTokens = tokens;

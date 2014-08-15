@@ -153,24 +153,32 @@ void addToken(TokenList *lst, Token *tk){
 /*
 	return the UTF-8 character code at index of the string
 */
-short getCharacter(const char *str, int length, int index, int *nextIdx) {
+int getCharacter(const char *str, int length, int index, int *nextIdx) {
 
-	short result = 0xffff;
+	int result = str[index] & 0x000000FF;
 
 	if(str[index] > 0) {
 		*nextIdx = index + 1;
-		return str[index];
+		return result;
 	}
 
 	gErrorCode = NMATH_NO_ERROR;
-	if(str[index] & 0xC0 == 0xC0) {
-		//We need to read two bytes more
+	if(str[index] & 0xF8 == 0xF0) {
+		/* 11110XXX We need to read three bytes more */
+		result = buffer[i] & 0x00000007;
+		result = ((( result  << 18) | ((buffer[i+1] & 0x0000003F) << 12)) | ((buffer[i+2] & 0x0000003F) << 6)) | (buffer[i+3] & 0x0000003F);
+		*nextIdx = index + 4;
+	} else if(str[index] & 0xF0 == 0xE0) {
+		/* 1110XXXX We need to read two bytes more */
+		result = buffer[i] & 0x0000000F;
+		result = (( result  << 12) | ((buffer[i+1] & 0x0000003F) << 6)) | (buffer[i+2] & 0x0000003F);
 		*nextIdx = index + 3;
-	} else if (str[index] & 0x80 == 0x80) {
-		//We need to read one bytes more
-		result = ((short)(str[index]) << 6) | (str[index+1] & 0x003f);
+	} else if (str[index] & 0xE0 == 0xC0) {
+		/* 110XXXXX We need to read one byte more */
+		result = buffer[i] & 0x0000001F;
+		result = (result << 6) | (str[index+1] & 0x0000003f);
 		*nextIdx = index + 2;
-	}else {
+	} else {
 		gErrorCode = ERROR_MALFORMED_ENCODING;
 	}
 
