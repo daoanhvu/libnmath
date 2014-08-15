@@ -2,6 +2,11 @@
 #include "nlablexer.h"
 #include "common.h"
 
+#define CODE_PI1 	0x0FFF
+#define CODE_PI2 	0x00FF
+#define CODE_PI3 	0x00FF
+#define CODE_PI_UTF 0x00FF
+
 
 const int setLeadNegativeNumber[] = {LPAREN, LPRACKET,SEMI,COMMA,AND,OR,LT,LTE,GT,GTE,EQ,NE,IMPLY,RARROW};
 const int LeadNegativeNumberSize = 14;
@@ -163,19 +168,19 @@ int getCharacter(const char *str, int length, int index, int *nextIdx) {
 	}
 
 	gErrorCode = NMATH_NO_ERROR;
-	if(str[index] & 0xF8 == 0xF0) {
+	if( (str[index] & 0xF8) == 0xF0) {
 		/* 11110XXX We need to read three bytes more */
-		result = buffer[i] & 0x00000007;
-		result = ((( result  << 18) | ((buffer[i+1] & 0x0000003F) << 12)) | ((buffer[i+2] & 0x0000003F) << 6)) | (buffer[i+3] & 0x0000003F);
+		result = str[index] & 0x00000007;
+		result = ((( result  << 18) | ((str[index+1] & 0x0000003F) << 12)) | ((str[index+2] & 0x0000003F) << 6)) | (str[index+3] & 0x0000003F);
 		*nextIdx = index + 4;
-	} else if(str[index] & 0xF0 == 0xE0) {
+	} else if( (str[index] & 0xF0) == 0xE0) {
 		/* 1110XXXX We need to read two bytes more */
-		result = buffer[i] & 0x0000000F;
-		result = (( result  << 12) | ((buffer[i+1] & 0x0000003F) << 6)) | (buffer[i+2] & 0x0000003F);
+		result = str[index] & 0x0000000F;
+		result = (( result  << 12) | ((str[index+1] & 0x0000003F) << 6)) | (str[index+2] & 0x0000003F);
 		*nextIdx = index + 3;
-	} else if (str[index] & 0xE0 == 0xC0) {
+	} else if ( (str[index] & 0xE0) == 0xC0) {
 		/* 110XXXXX We need to read one byte more */
-		result = buffer[i] & 0x0000001F;
+		result = str[index] & 0x0000001F;
 		result = (result << 6) | (str[index+1] & 0x0000003f);
 		*nextIdx = index + 2;
 	} else {
@@ -186,11 +191,16 @@ int getCharacter(const char *str, int length, int index, int *nextIdx) {
 }
 
 void lexicalAnalysisUTF8(const char *inStr, int length, TokenList *tokens) {
-	int type, k = 0;
-	int idx = 0;
+	int chCode;
+	int idx = 0, nextIdx;
+
 
 	while( idx < length ) {
+		chCode = getCharacter(inStr, length, idx, &nextIdx);
 
+		if(chCode == 0) {
+
+		}
 	}
 }
 	

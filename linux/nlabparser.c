@@ -732,7 +732,7 @@ int parseFunction(const char *str, int len, Function *outF){
 #endif
 
 	/* build the tokens list from the input string */
-	parseTokens(str, len, &lst);
+	lexicalAnalysis(str, len, &lst);
 
 #ifdef DEBUG
 	printf("\n[NLabParser] Number of dynamic objects after parsing tokens: %d \n", numberOfDynamicObject() );
