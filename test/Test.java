@@ -11,17 +11,17 @@ import java.io.File;
 public class Test {
 	static {
 		//System.loadLibrary("D:\\Documents\\testapp\\test\\test64.dll");
-		System.loadLibrary("test64");
 		//System.loadLibrary("test32");
+		System.loadLibrary("test64");
 	}
 	
 	public static void main(String[] args) {
 		int len;
 		try{
-			String ch = "a" + Character.toString((char)0x2201);
-			//byte[] buf = ch.getBytes("UTF8");
-			//System.out.println("String: " + ch + "; byte[2]: " + buf[2] + "; String len:" + ch.length() + "; length of buff: " + buf.length + " byte(s)");
+			String ch = "1 + " + Character.toString((char)0x03C0);
+
 			len = jniWriteString("D:\\data.dat", ch);
+			//len = writeString("D:\\data.dat", ch);
 			
 			System.out.println("bytes written: " + len);
 		}catch(Exception ex){
@@ -30,4 +30,22 @@ public class Test {
 	}
 	
 	static native int jniWriteString(String fileName, String data);
+
+	private static int writeString(String fileName, String data) throws IOException {
+		FileOutputStream fos = null;
+		int result = 0;
+		try{
+			fos = new FileOutputStream(new File(fileName));
+			byte[] buffer = data.getBytes("utf-8");
+			result = buffer.length;
+			fos.write(buffer, 0, buffer.length);
+			fos.flush();
+		}catch(IOException ex) {
+			ex.printStackTrace();
+		}finally{
+			if(fos != null) fos.close();
+		}
+
+		return result;
+	}
 }

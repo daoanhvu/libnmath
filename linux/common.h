@@ -3,13 +3,13 @@
 
 #define COMMA			1
 #define SEMI			2
-#define AND				3
-#define OR				4
+#define AND				0x00002227
+#define OR				0x00002228
 #define GT				5 //>
 #define LT				6 //<
-#define GTE				7 //>=
-#define LTE				8 //<=
-#define NE				9 // not equals !=
+#define GTE				0x00002265 //>=
+#define LTE				0x00002264 //<=
+#define NE				0x00002260 // not equals !=
 #define EQ				10 // equals =
 #define LPAREN			11
 #define RPAREN			12
@@ -33,18 +33,18 @@
 #define ASIN 			30
 #define ACOS 			31
 #define ATAN 			32
-#define SQRT 			33
+#define SQRT 			0x0000221A
 #define LN 				34
 #define LOG 			35
-#define PI_TYPE 		36
-#define E_TYPE 			37
+#define PI_TYPE 		0x000003C0
+#define E_TYPE 			0x0000212F
 #define SEC 			38
 #define DOMAIN_NOTATION	39
 #define GT_LT			40
 #define GTE_LT			41
 #define GT_LTE			42
 #define GTE_LTE			43
-#define TYPE_INFINITY	44
+#define TYPE_INFINITY	0x0000221E
 
 #define TYPE_FLOATING_POINT 0
 #define TYPE_FRACTION 1

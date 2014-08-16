@@ -19,15 +19,16 @@ void testReuseFunction(Function *f);
 void testCriteria1(int argc, char *agr[]);
 void testCriteria2(Function *f);
 void testReduce(Function *f);
+void testUTF(Function *f);
 
 int main(int argc, char *agr[]){
 	Function *f;
-	int l;
+	/*int l;
 	if(argc < 2){
 		printf("An mathematics function must be entered.\n");
 		printf("Ex: f(x,y) = x + 2 * y\n");
 		return 0;
-	}
+	}*/
 
 	f = (Function*)malloc(sizeof(Function));
 	f->str = NULL;
@@ -36,11 +37,11 @@ int main(int argc, char *agr[]){
 	f->prefix = NULL;
 	f->domain = NULL;
 	f->criterias = NULL;
+	/*
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
 	printf("%s\n", agr[1]);
-	//resetFunction(&f, agr[1], "xy", 2, &error);
 	l = strlen(agr[1]);
 	parseFunction(agr[1], l, f);
 	if(getErrorCode() != NMATH_NO_ERROR) {
@@ -51,10 +52,11 @@ int main(int argc, char *agr[]){
 	} else if( (getErrorCode() == NMATH_NO_ERROR) && (f->valLen==0)) {
 		printf("This expression is not a function due to variables not determined.\n");
 	}
-	
+	*/
 	//testReduce(f);
 	//testDerivative(f);
-	testGetSpaces(f);
+	//testGetSpaces(f);
+	testUTF(f);
 	//testReuseFunction(f);
 	//testCriteria2(f);
 
@@ -280,7 +282,7 @@ void printCombinedCriteria(const CombinedCriteria *cc) {
 	}
 }
 
-void printDomainTree(NMAST *ast, int level) {
+void printNMAST(NMAST *ast, int level) {
 	int i;
 
 	if(ast == NULL) return;
@@ -315,13 +317,37 @@ void printDomainTree(NMAST *ast, int level) {
 		case NUMBER:
 			printf("%lf \n", ast->value);
 		break;
+
+		case PI_TYPE:
+			printf("PI \n");
+		break;
+
+		case E_TYPE:
+			printf("e \n");
+		break;
+
+		case PLUS:
+			printf("+ \n");
+		break;
+
+		case MINUS:
+			printf("- \n");
+		break;
+
+		case MULTIPLY:
+			printf("* \n");
+		break;
+
+		case DIVIDE:
+			printf("/ \n");
+		break;
 	}
 
 	if(ast->left != NULL)
-		printDomainTree(ast->left, level+1);
+		printNMAST(ast->left, level+1);
 
 	if(ast->right != NULL)
-		printDomainTree(ast->right, level+1);
+		printNMAST(ast->right, level+1);
 }
 
 /**
@@ -337,7 +363,7 @@ void testCriteria2(Function *f) {
 	CompositeCriteria *cp;
 
 	if(f->domain != NULL && f->domain->size>0)
-		printDomainTree(f->domain->list[0], 0);
+		printNMAST(f->domain->list[0], 0);
 
 	buildCriteria(f);
 
@@ -561,4 +587,123 @@ void testReuseFunction(Function *f) {
 	val = calc(f, var, 1, &error);
 	printf("Ret = %lf \n", val );
 
+}
+
+void testUTF(Function *f) {
+	char str[64];
+	int len, i, k=0;
+	DParam dp;
+	TokenList tokens;
+
+	str[0] = 0x31;
+	str[1] = 0x2B;
+	str[2] = 0xCF;
+	str[3] = 0x80;
+	len = 4;
+
+	//Lexer
+	tokens.loggedSize = 10;
+	tokens.list = (Token**)malloc(sizeof(Token*) * tokens.loggedSize);
+	tokens.size = 0;
+	/* build the tokens list from the input string */
+	//lexicalAnalysis(exp, expLen, &tokens);
+	lexicalAnalysisUTF8(str, len, &tokens);
+
+	if( getErrorCode() == NMATH_NO_ERROR ) {
+		printf("lexical analysis successfully, number of token: %d\n", tokens.size);
+
+		parseExpression(&tokens, &k, f);
+
+		if( getErrorCode() == NMATH_NO_ERROR ) {
+			dp.error = NMATH_NO_ERROR;
+			dp.t = f->prefix->list[0];
+			reduce_t(&dp);
+			if(dp.error == NMATH_NO_ERROR) {
+				k = 0;
+				printNMAST(dp.t, 0);
+				printf("\n");
+				toString(dp.t, str, &k, 64);
+				f->prefix->list[0] = dp.t;
+				printf("Calculating result: %s\n", str);
+			}
+		}
+
+		//release token list
+			
+		for(i = 0; i<tokens.size; i++){
+			printf("%X ", tokens.list[i]->type);
+			free(tokens.list[i]);
+		}
+		printf("\n");
+		free(tokens.list);
+	}
+
+	if(getErrorCode() != NMATH_NO_ERROR) {
+		printError(getErrorColumn(), getErrorCode());
+	}
+}
+
+void testUTFFromFile(Function *f) {
+	FILE *file;
+	char str[64];
+	int len, size, i, k=0;
+	DParam dp;
+	TokenList tokens;
+
+	file = fopen("/cygdrive/d/data.dat", "rb");
+	if( file != NULL ) {
+		fseek(file, 0, SEEK_END);
+		size = ftell(file);
+		fseek(file, 0, SEEK_SET);
+
+		len = fread(str, 1, size, file);
+		fclose(file);
+
+		printf("Number of bytes read: %d\n", len);
+		for(i = 0; i<len; i++){
+			printf("0x%X(%d) ", str[i],str[i]);
+		}
+		printf("\n");
+
+		//Lexer
+		tokens.loggedSize = 10;
+		tokens.list = (Token**)malloc(sizeof(Token*) * tokens.loggedSize);
+		tokens.size = 0;
+		/* build the tokens list from the input string */
+		//lexicalAnalysis(exp, expLen, &tokens);
+		lexicalAnalysisUTF8(str, len, &tokens);
+
+		if( getErrorCode() == NMATH_NO_ERROR ) {
+			printf("lexical analysis successfully, number of token: %d\n", tokens.size);
+
+			parseExpression(&tokens, &k, f);
+
+			if( getErrorCode() == NMATH_NO_ERROR ) {
+				dp.error = NMATH_NO_ERROR;
+				dp.t = f->prefix->list[0];
+				reduce_t(&dp);
+				if(dp.error == NMATH_NO_ERROR) {
+					k = 0;
+					printNMAST(dp.t, 0);
+					printf("\n");
+					toString(dp.t, str, &k, 64);
+					f->prefix->list[0] = dp.t;
+					printf("Calculating result: %s\n", str);
+				}
+			}
+
+			//release token list
+			
+			for(i = 0; i<tokens.size; i++){
+				printf("%X ", tokens.list[i]->type);
+				free(tokens.list[i]);
+			}
+			printf("\n");
+			free(tokens.list);
+		}
+
+		if(getErrorCode() != NMATH_NO_ERROR) {
+			printError(getErrorColumn(), getErrorCode());
+		}
+	}
 }

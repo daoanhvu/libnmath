@@ -2,11 +2,14 @@
 #include "nlablexer.h"
 #include "common.h"
 
-#define CODE_PI1 	0x0FFF
-#define CODE_PI2 	0x00FF
-#define CODE_PI3 	0x00FF
-#define CODE_PI_UTF 0x00FF
-
+#ifdef _TARGET_HOST_ANDROID
+	#include <jni.h>
+	#include <android/log.h>
+	#define LOG_TAG "NLABLEXER"
+	#define LOG_LEVEL 10
+	#define LOGI(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__);}
+	#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
+#endif
 
 const int setLeadNegativeNumber[] = {LPAREN, LPRACKET,SEMI,COMMA,AND,OR,LT,LTE,GT,GTE,EQ,NE,IMPLY,RARROW};
 const int LeadNegativeNumberSize = 14;
@@ -162,10 +165,12 @@ int getCharacter(const char *str, int length, int index, int *nextIdx) {
 
 	int result = str[index] & 0x000000FF;
 
-	if(str[index] > 0) {
+	/*
+	if((inStr[idx] & 0x80) != 0x80) {
 		*nextIdx = index + 1;
 		return result;
 	}
+	*/
 
 	gErrorCode = NMATH_NO_ERROR;
 	if( (str[index] & 0xF8) == 0xF0) {
@@ -191,15 +196,158 @@ int getCharacter(const char *str, int length, int index, int *nextIdx) {
 }
 
 void lexicalAnalysisUTF8(const char *inStr, int length, TokenList *tokens) {
-	int chCode;
+	int chCode, type, k = 0;
 	int idx = 0, nextIdx;
-
+	int floatingPoint;
+	Token *tk = NULL;
+		
+	gTokens = tokens;
+	gErrorColumn = -1;
+	gErrorCode = NMATH_NO_ERROR;
 
 	while( idx < length ) {
-		chCode = getCharacter(inStr, length, idx, &nextIdx);
+		//LOGI(3, "index: %d, 0x%X(%d)", idx, inStr[idx], (char)(inStr[idx]));
+		if( (inStr[idx] & 0x80) != 0x80 ) {
+			if( isNumericOperatorOREQ(inStr[idx])){
+				tk = checkNumericOperator(inStr, length, &idx);
+				//addToken(tokens, tk);
+			}else if( (tk = checkParenthesePrackets(inStr[idx], &idx)) != NULL ) {
+				addToken(tokens, tk);
+			}else if( (tk = checkCommaSemi(inStr[idx], &idx)) != NULL ) {
+				addToken(tokens, tk);
+			}else if(isLogicOperator(inStr[idx])) {
+				k = idx+1;
+				k = parserLogicOperator(inStr, length, idx, inStr[idx], k, inStr[k] );
+				if( k<0 ) {
+					gErrorColumn = idx;
+					gErrorCode = ERROR_BAD_TOKEN;
+					return;
+				}
+				idx = k;
+				
+			}else if(inStr[idx] == ':' ) {
+				if(inStr[idx+1] == '-' ) {
+					tk = createToken(ELEMENT_OF, ":-", 2, idx);
+					addToken(tokens, tk);
+					idx += 2;
+				}else{ //ERROR: bad token found
+					gErrorColumn = idx;
+					gErrorCode = ERROR_BAD_TOKEN;
+					return;
+				}
+			}else if(isDigit(inStr[idx])){
+				floatingPoint = FALSE;
+				for(k = idx+1; k < length; k++){
+					if(!isDigit(inStr[k])) {
+						if(inStr[k] == '.'){
+							//check if we got a floating point
+							if(floatingPoint){ //<- ERROR: the second floating point
+								gErrorColumn = k;
+								gErrorCode = ERROR_TOO_MANY_FLOATING_POINT;
+								return;
+							}
+							floatingPoint = TRUE;
+						}else{
+							tk = createTokenIdx(NUMBER, inStr, idx, k-1, idx);
+							addToken(tokens, tk);
+							if(inStr[k] == ')'||inStr[k] == ' ' 
+									|| isNumericOperatorOREQ(inStr[k]) 
+									|| isLogicOperator(inStr[k])) {
+								idx = k;
+								break;
+							}else{
+								//Ex: 126a
+								//At the moment, I don't handle this case
+								//throw Exception
+								gErrorColumn = k;
+								gErrorCode = ERROR_BAD_TOKEN;
+								return;
+							}
+						}
+					}
+				}
+				if(idx < k){
+					tk = createTokenIdx(NUMBER, inStr, idx, k-1, idx);
+					addToken(tokens, tk);
+					idx = k;
+				}
+			}else if( (k=isFunctionName(idx, inStr, length, &type ))>0 ){
+				tk = createTokenIdx(type, inStr, idx, k-1, idx);
+				addToken(tokens, tk);
+				idx = k;
+			}else if(idx>0 && (inStr[idx-1]==' ') && (inStr[idx]=='D') && (inStr[idx+1]==':') ){
+				tk = createToken(DOMAIN_NOTATION, "DOMAIN_NOTATION", 14, idx);
+				addToken(tokens, tk);
+				idx += 2;
+			}else if( isAName(idx, inStr, length) ) {
+				tk = createTokenIdx(NAME, inStr, idx, idx, idx);
+				addToken(tokens, tk);
+				idx++;
+			}else if(inStr[idx]=='o' || inStr[idx]=='O') {
+				if(inStr[idx+1]=='r' || inStr[idx+1]=='R'){
+					tk = createTokenIdx(OR, inStr, idx, idx+1, idx);
+					addToken(tokens, tk);
+					idx += 2;
+				}else{
+					//TODO: maybe its a NAME
+					idx++;
+				}
+				
+			}else if(inStr[idx]=='a' || inStr[idx]=='A'){
+				if(inStr[idx+1]=='n' || inStr[idx+1]=='N'){
+					if(inStr[idx+2]=='d' || inStr[idx+2]=='D'){
+						tk = createTokenIdx(AND, inStr, idx, idx+2, idx);
+						addToken(tokens, tk);
+						idx += 3;
+					}
+				}else{
+					//TODO: maybe its a NAME
+					idx++;
+				}
+				
+			}else if( (idx+1 < length ) && (inStr[idx]=='p' || inStr[idx]=='P') && (inStr[idx+1]=='i' || inStr[idx+1]=='I')
+							&& ( (idx+1 == length-1) || !isLetter(inStr[idx+2]) ) ){
+				tk = createToken(PI_TYPE, "3.14159265358979", 16, idx);
+				addToken(tokens, tk);
+				idx += 2;
+			}else if(inStr[idx]=='e' && ((idx==length-1) || !isLetter(inStr[idx+1]))){
+				tk = createToken(E_TYPE, "2.718281828", 11, idx);
+				addToken(tokens, tk);
+				idx++;
+			}else
+				idx++;
 
-		if(chCode == 0) {
+		} else {
 
+			chCode = getCharacter(inStr, length, idx, &nextIdx);
+			//LOGI(3, "UTF Code: (0x%X)%d", chCode, chCode);
+			switch(chCode) {
+				case PI_TYPE:
+					tk = createToken(PI_TYPE, "3.14159265358979", 16, idx);
+					addToken(tokens, tk);
+				break;
+
+				case E_TYPE:
+					tk = createToken(E_TYPE, "2.718281828", 11, idx);
+					addToken(tokens, tk);
+				break;
+
+				case AND:
+					tk = createTokenIdx(AND, inStr, idx, nextIdx-idx, idx);
+					addToken(tokens, tk);
+				break;
+
+				case OR:
+					tk = createTokenIdx(OR, inStr, idx, nextIdx-idx, idx);
+					addToken(tokens, tk);
+				break;
+
+				case SQRT:
+					tk = createTokenIdx(SQRT, inStr, idx, nextIdx-idx, idx);
+					addToken(tokens, tk);
+				break;
+			}
+			idx = nextIdx;
 		}
 	}
 }
@@ -323,7 +471,7 @@ void lexicalAnalysis(const char *inStr, int length, TokenList *tokens) {
 			idx++;
 		}else
 			idx++;
-	}
+	} /* end while */
 	gTokens = NULL;
 }
 
