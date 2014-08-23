@@ -1,6 +1,6 @@
 #include <stdlib.h>
+#include <string.h>
 #include "nlablexer.h"
-#include "common.h"
 
 #ifdef _TARGET_HOST_ANDROID
 	#include <jni.h>
@@ -14,148 +14,73 @@
 const int setLeadNegativeNumber[] = {LPAREN, LPRACKET,SEMI,COMMA,AND,OR,LT,LTE,GT,GTE,EQ,NE,IMPLY,RARROW};
 const int LeadNegativeNumberSize = 14;
 
-TokenList *gTokens = NULL;
 extern int gErrorColumn;
 extern int gErrorCode;
 
-Token* createToken(int _type, const char *_text, char txtlen, int _col){
-	unsigned char i;
-	Token *tk = (Token*)malloc(sizeof(Token));
-	tk->type = _type;
-	tk->column = _col;
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
+/**
+	Add a token info into list, size of the list will be increased one
+
+	if SUCCESS, return the size of token
+	otherwise return a negative value
+*/
+int addToken(TokenList *lst, int _type, const char *_text, char txtlen, int _col){
+
+	if(lst->size >= lst->loggedSize) {
+		return E_NOT_ENOUGH_PLACE;
+	}
+
+	lst->list[lst->size].type = _type;
+	lst->list[lst->size].column = _col;
 
 	/*
 		IMPORTANT: If you want to change this, PLEASE change function common:getPriorityOfType(int type) also
 	*/
 	switch(_type){
 		case OR:
-			tk->priority = 1;
+			lst->list[lst->size].priority = 1;
 		break;
 		
 		case AND:
-			tk->priority = 2;
+			lst->list[lst->size].priority = 2;
 		break;
 		
 		case LT:
 		case GT:
 		case LTE:
 		case GTE:
-			tk->priority = 3;
+			lst->list[lst->size].priority = 3;
 		break;
 		
 		case PLUS:
 		case MINUS:
-			tk->priority = 4;
+			lst->list[lst->size].priority = 4;
 		break;
 		
 		case MULTIPLY:
 		case DIVIDE:
-			tk->priority = 5;
+			lst->list[lst->size].priority = 5;
 		break;
 		
 		case POWER:
-			tk->priority = 6;
+			lst->list[lst->size].priority = 6;
 		break;
 		
 		case NE:
-			tk->priority = 7;
+			lst->list[lst->size].priority = 7;
 		break;
 		
 		default:
-			tk->priority = 0;
+			lst->list[lst->size].priority = 0;
 	}
 	
-	tk->textLength = (char)((MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen);
-	for(i=0; i<tk->textLength; i++)
-		tk->text[i] = _text[i];
-	
-	
-	return tk;
-}
+	lst->list[lst->size].textLength = (char)((MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen);
+	memcpy(lst->list[lst->size].text, _text, lst->list[lst->size].textLength);
 
-Token* createTokenIdx(int _type, const char *_text, int frIdx, int toIdx, int _col){
-	unsigned char i;
-	Token *tk = (Token*)malloc(sizeof(Token));
-	tk->type = _type;
-	tk->column = _col;
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-
-	switch(_type){
-		case OR:
-			tk->priority = 1;
-		break;
-		
-		case AND:
-			tk->priority = 2;
-		break;
-		
-		case LT:
-		case GT:
-		case LTE:
-		case GTE:
-			tk->priority = 3;
-		break;
-		
-		case PLUS:
-		case MINUS:
-			tk->priority = 4;
-		break;
-		
-		case MULTIPLY:
-		case DIVIDE:
-			tk->priority = 5;
-		break;
-		
-		case POWER:
-			tk->priority = 6;
-		break;
-		
-		case NE:
-			tk->priority = 7;
-		break;
-		
-		default:
-			tk->priority = 0;
-	}
-	
-	//l = (MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen;
-	tk->textLength = 0;
-	for(i=frIdx; i<=toIdx; i++){
-		tk->text[tk->textLength] = _text[i];
-		(tk->textLength)++;
-	}
-	return tk;
-}
-
-void addToken(TokenList *lst, Token *tk){
-	Token **tmp = NULL;
-	int i, newLoggedSize;
-	if(lst->size >= lst->loggedSize){
-		newLoggedSize = lst->loggedSize + INCLEN;
-		tmp = (Token**)malloc(sizeof(Token*) * newLoggedSize);
-#ifdef DEBUG
-		incNumberOfDynamicObject();
-#endif
-		lst->loggedSize = newLoggedSize;
-
-		for(i = 0; i<lst->size; i++)
-			tmp[i] = lst->list[i];
-
-		//release list
-		free(lst->list);
-#ifdef DEBUG
-		descNumberOfDynamicObject();
-#endif
-		lst->list = tmp;
-	}
-	lst->list[lst->size] = tk;
 	(lst->size)++;
+
+	return lst->size;
 }
+
 /**********************************************************************/
 
 /*
@@ -199,47 +124,39 @@ void lexicalAnalysisUTF8(const char *inStr, int length, TokenList *tokens) {
 	int chCode, type, k = 0;
 	int idx = 0, nextIdx;
 	int floatingPoint;
-	Token *tk = NULL;
-		
-	gTokens = tokens;
+
 	gErrorColumn = -1;
 	gErrorCode = NMATH_NO_ERROR;
 
 	while( idx < length ) {
 		//LOGI(3, "index: %d, 0x%X(%d)", idx, inStr[idx], (char)(inStr[idx]));
 		if( (inStr[idx] & 0x80) != 0x80 ) {
-			if( isNumericOperatorOREQ(inStr[idx])){
-				tk = checkNumericOperator(inStr, length, &idx);
-				//addToken(tokens, tk);
-			}else if( (tk = checkParenthesePrackets(inStr[idx], &idx)) != NULL ) {
-				addToken(tokens, tk);
-			}else if( (tk = checkCommaSemi(inStr[idx], &idx)) != NULL ) {
-				addToken(tokens, tk);
-			}else if(isLogicOperator(inStr[idx])) {
-				k = idx+1;
-				k = parserLogicOperator(inStr, length, idx, inStr[idx], k, inStr[k] );
-				if( k<0 ) {
-					gErrorColumn = idx;
-					gErrorCode = ERROR_BAD_TOKEN;
-					return;
-				}
-				idx = k;
-				
+			if( checkNumericOperator(tokens, inStr, length, idx, &type, &k )) {
+				addToken(tokens, type, inStr + idx, k, idx);
+				idx += k;
+			}else if( checkParenthesePrackets(inStr[idx], &type) == TRUE ) {
+				addToken(tokens, type, inStr + idx, 1, idx);
+				idx++;
+			}else if( checkCommaSemi(inStr[idx], &type) == TRUE ) {
+				addToken(tokens, type, inStr + idx, 1, idx);
+				idx++;
+			}else if(parserLogicOperator(inStr, length, idx, &type, &k ) == TRUE) {
+				addToken(tokens, type, inStr + idx, k, idx);
+				idx += k;
 			}else if(inStr[idx] == ':' ) {
 				if(inStr[idx+1] == '-' ) {
-					tk = createToken(ELEMENT_OF, ":-", 2, idx);
-					addToken(tokens, tk);
+					addToken(tokens, ELEMENT_OF, inStr + idx, 2, idx);
 					idx += 2;
 				}else{ //ERROR: bad token found
 					gErrorColumn = idx;
 					gErrorCode = ERROR_BAD_TOKEN;
 					return;
 				}
-			}else if(isDigit(inStr[idx])){
+			}else if(isDigit(inStr[idx])) {
 				floatingPoint = FALSE;
-				for(k = idx+1; k < length; k++){
+				for(k = idx+1; k < length; k++) {
 					if(!isDigit(inStr[k])) {
-						if(inStr[k] == '.'){
+						if(inStr[k] == '.') {
 							//check if we got a floating point
 							if(floatingPoint){ //<- ERROR: the second floating point
 								gErrorColumn = k;
@@ -247,46 +164,29 @@ void lexicalAnalysisUTF8(const char *inStr, int length, TokenList *tokens) {
 								return;
 							}
 							floatingPoint = TRUE;
-						}else{
-							tk = createTokenIdx(NUMBER, inStr, idx, k-1, idx);
-							addToken(tokens, tk);
-							if(inStr[k] == ')'||inStr[k] == ' ' 
-									|| isNumericOperatorOREQ(inStr[k]) 
-									|| isLogicOperator(inStr[k])) {
-								idx = k;
-								break;
-							}else{
-								//Ex: 126a
-								//At the moment, I don't handle this case
-								//throw Exception
-								gErrorColumn = k;
-								gErrorCode = ERROR_BAD_TOKEN;
-								return;
-							}
+						} else {
+							addToken(tokens, NUMBER, inStr + idx, k-idx, idx);
+							idx = k;
+							break;
 						}
 					}
 				}
 				if(idx < k){
-					tk = createTokenIdx(NUMBER, inStr, idx, k-1, idx);
-					addToken(tokens, tk);
+					addToken(tokens, NUMBER, inStr + idx, k-idx, idx);
 					idx = k;
 				}
-			}else if( (k=isFunctionName(idx, inStr, length, &type ))>0 ){
-				tk = createTokenIdx(type, inStr, idx, k-1, idx);
-				addToken(tokens, tk);
-				idx = k;
+			}else if( isFunctionName(inStr, length, idx, &type, &k ) == TRUE ) {
+				addToken(tokens, type, inStr + idx, k, idx);
+				idx += k;
 			}else if(idx>0 && (inStr[idx-1]==' ') && (inStr[idx]=='D') && (inStr[idx+1]==':') ){
-				tk = createToken(DOMAIN_NOTATION, "DOMAIN_NOTATION", 14, idx);
-				addToken(tokens, tk);
+				addToken(tokens, DOMAIN_NOTATION, "DOMAIN_NOTATION", 14, idx);
 				idx += 2;
-			}else if( isAName(idx, inStr, length) ) {
-				tk = createTokenIdx(NAME, inStr, idx, idx, idx);
-				addToken(tokens, tk);
+			}else if( isAName(inStr, length, idx) ) {
+				addToken(tokens, NAME, inStr + idx, 1, idx);
 				idx++;
 			}else if(inStr[idx]=='o' || inStr[idx]=='O') {
 				if(inStr[idx+1]=='r' || inStr[idx+1]=='R'){
-					tk = createTokenIdx(OR, inStr, idx, idx+1, idx);
-					addToken(tokens, tk);
+					addToken(tokens, OR, inStr + idx, 2, idx);
 					idx += 2;
 				}else{
 					//TODO: maybe its a NAME
@@ -296,8 +196,7 @@ void lexicalAnalysisUTF8(const char *inStr, int length, TokenList *tokens) {
 			}else if(inStr[idx]=='a' || inStr[idx]=='A'){
 				if(inStr[idx+1]=='n' || inStr[idx+1]=='N'){
 					if(inStr[idx+2]=='d' || inStr[idx+2]=='D'){
-						tk = createTokenIdx(AND, inStr, idx, idx+2, idx);
-						addToken(tokens, tk);
+						addToken(tokens, AND, inStr + idx, 3, idx);
 						idx += 3;
 					}
 				}else{
@@ -306,13 +205,11 @@ void lexicalAnalysisUTF8(const char *inStr, int length, TokenList *tokens) {
 				}
 				
 			}else if( (idx+1 < length ) && (inStr[idx]=='p' || inStr[idx]=='P') && (inStr[idx+1]=='i' || inStr[idx+1]=='I')
-							&& ( (idx+1 == length-1) || !isLetter(inStr[idx+2]) ) ){
-				tk = createToken(PI_TYPE, "3.14159265358979", 16, idx);
-				addToken(tokens, tk);
+							&& ( (idx+1 == length-1) || !isLetter(inStr[idx+2]) ) ) {
+				addToken(tokens, PI_TYPE, "3.14159265358979", 16, idx);
 				idx += 2;
-			}else if(inStr[idx]=='e' && ((idx==length-1) || !isLetter(inStr[idx+1]))){
-				tk = createToken(E_TYPE, "2.718281828", 11, idx);
-				addToken(tokens, tk);
+			}else if(inStr[idx]=='e' && ((idx==length-1) || !isLetter(inStr[idx+1]))) {
+				addToken(tokens, E_TYPE, "2.718281828", 11, idx);
 				idx++;
 			}else
 				idx++;
@@ -323,300 +220,186 @@ void lexicalAnalysisUTF8(const char *inStr, int length, TokenList *tokens) {
 			//LOGI(3, "UTF Code: (0x%X)%d", chCode, chCode);
 			switch(chCode) {
 				case PI_TYPE:
-					tk = createToken(PI_TYPE, "3.14159265358979", 16, idx);
-					addToken(tokens, tk);
+					addToken(tokens, PI_TYPE, "3.14159265358979", 16, idx);
 				break;
 
 				case E_TYPE:
-					tk = createToken(E_TYPE, "2.718281828", 11, idx);
-					addToken(tokens, tk);
+					addToken(tokens, E_TYPE, "2.718281828", 11, idx);
 				break;
 
 				case AND:
-					tk = createTokenIdx(AND, inStr, idx, nextIdx-idx, idx);
-					addToken(tokens, tk);
+					addToken(tokens, AND, inStr + idx, nextIdx-idx, idx);
 				break;
 
 				case OR:
-					tk = createTokenIdx(OR, inStr, idx, nextIdx-idx, idx);
-					addToken(tokens, tk);
+					addToken(tokens, OR, inStr + idx, nextIdx-idx, idx);
 				break;
 
 				case SQRT:
-					tk = createTokenIdx(SQRT, inStr, idx, nextIdx-idx, idx);
-					addToken(tokens, tk);
+					addToken(tokens, SQRT, inStr + idx, nextIdx-idx, idx);
 				break;
 			}
 			idx = nextIdx;
 		}
 	}
 }
-	
-void lexicalAnalysis(const char *inStr, int length, TokenList *tokens) {
-	int type, k = 0;
-	int idx = 0;
-	int floatingPoint;
-	Token *tk = NULL;
-		
-	gTokens = tokens;
-	gErrorColumn = -1;
-	gErrorCode = NMATH_NO_ERROR;
-	
-	while( idx < length ){
-		if( isNumericOperatorOREQ(inStr[idx])){
-			tk = checkNumericOperator(inStr, length, &idx);
-			//addToken(tokens, tk);
-		}else if( (tk = checkParenthesePrackets(inStr[idx], &idx)) != NULL ) {
-			addToken(tokens, tk);
-		}else if( (tk = checkCommaSemi(inStr[idx], &idx)) != NULL ) {
-			addToken(tokens, tk);
-		}else if(isLogicOperator(inStr[idx])) {
-			k = idx+1;
-			k = parserLogicOperator(inStr, length, idx, inStr[idx], k, inStr[k] );
-			if( k<0 ) {
-				gErrorColumn = idx;
-				gErrorCode = ERROR_BAD_TOKEN;
-				return;
-			}
-			idx = k;
-			
-		}else if(inStr[idx] == ':' ) {
-			if(inStr[idx+1] == '-' ) {
-				tk = createToken(ELEMENT_OF, ":-", 2, idx);
-				addToken(tokens, tk);
-				idx += 2;
-			}else{ //ERROR: bad token found
-				gErrorColumn = idx;
-				gErrorCode = ERROR_BAD_TOKEN;
-				return;
-			}
-		}else if(isDigit(inStr[idx])){
-			floatingPoint = FALSE;
-			for(k = idx+1; k < length; k++){
-				if(!isDigit(inStr[k])) {
-					if(inStr[k] == '.'){
-						//check if we got a floating point
-						if(floatingPoint){ //<- ERROR: the second floating point
-							gErrorColumn = k;
-							gErrorCode = ERROR_TOO_MANY_FLOATING_POINT;
-							return;
-						}
-						floatingPoint = TRUE;
-					}else{
-						tk = createTokenIdx(NUMBER, inStr, idx, k-1, idx);
-						addToken(tokens, tk);
-						if(inStr[k] == ')'||inStr[k] == ' ' 
-								|| isNumericOperatorOREQ(inStr[k]) 
-								|| isLogicOperator(inStr[k])) {
-							idx = k;
-							break;
-						}else{
-							//Ex: 126a
-							//At the moment, I don't handle this case
-							//throw Exception
-							gErrorColumn = k;
-							gErrorCode = ERROR_BAD_TOKEN;
-							return;
-						}
-					}
-				}
-			}
-			if(idx < k){
-				tk = createTokenIdx(NUMBER, inStr, idx, k-1, idx);
-				addToken(tokens, tk);
-				idx = k;
-			}
-		}else if( (k=isFunctionName(idx, inStr, length, &type ))>0 ){
-			tk = createTokenIdx(type, inStr, idx, k-1, idx);
-			addToken(tokens, tk);
-			idx = k;
-		}else if(idx>0 && (inStr[idx-1]==' ') && (inStr[idx]=='D') && (inStr[idx+1]==':') ){
-			tk = createToken(DOMAIN_NOTATION, "DOMAIN_NOTATION", 14, idx);
-			addToken(tokens, tk);
-			idx += 2;
-		}else if( isAName(idx, inStr, length) ) {
-			tk = createTokenIdx(NAME, inStr, idx, idx, idx);
-			addToken(tokens, tk);
-			idx++;
-		}else if(inStr[idx]=='o' || inStr[idx]=='O') {
-			if(inStr[idx+1]=='r' || inStr[idx+1]=='R'){
-				tk = createTokenIdx(OR, inStr, idx, idx+1, idx);
-				addToken(tokens, tk);
-				idx += 2;
+
+/**
+	Check if the current token is one of >, <, >=, <=, =, !=
+
+	return TRUE if the token is one of above types
+	otherwise return FALSE
+*/	
+int parserLogicOperator(const char *inStr, int length, int idx, int *type, int *outlen) {
+	int result = FALSE;
+	switch(inStr[idx]){
+		case '>':
+			if(inStr[idx+1] == '='){
+				*type = GTE;
+				*outlen = 2;
 			}else{
-				//TODO: maybe its a NAME
-				idx++;
+				*type = GT;
+				*outlen = 1;
 			}
-			
-		}else if(inStr[idx]=='a' || inStr[idx]=='A'){
-			if(inStr[idx+1]=='n' || inStr[idx+1]=='N'){
-				if(inStr[idx+2]=='d' || inStr[idx+2]=='D'){
-					tk = createTokenIdx(AND, inStr, idx, idx+2, idx);
-					addToken(tokens, tk);
-					idx += 3;
-				}
+			result = TRUE;
+			break;
+
+		case '<':
+			if(inStr[idx+1] == '='){
+				*type = LTE;
+				*outlen = 2;
 			}else{
-				//TODO: maybe its a NAME
-				idx++;
+				*type = LT;
+				*outlen = 1;
 			}
-			
-		}else if( (idx+1 < length ) && (inStr[idx]=='p' || inStr[idx]=='P') && (inStr[idx+1]=='i' || inStr[idx+1]=='I')
-						&& ( (idx+1 == length-1) || !isLetter(inStr[idx+2]) ) ){
-			tk = createToken(PI_TYPE, "3.141592653589793238", 20, idx);
-			addToken(tokens, tk);
-			idx += 2;
-		}else if(inStr[idx]=='e' && ((idx==length-1) || !isLetter(inStr[idx+1]))){
-			tk = createToken(E_TYPE, "2.718281828", 11, idx);
-			addToken(tokens, tk);
-			idx++;
-		}else
-			idx++;
-	} /* end while */
-	gTokens = NULL;
+			result = TRUE;
+			break;
+
+		case '!':
+			if(inStr[idx+1] == '='){
+				*type = NE;
+				*outlen = 2;
+				result = TRUE;
+			}
+			break;
+	}
+	return result;
 }
 
 /**
-	Parse tokens to logic operator like: >, <, >=, <=, =, !=
-	If parsing OK, create a new token and return the next position after the operator,
-	otherwise, return -1
-*/	
-int parserLogicOperator(const char *inStr, int length, int i, char charAtI, int k, char charAtK) {
-	Token *tk = NULL;
-	int nextPos = -1;
+	Check Parenthese or prackets
 
-	switch(charAtI){
-		case '>':
-			if(charAtK == '='){
-				tk = createTokenIdx(GTE, inStr, i, k, i);
-				addToken(gTokens, tk);
-				nextPos = k+1;
-			}else{
-				tk = createTokenIdx(GT, inStr, i, i, i);
-				addToken(gTokens, tk);
-				nextPos = i+1;
-			}
-			break;
-		case '<':
-			if(charAtK == '='){
-				tk = createTokenIdx(LTE, inStr, i, k, i);
-				addToken(gTokens, tk);
-				nextPos = k+1;
-			}else{
-				tk = createTokenIdx(LT, inStr, i, i, i);
-				addToken(gTokens, tk);
-				nextPos = i+1;
-			}
-			break;
-		case '!':
-			if(charAtK == '='){
-				tk = createTokenIdx(NE, inStr, i, i+1, i);
-				addToken(gTokens, tk);
-				nextPos = i+2;
-			}
-			break;
-	}
-	return nextPos;
-}
+	Return TRUE if it's a Parenthese or prackets
+	otherwise return FALSE
 
-Token* checkParenthesePrackets(char c, int *idx){
-	Token *tk = NULL;
-	switch(c){
+	In case it returns TRUE, type will hold the actual type of the token
+*/
+int checkParenthesePrackets(char c, int *type) {
+	int result = FALSE;
+
+	switch(c) {
+
 		case '(':
-			tk = createToken(LPAREN, "(", 1, *idx);
-			(*idx)++;
+			*type = LPAREN;
+			result = TRUE;
 		break;
 		
 		case ')':
-			tk = createToken(RPAREN, ")", 1, *idx);
-			(*idx)++;
+			*type = RPAREN;
+			result = TRUE;
 		break;
 			
 		case '[':
-			tk = createToken(LPRACKET, "[", 1, *idx);
-			(*idx)++;
+			*type = LPRACKET;
+			result = TRUE;
 		break;
 			
 		case ']':
-			tk = createToken(RPRACKET, "]", 1, *idx);
-			(*idx)++;
+			*type = RPRACKET;
+			result = TRUE;
 		break;
 	}
-	return tk;
+
+	return result;
 }
-	
-Token* checkCommaSemi(char c, int *idx){
-	Token *tk = NULL;
-	switch(c){
+
+/**
+	Check comma or semicolon.
+
+	Return TRUE if it's a semiconlon or comma
+	otherwise return FALSE
+
+	In case it returns TRUE, type will hold the actual type of the token
+*/
+int checkCommaSemi(char c, int *type) {
+	int result = FALSE;
+
+	switch(c) {
 		case ',':
-			tk = createToken(COMMA, ",", 1, *idx);
-			(*idx)++;
+			*type = COMMA;
+			result = TRUE;
 		break;
 		
 		case ';':
-			tk = createToken(SEMI, ";", 1, *idx);
-			(*idx)++;
+			*type = SEMI;
+			result = TRUE;
 		break;
 	}
 		
-	return tk;
+	return result;
 }
 	
 /***********************************************************************/
 /**
  * @see isNumericOperatorOREQ
- * @return errorCode
+ * @return TRUE if it's a numeric operator or equal sign
  */
-Token* checkNumericOperator(const char *inStr, int length, int *idx){
-	Token *tk = NULL;
-	char c;
+int checkNumericOperator(const TokenList *tokens, const char *inStr, int length, int idx, int *type, int *textLength) {
+	int result = FALSE;
 
-	if((*idx) >= length)
-		return NULL;
+	if(idx >= length)
+		return result;
 
-	c = inStr[(*idx)];
-	switch(c){
+	*textLength = 1;
+
+	switch(inStr[idx]) {
 		case '+':
-			tk = createToken(PLUS, "+", 1, *idx);
-			addToken(gTokens, tk);
-			(*idx)++;
+			result = TRUE;
+			*type = PLUS;
 		break;
 			
 		case '-':
-			parsSubtractSign(inStr, length, idx);
+			result = parseSubtractSign(tokens, inStr, length, idx, type, textLength);
 		break;
 			
 		case '*':
-			tk = createToken(MULTIPLY, "*", 1, *idx);
-			addToken(gTokens, tk);
-			(*idx)++;
+			result = TRUE;
+			*type = MULTIPLY;
 		break;
 			
 		case '/':
-			tk = createToken(DIVIDE, "/", 1, *idx);
-			addToken(gTokens, tk);
-			(*idx)++;
+			result = TRUE;
+			*type = DIVIDE;
 		break;
 			
 		case '^':
-			tk = createToken(POWER, "^", 1, *idx);
-			addToken(gTokens, tk);
-			(*idx)++;
+			result = TRUE;
+			*type = POWER;
 		break;
 			
 		case '=':
-			if((*idx)==length-1 || inStr[(*idx)+1] != '>'){
-				tk = createToken(EQ, "=", 1, *idx);
-				addToken(gTokens, tk);
-			} else if(inStr[(*idx)+1] == '>'){
-				tk = createToken(IMPLY, "=>", 2, *idx);
-				addToken(gTokens, tk);
-				(*idx)++;
+			if(idx==length-1 || inStr[idx+1] != '>'){
+				result = TRUE;
+				*type = EQ;
+			} else if(inStr[idx+1] == '>'){
+				result = TRUE;
+				*type = IMPLY;
+				*textLength = 2;
 			}
-			(*idx)++;
 		break;
 	}
 		
-	return tk;
+	return result;
 }
 	
 int isNumericOperatorOREQ(char c){
@@ -638,64 +421,58 @@ int isNumericOperatorOREQ(char c){
  * Just call this routine if character at currentPos is a minus sign
  * Example
  */
-Token* parsSubtractSign(const char *inputString, int length, int *idx){
-	Token *tk = NULL;
+int parseSubtractSign(const TokenList *tokens, const char *inStr, int length, int idx, int *type, int *outlen) {
+	int result = FALSE;
 	int k, floatingPoint;
-	if((*idx)==length-1){
+
+	if(idx == (length-1) ) {
 		//the minus sign is placed at the end of the string, it's a error
-		return NULL;
+		return result;
 	}
 		
-	if(inputString[(*idx)+1] != '>'){
-		if ((((*idx) == 0) || contains(gTokens->list[gTokens->size-1]->type, setLeadNegativeNumber, LeadNegativeNumberSize))
-				&& (isDigit(inputString[(*idx)+1]))){
+	if(inStr[idx+1] != '>') {
+
+		/*
+			Check if it's a negative number.
+			If a minus sign is placed at the beginning of the input string or the previous token is in setLeadNegativeNumber then
+			maybe you will get the a negative number.
+		*/
+		if (((idx == 0) || contains(tokens->list[tokens->size-1].type, setLeadNegativeNumber, LeadNegativeNumberSize))
+				&& (isDigit(inStr[idx+1]))) {
 				
 			floatingPoint = FALSE;
-			for(k = (*idx)+1; k < length; k++){
-				if(!isDigit(inputString[k])) {
-					if(inputString[k] == '.'){
+			for(k = idx+1; k < length; k++){
+				if(!isDigit(inStr[k])) {
+					if(inStr[k] == '.') {
 						//check if we got a floating point
-						if(floatingPoint){ //<- the second floating point
+						if(floatingPoint) { //<- the second floating point
 							gErrorCode = ERROR_TOO_MANY_FLOATING_POINT;
 							gErrorColumn = k;
-							return NULL;
+							return FALSE;
 						}
 						floatingPoint = TRUE;
-					}else{
-						tk = createTokenIdx(NUMBER, inputString, (*idx), k-1, (*idx));
-						addToken(gTokens, tk);
-						if(inputString[k] == ')'||inputString[k] == ' ' 
-								|| isNumericOperatorOREQ(inputString[k]) 
-								|| isLogicOperator(inputString[k])) {
-							(*idx) = k;
-							break;
-						}else{
-							//Ex: 126a
-							//At the moment, I don't handle this case
-							//throw Exception
-							gErrorColumn = k;
-							return NULL;
-						}
+					} else {
+						*type = NUMBER;
+						*outlen = k - idx;
+						return TRUE;
 					}
 				}
 			}
-			if((*idx) < k){
-				tk = createTokenIdx(NUMBER, inputString, (*idx), k-1, (*idx));
-				addToken(gTokens, tk);
-				(*idx) = k;
+
+			if( idx < k ) {
+				*type = NUMBER;
+				*outlen = k - idx;
 			}
 			//////////////////////////////////////
 		}else{
-			tk = createToken(MINUS, "-", 1, (*idx));
-			addToken(gTokens, tk);
-			(*idx)++;
+			*type = MINUS;
+			*outlen = 1;
 		}
 	}else{ //if(inputString.charAt(index+1)=='>'){
-		tk = createToken(RARROW, "->", 2, (*idx));
-		addToken(gTokens, tk);
-		(*idx) += 2;
+		*type = MINUS;
+		*outlen = 2;
 	}
-	return tk;
+	return result;
 }
 	
 int isLogicOperator(char c){
@@ -715,11 +492,11 @@ int isDigit(char c){
 }
 	
 /**
-	return the position where a function name is end
-	return -1 if it do not match any function name
+	return TRUE
+	otherwise return FALSE
 */
-int isFunctionName(int index, const char *inputString, int l, int *outType){
-	int k = -1;	
+int isFunctionName(const char *inputString, int l, int index, int *outType, int *outlen) {
+	int result = FALSE;	
 	char c0, c1, c2;
 		
 	if(index+2 < l){
@@ -727,52 +504,67 @@ int isFunctionName(int index, const char *inputString, int l, int *outType){
 		c1 = inputString[index+1];
 		c2 = inputString[index+2];
 	}else
-		return -1;
+		return result;
 			
 	if( (index+5 < l) && c0=='c' && c1=='o' && c2 =='t' && 
 				(inputString[index+3]=='a')	&& (inputString[index+4]=='n') ){
 		(*outType) = COTAN;
-		k = index + 5;
+		*outlen = 5;
+		result = TRUE;
 	}else if((index+4 < l) && (c0=='s' && c1=='q' && c2=='r' && inputString[index+3]=='t' )){
 		(*outType) = SQRT;
-		k = index + 4;
+		*outlen = 4;
+		result = TRUE;
 	}else if((index+4 < l) && (c0=='a' && c1=='t' && c2=='a' && inputString[index+3]=='n')){
 		(*outType) = ATAN;
-		k = index + 4;
+		*outlen = 4;
+		result = TRUE;
 	}else if((index+4 < l) && (c0=='a' && c1=='s' && c2=='i' && inputString[index+3]=='n')){
 		(*outType) = ASIN;
-		k = index + 4;
+		*outlen = 4;
+		result = TRUE;
 	}else if((index+4 < l) && (c0=='a' && c1=='c' && c2=='o' && inputString[index+3]=='s')) {
 		(*outType) = ACOS;
-		k = index + 4;
+		*outlen = 4;
+		result = TRUE;
 	} else if((index+3 < l)&& (c0=='t' && c1=='a' && c2=='n')){
 		(*outType) = TAN;
-		k = index + 3;
+		*outlen = 3;
+		result = TRUE;
 	}else if((index+3 < l) && (c0=='s' && c1=='i' && c2=='n')){
 		(*outType) = SIN;
-		k = index + 3;
+		*outlen = 3;
+		result = TRUE;
 	}else if((index+3 < l) &&(c0=='c' && c1=='o' && c2=='s')){
 		(*outType) = COS;
-		k = index + 3;
+		*outlen = 3;
+		result = TRUE;
 	}else if((index+3 < l) && (c0=='l' && c1=='o' && c2=='g')) {
 		(*outType) = LOG;
-		k = index + 3;
+		*outlen = 3;
+		result = TRUE;
 	}else if(c0=='l' && c1=='n'){
 		(*outType) = LN;
-		k = index + 2;
+		*outlen = 2;
+		result = TRUE;
 	}
-		
-	if(k>=0 && inputString[k]!='('){
-			return -1;
+	
+	/*
+		The following token of a function name MUST be an open parenthese
+		TODO: I'm not sure if we need to check this
+	*/
+	if( (result==TRUE) && ( (*outlen + index )>=0) && (inputString[(*outlen + index )]!='(') ) {
+		result = FALSE;
 	}
-	return k;
+
+	return result;
 }
 	
 /**
 	A NAME is a single character but not 'e' and placed at the end of inputString OR
 	followed by (){}[];+-* / , ; > < ! space
 */
-int isAName(int index, const char *inputString, int length){
+int isAName(const char *inputString, int length, int index) {
 	char cc = inputString[index];
 	char nextC;
 

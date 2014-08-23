@@ -602,8 +602,8 @@ void testUTF(Function *f) {
 	len = 4;
 
 	//Lexer
-	tokens.loggedSize = 10;
-	tokens.list = (Token**)malloc(sizeof(Token*) * tokens.loggedSize);
+	tokens.loggedSize = len;
+	tokens.list = (Token*)malloc(sizeof(Token) * tokens.loggedSize);
 	tokens.size = 0;
 	/* build the tokens list from the input string */
 	//lexicalAnalysis(exp, expLen, &tokens);
@@ -631,9 +631,9 @@ void testUTF(Function *f) {
 		//release token list
 			
 		for(i = 0; i<tokens.size; i++){
-			printf("%X ", tokens.list[i]->type);
-			free(tokens.list[i]);
+			printf("%X ", tokens.list[i].type);
 		}
+
 		printf("\n");
 		free(tokens.list);
 	}
@@ -666,8 +666,8 @@ void testUTFFromFile(Function *f) {
 		printf("\n");
 
 		//Lexer
-		tokens.loggedSize = 10;
-		tokens.list = (Token**)malloc(sizeof(Token*) * tokens.loggedSize);
+		tokens.loggedSize = len;
+		tokens.list = (Token*)malloc(sizeof(Token) * tokens.loggedSize);
 		tokens.size = 0;
 		/* build the tokens list from the input string */
 		//lexicalAnalysis(exp, expLen, &tokens);
@@ -695,8 +695,7 @@ void testUTFFromFile(Function *f) {
 			//release token list
 			
 			for(i = 0; i<tokens.size; i++){
-				printf("%X ", tokens.list[i]->type);
-				free(tokens.list[i]);
+				printf("%X ", tokens.list[i].type);
 			}
 			printf("\n");
 			free(tokens.list);

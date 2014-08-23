@@ -75,6 +75,7 @@
 #define E_NOT_ENOUGH_MEMORY -17
 #define ERROR_MISSING_FUNCTION_NOTATION -18
 #define ERROR_MALFORMED_ENCODING -19
+#define E_NOT_ENOUGH_PLACE -20
 
 #define SIMPLE_CRITERIA 		0
 #define COMBINED_CRITERIA 		1
@@ -157,7 +158,7 @@ struct tagToken {
 struct tagTokenList {
 	unsigned int loggedSize;
 	unsigned int size;
-	struct tagToken **list;
+	struct tagToken *list;
 };
 
 struct tagNMAST {

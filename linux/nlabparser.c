@@ -21,13 +21,12 @@
 
 extern int gErrorColumn;
 extern int gErrorCode;
-extern TokenList *gTokens;
 
 //internal variables
 NMAST *returnedAst = NULL;
 
-int functionNotation(int index, char *vars, int *varCount);
-void domain(int *start, Function *f);
+int functionNotation(const TokenList *tokens, int index, char *variables, int *variableCount);
+NMAST* domain(int *start, TokenList *tokens);
 NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, Token* valtk2);
 
 /******************************************************************************************/
@@ -187,14 +186,14 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 	int k, l, i, idx = 0;
 	char variables[4];
 	int variableCount = 0;
+	NMAST *dm;
 	
-	gTokens = tokens;
 	gErrorCode = ERROR_NOT_A_FUNCTION;
-	gErrorColumn = tokens->list[idx]->column;
+	gErrorColumn = tokens->list[idx].column;
 	
 	/** This array will hold the variables of the function */	
-	if( (k=functionNotation(idx, variables, &variableCount)) > idx ){
-		if(tokens->list[k]->type == EQ){
+	if( (k=functionNotation(tokens, idx, variables, &variableCount)) > idx ){
+		if(tokens->list[k].type == EQ){
 
 			outF->prefix = NULL;
 			outF->domain = NULL;
@@ -206,12 +205,11 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 			for(i=0;i<variableCount; i++) //Should use memcpy here
 				outF->variable[i] = variables[i];
 
-			for(i=0; i<tokens->size; i++){
-				if(tokens->list[i]->type == NAME){
-					for(l=0; l<variableCount; l++){
-						if(tokens->list[i]->text[0]==variables[l] 
-										&& tokens->list[i]->textLength==1)
-							tokens->list[i]->type = VARIABLE;
+			for(i=0; i<tokens->size; i++) {
+				if(tokens->list[i].type == NAME) {
+					for(l=0; l<variableCount; l++) {
+						if(tokens->list[i].text[0]==variables[l] && tokens->list[i].textLength==1)
+							tokens->list[i].type = VARIABLE;
 					}
 				}
 			}
@@ -225,12 +223,24 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 				/** after parseExpression, we may get error, so MUST check if it's OK here */
 				if( (gErrorCode!=NMATH_NO_ERROR) || (k >= tokens->size) ) break;
 				
-				if(tokens->list[k]->type == DOMAIN_NOTATION){
+				if(tokens->list[k].type == DOMAIN_NOTATION){
 					gErrorCode = ERROR_MISSING_DOMAIN;
-					gErrorColumn = tokens->list[k]->column;
+					gErrorColumn = tokens->list[k].column;
 					if(k+1 < tokens->size){
 						l = k + 1;
-						domain(&l, outF);
+						dm = domain(&l, tokens);
+
+						if(outF->domain == NULL) {
+							outF->domain = (NMASTList*)malloc(sizeof(NMASTList));
+							outF->domain->list = NULL;
+							outF->domain->loggedSize = 0;
+							outF->domain->size = 0;
+					#ifdef DEBUG
+							incNumberOfDynamicObject();
+					#endif
+						}
+						pushASTStack(outF->domain, dm);
+
 						k = l;
 					}
 				}
@@ -284,7 +294,6 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 			returnedAst = NULL;
 		}	
 	}
-	gTokens = NULL;
 	return gErrorCode;
 }
 
@@ -292,32 +301,32 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 	functionNotation: NAME LPAREN NAME (COMA NAME)* PRARENT;
 	@return if
 */
-int functionNotation(int index, char *variables, int *variableCount){
+int functionNotation(const TokenList *tokens, int index, char *variables, int *variableCount) {
 	int oldIndex = index;
 
-	if( (index < 0) || index >= gTokens->size)
+	if( (index < 0) || index >= tokens->size)
 		return index;
 		
 	*variableCount = 0;
 	gErrorCode = ERROR_NOT_A_FUNCTION;
-	gErrorColumn = gTokens->list[index]->column;
-	if(gTokens->list[index]->type == NAME ){
+	gErrorColumn = tokens->list[index].column;
+	if(tokens->list[index].type == NAME ) {
 		gErrorCode = ERROR_PARENTHESE_MISSING;
-		if(gTokens->list[index+1]->type == LPAREN){
+		if(tokens->list[index+1].type == LPAREN) {
 			gErrorCode = ERROR_MISSING_VARIABLE;
-			gErrorColumn = gTokens->list[index+1]->column;
+			gErrorColumn = tokens->list[index+1].column;
 			
-			if(gTokens->list[index+2]->type == NAME){
-				variables[(*variableCount)++] = (gTokens->list[index+2])->text[0];
+			if(tokens->list[index+2].type == NAME){
+				variables[(*variableCount)++] = (tokens->list[index+2]).text[0];
 				index += 3;
-				while( (index+1<gTokens->size) && (gTokens->list[index]->type == COMMA)
-							&& (gTokens->list[index+1]->type == NAME ) ){
-					variables[(*variableCount)++] = (gTokens->list[index+1])->text[0];
+				while( (index+1<tokens->size) && (tokens->list[index].type == COMMA)
+							&& (tokens->list[index+1].type == NAME ) ){
+					variables[(*variableCount)++] = (tokens->list[index+1]).text[0];
 					index += 2;
 				}
 				gErrorCode = ERROR_PARENTHESE_MISSING;
-				gErrorColumn = gTokens->list[index]->column;
-				if( (index<gTokens->size) && (gTokens->list[index]->type == RPAREN)){
+				gErrorColumn = tokens->list[index].column;
+				if( (index<tokens->size) && (tokens->list[index].type == RPAREN)){
 					gErrorCode = NMATH_NO_ERROR;
 					gErrorColumn = -1;
 					return (index + 1);
@@ -362,7 +371,7 @@ void parseExpression(TokenList *tokens, int *start, Function *f){
 	f->numVarNode = 0;
 	i = (*start);
 	while(i < tokens->size && !isEndExp){
-		tk = tokens->list[i];
+		tk = &(tokens->list[i]);
 		switch(tk->type){
 			case NUMBER:
 				val = parseFloatingPoint(tk->text, 0, tk->textLength, &error);
@@ -574,7 +583,7 @@ void parseExpression(TokenList *tokens, int *start, Function *f){
 			case LN:
 			case LOG:
 			
-				if( (i+2)>=tokens->size || tokens->list[i+1]->type != LPAREN){
+				if( (i+2)>=tokens->size || tokens->list[i+1].type != LPAREN){
 					//After function name token is not a LPAREN
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
@@ -722,17 +731,18 @@ void parseExpression(TokenList *tokens, int *start, Function *f){
 */
 int parseFunction(const char *str, int len, Function *outF){
 	TokenList lst;
-	int i, result;
+	int result;
 	
-	lst.loggedSize = 10;
-	lst.list = (Token**)malloc(sizeof(Token*) * lst.loggedSize);
+	lst.loggedSize = len;
+	lst.list = (Token*)malloc(sizeof(Token) * lst.loggedSize);
 	lst.size = 0;
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
 
 	/* build the tokens list from the input string */
-	lexicalAnalysis(str, len, &lst);
+	
+	lexicalAnalysisUTF8(str, len, &lst);
 
 #ifdef DEBUG
 	printf("\n[NLabParser] Number of dynamic objects after parsing tokens: %d \n", numberOfDynamicObject() );
@@ -740,12 +750,6 @@ int parseFunction(const char *str, int len, Function *outF){
 	
 	if( gErrorCode == NMATH_NO_ERROR ){
 		result = parseFunctionExpression(&lst, outF);
-		for(i = 0; i<lst.size; i++){
-			free(lst.list[i]);
-		}
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(lst.size + 1);
-#endif
 	}
 	free(lst.list);
 #ifdef DEBUG
@@ -754,7 +758,7 @@ int parseFunction(const char *str, int len, Function *outF){
 	return result;
 }
 
-void domain(int *start, Function *f){
+NMAST* domain(int *start, TokenList *tokens) {
 	int isEndExp = FALSE;
 	int i, index, top = -1, allocLen=0;
 	Token* tk;
@@ -764,10 +768,10 @@ void domain(int *start, Function *f){
 	Token *tokenItm = NULL;
 	NMAST *ast;
 
-	if(gTokens == NULL){
+	if(tokens == NULL){
 		gErrorColumn = 0;
 		gErrorCode = ERROR_BAD_TOKEN;
-		return ;
+		return NULL;
 	}
 	d = (NMASTList*)malloc(sizeof(NMASTList));
 #ifdef DEBUG
@@ -781,16 +785,16 @@ void domain(int *start, Function *f){
 	gErrorCode = NMATH_NO_ERROR;
 	
 	index = *start;
-	while(index < gTokens->size && !isEndExp){
-		tk = gTokens->list[index];
-		switch(tk->type){
+	while(index < tokens->size && !isEndExp){
+		tk = &(tokens->list[index]);
+		switch(tk->type) {
 			case NUMBER:
 			case PI_TYPE:
 			case E_TYPE:
-				if( (index+4)<gTokens->size && isComparationOperator(gTokens->list[index+1]->type) 
-									&& gTokens->list[index+2]->type==VARIABLE 
-									&& isComparationOperator(gTokens->list[index+3]->type)
-									&& (gTokens->list[index+4]->type==NUMBER || gTokens->list[index+4]->type==PI_TYPE || gTokens->list[index+4]->type==E_TYPE )) {
+				if( (index+4)<tokens->size && isComparationOperator(tokens->list[index+1].type) 
+									&& tokens->list[index+2].type==VARIABLE 
+									&& isComparationOperator(tokens->list[index+3].type)
+									&& (tokens->list[index+4].type==NUMBER || tokens->list[index+4].type==PI_TYPE || tokens->list[index+4].type==E_TYPE )) {
 					/**
 						HERE, I missed the case that NUMBER < VARIABLE < NUMBER or
 						NUMBER <= VARIABLE < NUMBER or NUMBER < VARIABLE <= NUMBER or 
@@ -798,7 +802,7 @@ void domain(int *start, Function *f){
 						
 						Build an AND tree to hold the case
 					*/
-					ast = buildIntervalTree(tk, gTokens->list[index+1], gTokens->list[index+2], gTokens->list[index+3], gTokens->list[index+4]);
+					ast = buildIntervalTree(tk, &(tokens->list[index+1]), &(tokens->list[index+2]), &(tokens->list[index+3]), &(tokens->list[index+4]));
 					if(tokenItm == NULL){
 						clearStackWithoutFreeItem(stack, top+1);
 						free(stack);
@@ -812,7 +816,7 @@ void domain(int *start, Function *f){
 #ifdef DEBUG
 	descNumberOfDynamicObjectBy(2);
 #endif
-						return ;
+						return NULL;
 					}
 					pushASTStack(d, ast);
 					index += 5;
@@ -844,7 +848,7 @@ void domain(int *start, Function *f){
 	descNumberOfDynamicObjectBy(2);
 #endif
 							gErrorColumn = tk->column;
-							return;
+							return NULL;
 						}
 						break;
 						case PI_TYPE:
@@ -947,7 +951,7 @@ void domain(int *start, Function *f){
 	descNumberOfDynamicObjectBy(2);
 #endif
 					gErrorColumn = tk->column;
-					return;
+					return NULL;
 				}
 				index++;
 			break;
@@ -971,7 +975,7 @@ void domain(int *start, Function *f){
 #endif
 					gErrorColumn = tk->column;
 					gErrorCode = ERROR_PARENTHESE_MISSING;
-					return ;
+					return NULL;
 				}
 
 				/*  */
@@ -996,7 +1000,7 @@ void domain(int *start, Function *f){
 #endif
 					gErrorColumn = tk->column;
 					gErrorCode = ERROR_PARENTHESE_MISSING;
-					return;
+					return NULL;
 				}
 
 				if(isAFunctionType(tokenItm->type)  == TRUE){
@@ -1021,14 +1025,14 @@ void domain(int *start, Function *f){
 #ifdef DEBUG
 	descNumberOfDynamicObjectBy(2);
 #endif
-					gErrorColumn = gTokens->list[index]->column;
-					return;
+					gErrorColumn = tokens->list[index].column;
+					return NULL;
 				}
 				index++;
 			break;
 			
 			case VARIABLE:
-				if(( (index+1) < gTokens->size) && gTokens->list[index+1]->type == ELEMENT_OF){
+				if(( (index+1) < tokens->size) && tokens->list[index+1].type == ELEMENT_OF){
 					/*
 						
 						VARIABLE ELEMENT_OF [NUMBER,NUMBER]
@@ -1036,17 +1040,17 @@ void domain(int *start, Function *f){
 						VARIABLE ELEMENT_OF [NUMBER,NUMBER)
 						VARIABLE ELEMENT_OF (NUMBER,NUMBER)
 					*/
-					if( ( index+6 < gTokens->size) && (gTokens->list[index+2]->type == LPRACKET || gTokens->list[index+2]->type == LPAREN)
-								&& (gTokens->list[index+3]->type == NUMBER || gTokens->list[index+3]->type == PI_TYPE || gTokens->list[index+3]->type == E_TYPE)
-								&& gTokens->list[index+4]->type == COMMA 
-								&& (gTokens->list[index+5]->type == NUMBER || gTokens->list[index+5]->type == PI_TYPE || gTokens->list[index+5]->type == E_TYPE) 
-								&& (gTokens->list[index+6]->type == RPRACKET || gTokens->list[index+6]->type == RPAREN )){
+					if( ( index+6 < tokens->size) && (tokens->list[index+2].type == LPRACKET || tokens->list[index+2].type == LPAREN)
+								&& (tokens->list[index+3].type == NUMBER || tokens->list[index+3].type == PI_TYPE || tokens->list[index+3].type == E_TYPE)
+								&& tokens->list[index+4].type == COMMA 
+								&& (tokens->list[index+5].type == NUMBER || tokens->list[index+5].type == PI_TYPE || tokens->list[index+5].type == E_TYPE) 
+								&& (tokens->list[index+6].type == RPRACKET || tokens->list[index+6].type == RPAREN )) {
 								
 						
 						/** ========START Parse floating point values======= */
-						switch(gTokens->list[index+3]->type){
+						switch(tokens->list[index+3].type) {
 							case NUMBER:
-								val = parseFloatingPoint(gTokens->list[index+3]->text, 0, gTokens->list[index+3]->textLength, &gErrorCode);
+								val = parseFloatingPoint(tokens->list[index+3].text, 0, tokens->list[index+3].textLength, &gErrorCode);
 								if(val == 0 && gErrorCode != NMATH_NO_ERROR){
 									clearStackWithoutFreeItem(stack, top+1);
 									free(stack);
@@ -1061,7 +1065,7 @@ void domain(int *start, Function *f){
 		descNumberOfDynamicObjectBy(2);
 	#endif
 									gErrorColumn = tk->column;
-									return;
+									return NULL;
 								}
 							break;
 							
@@ -1073,9 +1077,9 @@ void domain(int *start, Function *f){
 							break;
 						}
 						
-						switch(gTokens->list[index+5]->type){
+						switch(tokens->list[index+5].type){
 							case NUMBER:
-								val2 = parseFloatingPoint(gTokens->list[index+5]->text, 0, gTokens->list[index+5]->textLength, &gErrorCode);
+								val2 = parseFloatingPoint(tokens->list[index+5].text, 0, tokens->list[index+5].textLength, &gErrorCode);
 								if(val2 == 0 && gErrorCode != NMATH_NO_ERROR){
 									clearStackWithoutFreeItem(stack, top+1);
 									free(stack);
@@ -1089,8 +1093,8 @@ void domain(int *start, Function *f){
 	#ifdef DEBUG
 		descNumberOfDynamicObjectBy(2);
 	#endif
-									gErrorColumn = gTokens->list[index+4]->column;
-									return;
+									gErrorColumn = tokens->list[index+4].column;
+									return NULL;
 								}
 							break;
 							
@@ -1115,13 +1119,13 @@ void domain(int *start, Function *f){
 						ast->value = 0;
 						ast->parent = NULL;
 						ast->variable = tk->text[0];
-						if((gTokens->list[index+2]->type == LPAREN ) && (gTokens->list[index+6]->type == RPAREN))
+						if((tokens->list[index+2].type == LPAREN ) && (tokens->list[index+6].type == RPAREN))
 							ast->type = GT_LT;
-						else if((gTokens->list[index+2]->type == LPRACKET ) && (gTokens->list[index+6]->type == RPAREN))
+						else if((tokens->list[index+2].type == LPRACKET ) && (tokens->list[index+6].type == RPAREN))
 							ast->type = GTE_LT;
-						else if((gTokens->list[index+2]->type == LPAREN ) && (gTokens->list[index+6]->type == RPRACKET))
+						else if((tokens->list[index+2].type == LPAREN ) && (tokens->list[index+6].type == RPRACKET))
 							ast->type = GT_LTE;
-						else if((gTokens->list[index+2]->type == LPRACKET ) && (gTokens->list[index+6]->type == RPRACKET))
+						else if((tokens->list[index+2].type == LPRACKET ) && (tokens->list[index+6].type == RPRACKET))
 							ast->type = GTE_LTE;
 #ifdef DEBUG
 	incNumberOfDynamicObject();
@@ -1134,7 +1138,7 @@ void domain(int *start, Function *f){
 						ast->left->left = ast->left->right = NULL;
 						ast->left->parent = ast;
 						ast->left->value = val;
-						ast->left->type = gTokens->list[index+3]->type;
+						ast->left->type = tokens->list[index+3].type;
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
@@ -1145,7 +1149,7 @@ void domain(int *start, Function *f){
 						ast->right->left = ast->right->right = NULL;
 						ast->right->parent = ast;
 						ast->right->value = val2;
-						ast->right->type = gTokens->list[index+5]->type;
+						ast->right->type = tokens->list[index+5].type;
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
@@ -1169,7 +1173,7 @@ void domain(int *start, Function *f){
 #endif
 						gErrorColumn = tk->column;
 						gErrorCode = ERROR_SYNTAX;
-						return; 
+						return NULL;
 					}
 				}else {
 					ast = (NMAST*)malloc(sizeof(NMAST));
@@ -1211,7 +1215,7 @@ void domain(int *start, Function *f){
 #endif
 			gErrorColumn = tk->column;
 			gErrorCode = ERROR_PARENTHESE_MISSING;
-			return; 
+			return NULL;
 		}
 		addFunction2Tree(d, tokenItm);
 	}
@@ -1219,8 +1223,8 @@ void domain(int *start, Function *f){
 	/**
 		If we make sure that the function f is initialized 
 		ok we do not need to check here. Actually, we SHOULD initialize it completely
-	*/
-	if(f->domain == NULL){
+	
+	if(f->domain == NULL) {
 		f->domain = (NMASTList*)malloc(sizeof(NMASTList));
 		f->domain->list = NULL;
 		f->domain->loggedSize = 0;
@@ -1230,11 +1234,13 @@ void domain(int *start, Function *f){
 #endif
 	}
 	pushASTStack(f->domain, d->list[0]);
+	*/
 	free(stack);
 	free(d);
 #ifdef DEBUG
 	descNumberOfDynamicObjectBy(2);
 #endif
+	return d->list[0];
 }
 
 NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, Token* valtk2){
