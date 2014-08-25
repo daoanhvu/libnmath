@@ -21,6 +21,7 @@ typedef struct tagDParam{
 void initFunct(Function *);
 void toString(const NMAST *t, char *str, int *curpos, int len);
 void resetFunction(Function *f, const char *str, const char *vars, int varCount, int *error);
+void resetFunctUsingPool(Function *f);
 DATA_TYPE_FP calc(Function *f, DATA_TYPE_FP *values, int numOfValue, int *);
 int reduce(Function *f, int *);
 #ifdef WINDOWS

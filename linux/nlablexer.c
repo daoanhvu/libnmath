@@ -131,7 +131,7 @@ void lexicalAnalysisUTF8(const char *inStr, int length, TokenList *tokens) {
 	while( idx < length ) {
 		//LOGI(3, "index: %d, 0x%X(%d)", idx, inStr[idx], (char)(inStr[idx]));
 		if( (inStr[idx] & 0x80) != 0x80 ) {
-			if( checkNumericOperator(tokens, inStr, length, idx, &type, &k )) {
+			if( checkNumericOperator(tokens, inStr, length, idx, &type, &k )==TRUE ) {
 				addToken(tokens, type, inStr + idx, k, idx);
 				idx += k;
 			}else if( checkParenthesePrackets(inStr[idx], &type) == TRUE ) {
@@ -225,6 +225,10 @@ void lexicalAnalysisUTF8(const char *inStr, int length, TokenList *tokens) {
 
 				case E_TYPE:
 					addToken(tokens, E_TYPE, "2.718281828", 11, idx);
+				break;
+
+				case DIVIDE:
+					addToken(tokens, DIVIDE, inStr + idx, nextIdx-idx, idx);
 				break;
 
 				case AND:
@@ -462,15 +466,18 @@ int parseSubtractSign(const TokenList *tokens, const char *inStr, int length, in
 			if( idx < k ) {
 				*type = NUMBER;
 				*outlen = k - idx;
+				result = TRUE;
 			}
 			//////////////////////////////////////
 		}else{
 			*type = MINUS;
 			*outlen = 1;
+			result = TRUE;
 		}
 	}else{ //if(inputString.charAt(index+1)=='>'){
-		*type = MINUS;
+		*type = RARROW;
 		*outlen = 2;
+		result = TRUE;
 	}
 	return result;
 }

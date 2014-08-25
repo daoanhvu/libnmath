@@ -329,7 +329,7 @@ void initFunct(Function *f){
 	f->numVarNode = 0;
 }
 
-void releaseFunct(Function *f){
+void releaseFunct(Function *f) {
 	int i, j=0, k=0;
 	char crType;
 	CombinedCriteria *cbc;
@@ -433,6 +433,79 @@ void releaseFunct(Function *f){
 #ifdef DEBUG
 	descNumberOfDynamicObject();
 #endif
+		f->variableNode = NULL;
+	}
+}
+
+void resetFunctUsingPool(Function *f) {
+	int i, j=0, k=0;
+	char crType;
+	CombinedCriteria *cbc;
+	CompositeCriteria *cpc;
+	
+	if(f==NULL) return;
+
+	if(f->str != NULL) {
+		free(f->str);
+	}
+		
+	f->str = NULL;
+	f->len = 0;
+
+	if(f->prefix != NULL) {
+		for(i=0; i<f->prefix->size; i++) {
+			putIntoPool(f->prefix->list[i]);
+			f->prefix->list[i] = NULL;
+		}
+		f->prefix->size = 0;
+	}
+	
+	if(f->domain != NULL){
+		if(f->domain->list != NULL){
+			for(i=0; i<f->domain->size; i++){
+				putIntoPool(f->domain->list[i]);
+				f->domain->list[i] = NULL;
+			}
+		}
+		f->domain->size = 0;
+	}
+
+	if(f->criterias != NULL){
+		for(i=0; i<f->criterias->size; i++){
+			crType = *((char*)(f->criterias->list[i]));
+			switch(crType){
+
+				case COMBINED_CRITERIA:
+					cbc = (CombinedCriteria*)(f->criterias->list[i]);
+					for(j=0; j<cbc->size; j++){
+						free(cbc->list[i]);
+					}
+				break;
+
+				case COMPOSITE_CRITERIA:
+					cpc = (CompositeCriteria*)(f->criterias->list[i]);
+					for(j=0; j<cpc->size; j++){
+						cbc = cpc->list[j];
+						for(k=0; k<cbc->size; k++) {
+							free(cbc->list[k]);
+						}
+						free(cpc->list[j]);
+					}
+				break;
+			}
+			free(f->criterias->list[i]);
+		}
+		if(f->criterias->list != NULL){
+			free(f->criterias->list);
+		}
+		f->criterias->size = 0;
+		f->criterias->loggedSize = 0;
+		free(f->criterias);
+		f->criterias = NULL;
+	}	
+
+	if(f->numVarNode > 0){
+		free(f->variableNode);
 		f->variableNode = NULL;
 	}
 }

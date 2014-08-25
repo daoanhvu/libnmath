@@ -101,16 +101,9 @@ void addFunction2Tree(NMASTList *t, Token * stItm){
 		case GTE:
 		case AND:
 		case OR:
-			ast = (NMAST*)malloc(sizeof(NMAST));
-#ifdef DEBUG
-			incNumberOfDynamicObject();
-#endif
-			ast->valueType = TYPE_FLOATING_POINT;
-			ast->sign = 1;
+			ast = getFromPool();
 			ast->type = stItm->type;
-			ast->variable = 0;
 			ast->priority = stItm->priority;
-			ast->parent = NULL;
 			ast->left = t->list[t->size-2];
 			ast->right = t->list[t->size-1];
 			if((t->list[t->size-2])!=NULL)
@@ -132,18 +125,9 @@ void addFunction2Tree(NMASTList *t, Token * stItm){
 		case ATAN:
 		case SQRT:
 		case LN:
-			ast = (NMAST*)malloc(sizeof(NMAST));
-#ifdef DEBUG
-			incNumberOfDynamicObject();
-#endif
-			ast->valueType = TYPE_FLOATING_POINT;
-			ast->sign = 1;
+			ast = getFromPool();
 			ast->type = stItm->type;
-			ast->variable = 0;
-			ast->value = 0;
-			//ast->priority = stItm->priority;
-			ast->parent = NULL;
-			ast->left = NULL;
+			ast->priority = stItm->priority;
 			ast->right = t->list[t->size-1];
 			if((t->list[t->size-1])!=NULL)
 				(t->list[t->size-1])->parent = ast;
@@ -152,17 +136,9 @@ void addFunction2Tree(NMASTList *t, Token * stItm){
 		break;
 										
 		case LOG:
-			ast = (NMAST*)malloc(sizeof(NMAST));
-#ifdef DEBUG
-			incNumberOfDynamicObject();
-#endif
-			ast->valueType = TYPE_FLOATING_POINT;
-			ast->sign = 1;
+			ast = getFromPool();
 			ast->type = stItm->type;
-			ast->variable = 0;
-			ast->value = 0;
-			//ast->priority = stItm->priority;
-			ast->parent = NULL;
+			ast->priority = stItm->priority;
 			ast->left = t->list[t->size-2];
 			ast->right = t->list[t->size-1];
 			if((t->list[t->size-2])!=NULL)
@@ -215,7 +191,7 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 			}
 			
 			k++;
-			do{
+			do {
 				/*
 					Parse expression
 				*/
@@ -223,10 +199,10 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 				/** after parseExpression, we may get error, so MUST check if it's OK here */
 				if( (gErrorCode!=NMATH_NO_ERROR) || (k >= tokens->size) ) break;
 				
-				if(tokens->list[k].type == DOMAIN_NOTATION){
+				if(tokens->list[k].type == DOMAIN_NOTATION) {
 					gErrorCode = ERROR_MISSING_DOMAIN;
 					gErrorColumn = tokens->list[k].column;
-					if(k+1 < tokens->size){
+					if(k+1 < tokens->size) {
 						l = k + 1;
 						dm = domain(&l, tokens);
 
@@ -239,12 +215,16 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 							incNumberOfDynamicObject();
 					#endif
 						}
+
+						/*
+							Add the domain tree into the ouput function object
+						*/
 						pushASTStack(outF->domain, dm);
 
 						k = l;
 					}
 				}
-			}while( gErrorCode==NMATH_NO_ERROR && k < tokens->size );
+			} while ( gErrorCode==NMATH_NO_ERROR && k < tokens->size );
 		}
 	} else {
 		/*
@@ -341,7 +321,7 @@ int functionNotation(const TokenList *tokens, int index, char *variables, int *v
 /**
 	Parse the input string in object f to NMAST tree
 */
-void parseExpression(TokenList *tokens, int *start, Function *f){
+void parseExpression(TokenList *tokens, int *start, Function *f) {
 	int i, top=-1, allocLen=0, isEndExp = FALSE;
 	int error;
 	DATA_TYPE_FP val;
@@ -352,7 +332,7 @@ void parseExpression(TokenList *tokens, int *start, Function *f){
 	NMAST *ast = NULL;
 	//NMAST* varNodes[50];
 
-	if(tokens == NULL){
+	if(tokens == NULL) {
 		gErrorColumn = 0;
 		gErrorCode = ERROR_BAD_TOKEN;
 		return ;
@@ -370,12 +350,12 @@ void parseExpression(TokenList *tokens, int *start, Function *f){
 	
 	f->numVarNode = 0;
 	i = (*start);
-	while(i < tokens->size && !isEndExp){
+	while(i < tokens->size && !isEndExp) {
 		tk = &(tokens->list[i]);
-		switch(tk->type){
+		switch(tk->type) {
 			case NUMBER:
 				val = parseFloatingPoint(tk->text, 0, tk->textLength, &error);
-				if(val == 0 && error < 0){
+				if(val == 0 && error < 0) {
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
 #ifdef DEBUG
@@ -394,44 +374,25 @@ void parseExpression(TokenList *tokens, int *start, Function *f){
 					return;
 				}
 
-				ast = (NMAST*)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-				ast->valueType = TYPE_FLOATING_POINT;
-				ast->sign = 1;
-				ast->left = ast->right = ast->parent = NULL;
+				ast = getFromPool();
 				ast->value = val;
-				ast->variable = 0;
 				ast->type = tk->type;
 				pushASTStack(prefix, ast); //add this item to prefix
 				i++;
 				break;
 
 			case E_TYPE:
-				ast = (NMAST*)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-				ast->left = ast->right = ast->parent = NULL;
-				ast->valueType = 0;
+				ast = getFromPool();
 				ast->value = E;
-				ast->variable = 0;
 				ast->type = E_TYPE;
 				pushASTStack(prefix, ast); //add this item to prefix
 				i++;
 				break;
 
 			case PI_TYPE:
-				ast = (NMAST*)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-				ast->left = ast->right = ast->parent = NULL;
+				ast = getFromPool();
 				ast->value = PI;
 				ast->type = PI_TYPE;
-				ast->valueType = 0;
-				ast->variable = 0;
 				pushASTStack(prefix, ast); //add this item to prefix
 				i++;
 				break;
@@ -447,13 +408,8 @@ void parseExpression(TokenList *tokens, int *start, Function *f){
 					while((isAnOperatorType(stItm->type)==TRUE) && (stItm->priority) >= tk->priority){
 						stItm = popFromStack(stack, &top);
 
-						ast = (NMAST*)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-						ast->left = ast->right = NULL;
+						ast = getFromPool();
 						ast->type = stItm->type;
-						ast->variable = 0;
 						ast->priority = stItm->priority;
 						ast->left = prefix->list[prefix->size-2];
 						ast->right = prefix->list[prefix->size-1];
@@ -475,7 +431,7 @@ void parseExpression(TokenList *tokens, int *start, Function *f){
 				}
 				//push operation o1 (tk) into stack
 				pushItem2Stack(&stack, &top, &allocLen, tk);
-				if(gErrorCode == E_NOT_ENOUGH_MEMORY){
+				if(gErrorCode == E_NOT_ENOUGH_MEMORY) {
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
 #ifdef DEBUG
@@ -628,15 +584,9 @@ void parseExpression(TokenList *tokens, int *start, Function *f){
 
 			case NAME:
 			case VARIABLE:
-				ast = (NMAST*)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-				ast->parent = ast->left = ast->right = NULL;
+				ast = getFromPool();
 				ast->type = tk->type;
 				ast->variable = tk->text[0];
-				ast->value = 0;
-				ast->sign = 1;
 				pushASTStack(prefix, ast); //add this item to prefix
 
 				//I save variable node to speed up the process of calculating value of the function later
@@ -859,14 +809,7 @@ NMAST* domain(int *start, TokenList *tokens) {
 						break;
 				}
 
-				ast = (NMAST*)malloc(sizeof(NMAST));
-				ast->variable = 0;
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-				ast->valueType = TYPE_FLOATING_POINT;
-				ast->sign = 1;
-				ast->left = ast->right = ast->parent = NULL;
+				ast = getFromPool();
 				ast->value = val;
 				ast->type = tk->type;
 				pushASTStack(d, ast);
@@ -885,11 +828,7 @@ NMAST* domain(int *start, TokenList *tokens) {
 								&& (tokenItm->priority) >= tk->priority){
 						tokenItm = popFromStack(stack, &top);
 
-						ast = (NMAST*)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-						ast->variable = 0;
+						ast = getFromPool();
 						ast->type = tokenItm->type;
 						ast->priority = tokenItm->priority;
 						ast->left = d->list[d->size-2];
@@ -1113,11 +1052,7 @@ NMAST* domain(int *start, TokenList *tokens) {
 								- type GT_LT or GTE_LT or GT_TLE or GTE_LTE and
 								- variable = x
 						*/
-						ast = (NMAST*)malloc(sizeof(NMAST));
-						ast->valueType = TYPE_FLOATING_POINT;
-						ast->sign = 1;
-						ast->value = 0;
-						ast->parent = NULL;
+						ast = getFromPool();
 						ast->variable = tk->text[0];
 						if((tokens->list[index+2].type == LPAREN ) && (tokens->list[index+6].type == RPAREN))
 							ast->type = GT_LT;
@@ -1132,10 +1067,7 @@ NMAST* domain(int *start, TokenList *tokens) {
 #endif
 						
 						//ast->Left number 1
-						ast->left = (NMAST*)malloc(sizeof(NMAST));
-						ast->left->valueType = TYPE_FLOATING_POINT;
-						ast->left->sign = 1;
-						ast->left->left = ast->left->right = NULL;
+						ast->left = getFromPool();
 						ast->left->parent = ast;
 						ast->left->value = val;
 						ast->left->type = tokens->list[index+3].type;
@@ -1143,10 +1075,7 @@ NMAST* domain(int *start, TokenList *tokens) {
 	incNumberOfDynamicObject();
 #endif
 						//Left->Right NUMBER or PI_TYPE or E_TYPE
-						ast->right = (NMAST*)malloc(sizeof(NMAST));
-						ast->right->valueType = TYPE_FLOATING_POINT;
-						ast->right->sign = 1;
-						ast->right->left = ast->right->right = NULL;
+						ast->right = getFromPool();
 						ast->right->parent = ast;
 						ast->right->value = val2;
 						ast->right->type = tokens->list[index+5].type;
@@ -1176,17 +1105,13 @@ NMAST* domain(int *start, TokenList *tokens) {
 						return NULL;
 					}
 				}else {
-					ast = (NMAST*)malloc(sizeof(NMAST));
-					ast->valueType = TYPE_FLOATING_POINT;
-					ast->sign = 1;
+					ast = getFromPool();
 					ast->variable = tk->text[0];
-					ast->left = ast->right = ast->parent = NULL;
 					ast->value = val;
 					ast->type = tk->type;
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif					
-					
 					pushASTStack(d, ast);
 					index++;
 				}
@@ -1220,27 +1145,14 @@ NMAST* domain(int *start, TokenList *tokens) {
 		addFunction2Tree(d, tokenItm);
 	}
 	*start = index;
-	/**
-		If we make sure that the function f is initialized 
-		ok we do not need to check here. Actually, we SHOULD initialize it completely
-	
-	if(f->domain == NULL) {
-		f->domain = (NMASTList*)malloc(sizeof(NMASTList));
-		f->domain->list = NULL;
-		f->domain->loggedSize = 0;
-		f->domain->size = 0;
-#ifdef DEBUG
-		incNumberOfDynamicObject();
-#endif
-	}
-	pushASTStack(f->domain, d->list[0]);
-	*/
+	ast = d->list[0];
+
 	free(stack);
 	free(d);
 #ifdef DEBUG
 	descNumberOfDynamicObjectBy(2);
 #endif
-	return d->list[0];
+	return ast;
 }
 
 NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, Token* valtk2){

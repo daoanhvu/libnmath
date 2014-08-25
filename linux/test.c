@@ -20,6 +20,8 @@ void testCriteria1(int argc, char *agr[]);
 void testCriteria2(Function *f);
 void testReduce(Function *f);
 void testUTF(Function *f);
+void testUTFFromFile(Function *f);
+void testCalculate(Function *f);
 
 int main(int argc, char *agr[]){
 	Function *f;
@@ -56,11 +58,13 @@ int main(int argc, char *agr[]){
 	//testReduce(f);
 	//testDerivative(f);
 	//testGetSpaces(f);
-	testUTF(f);
+	testUTFFromFile(f);
+	//testCalculate(f);
 	//testReuseFunction(f);
 	//testCriteria2(f);
 
 	releaseFunct(f);
+	clearPool();
 	free(f);
 #ifdef DEBUG
 	descNumberOfDynamicObject();
@@ -606,7 +610,6 @@ void testUTF(Function *f) {
 	tokens.list = (Token*)malloc(sizeof(Token) * tokens.loggedSize);
 	tokens.size = 0;
 	/* build the tokens list from the input string */
-	//lexicalAnalysis(exp, expLen, &tokens);
 	lexicalAnalysisUTF8(str, len, &tokens);
 
 	if( getErrorCode() == NMATH_NO_ERROR ) {
@@ -670,7 +673,6 @@ void testUTFFromFile(Function *f) {
 		tokens.list = (Token*)malloc(sizeof(Token) * tokens.loggedSize);
 		tokens.size = 0;
 		/* build the tokens list from the input string */
-		//lexicalAnalysis(exp, expLen, &tokens);
 		lexicalAnalysisUTF8(str, len, &tokens);
 
 		if( getErrorCode() == NMATH_NO_ERROR ) {
@@ -687,6 +689,7 @@ void testUTFFromFile(Function *f) {
 					printNMAST(dp.t, 0);
 					printf("\n");
 					toString(dp.t, str, &k, 64);
+					str[k] = 0;
 					f->prefix->list[0] = dp.t;
 					printf("Calculating result: %s\n", str);
 				}
@@ -704,5 +707,58 @@ void testUTFFromFile(Function *f) {
 		if(getErrorCode() != NMATH_NO_ERROR) {
 			printError(getErrorColumn(), getErrorCode());
 		}
+	}
+}
+
+void testCalculate(Function *f) {
+	char str[64];
+	int len=0, i, k=0;
+	DParam dp;
+	TokenList tokens;
+
+	printf("Number of bytes read: %d\n", len);
+	for(i = 0; i<len; i++){
+		printf("0x%X(%d) ", str[i],str[i]);
+	}
+	printf("\n");
+
+	//Lexer
+	tokens.loggedSize = len;
+	tokens.list = (Token*)malloc(sizeof(Token) * tokens.loggedSize);
+	tokens.size = 0;
+	/* build the tokens list from the input string */
+	//lexicalAnalysis(exp, expLen, &tokens);
+	lexicalAnalysisUTF8(str, len, &tokens);
+
+	if( getErrorCode() == NMATH_NO_ERROR ) {
+		printf("lexical analysis successfully, number of token: %d\n", tokens.size);
+
+		parseExpression(&tokens, &k, f);
+
+		if( getErrorCode() == NMATH_NO_ERROR ) {
+			dp.error = NMATH_NO_ERROR;
+			dp.t = f->prefix->list[0];
+			reduce_t(&dp);
+			if(dp.error == NMATH_NO_ERROR) {
+				k = 0;
+				printNMAST(dp.t, 0);
+				printf("\n");
+				toString(dp.t, str, &k, 64);
+				f->prefix->list[0] = dp.t;
+				printf("Calculating result: %s\n", str);
+			}
+		}
+
+		//release token list
+			
+		for(i = 0; i<tokens.size; i++){
+			printf("%X ", tokens.list[i].type);
+		}
+		printf("\n");
+		free(tokens.list);
+	}
+
+	if(getErrorCode() != NMATH_NO_ERROR) {
+		printError(getErrorColumn(), getErrorCode());
 	}
 }

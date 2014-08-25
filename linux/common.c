@@ -2,6 +2,8 @@
 #include <math.h>
 #include "common.h"
 
+#define POOL_CAPACITY 32
+
 const int FUNCTIONS[] = {SIN, COS, TAN, COTAN, ASIN, ACOS, ATAN, LOG, LN, SQRT};
 const int FUNCTION_COUNT = 10;
 
@@ -13,6 +15,9 @@ const int COMPARING_OPERATORS_COUNT = 5;
 
 int gErrorColumn = -1;
 int gErrorCode = 0;
+
+int gPoolSize = 0;
+NMAST* AST_POOL[POOL_CAPACITY];
 
 #ifdef DEBUG
 int gNumberOfDynamicObject = 0;
@@ -31,7 +36,7 @@ void descNumberOfDynamicObjectBy(int k){
 #endif
 
 /** internal use */
-void pushASTStack(NMASTList *sk, NMAST* ele){
+void pushASTStack(NMASTList *sk, NMAST* ele) {
 	NMAST** tmpP;
 #ifdef DEBUG
 	char isFirtTime = (sk==NULL || sk->loggedSize<=0)?TRUE:FALSE;
@@ -371,4 +376,80 @@ int isConstant(int type){
 	if(type == NUMBER || type == PI_TYPE || type == E_TYPE)
 		return TRUE;
 	return FALSE;
+}
+
+
+/** Pool operations */
+NMAST* getFromPool() {
+	NMAST *node;
+	if( gPoolSize>0 ) {
+		node = AST_POOL[gPoolSize-1];
+		AST_POOL[gPoolSize-1] = NULL;
+		gPoolSize--;
+	} else {
+		node = (NMAST*)malloc(sizeof(NMAST));
+		node->valueType = TYPE_FLOATING_POINT;
+		node->sign = 1;
+		node->variable = 0;
+		node->left = node->right = node->parent = NULL;
+		node->value = 0;
+		node->type = NUMBER;
+		node->priority = 0;
+		node->frValue.numerator = 0;
+		node->frValue.denomerator = 1;
+#ifdef DEBUG
+	gNumberOfDynamicObject++;
+#endif
+	}
+
+	return node;
+}
+
+void putIntoPool(NMAST *node) {
+	NMAST *p;
+
+	if(node == NULL) return;
+
+	if(node->left != NULL)
+		putIntoPool(node->left);
+
+	if(node->right != NULL)
+		putIntoPool(node->right);
+
+	p = node->parent;
+
+	if(p->left == node)
+		p->left = NULL;
+	else if(p->right == node)
+		p->right = NULL;
+
+	node->parent = NULL;
+	node->valueType = TYPE_FLOATING_POINT;
+	node->sign = 1;
+	node->variable = 0;
+	node->left = node->right = node->parent = NULL;
+	node->value = 0;
+	node->type = NUMBER;
+	node->priority = 0;
+	node->frValue.numerator = 0;
+	node->frValue.denomerator = 1;
+
+	if( gPoolSize < POOL_CAPACITY ) {
+		AST_POOL[gPoolSize] = node;
+		gPoolSize++;
+		return;
+	}
+
+	free(node);
+}
+
+void clearPool() {
+	int i;
+	if(gPoolSize > 0) {
+		for(i=0; i<gPoolSize; i++) {
+			free(AST_POOL[i]);
+			AST_POOL[i] = NULL;
+		}
+		gPoolSize = 0;
+	}
 }

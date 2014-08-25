@@ -1,6 +1,8 @@
 #ifndef _NFUNCTION_H
 #define _NFUNCTION_H
 
+#include "../linux/common.h"
+
 class NFunction {
 	private:
 		char *str;
@@ -19,6 +21,8 @@ class NFunction {
 	public:
 		NFunction();
 		~NFunction();
+
+		void parse();
 		
 		void release();
 };

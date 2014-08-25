@@ -24,7 +24,7 @@
 #define PLUS 			21
 #define MINUS 			22
 #define MULTIPLY 		23
-#define DIVIDE 			24
+#define DIVIDE 			0x000000F7
 #define POWER 			25
 #define SIN 			26
 #define COS 			27
@@ -299,6 +299,14 @@ int isFunctionOROperator(int type);
 int isComparationOperator(int type);
 int isConstant(int type);
 int isLetter(char c);
+
+/* 
+	I use a pool to store AST node to reuse them later 
+	this reduces the number of allocation operation so it speed up the app
+*/
+NMAST* getFromPool();
+void putIntoPool(NMAST *ast);
+void clearPool();
 
 #ifdef DEBUG
 int numberOfDynamicObject();
