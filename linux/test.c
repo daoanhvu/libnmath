@@ -12,6 +12,8 @@
 #include "nmath.h"
 #include "../graphutil.h"
 
+long functionAddress = 0;
+
 void printError(int col, int code);
 int testDerivative(Function *f);
 int testGetSpaces(Function *f);
@@ -20,25 +22,24 @@ void testCriteria1(int argc, char *agr[]);
 void testCriteria2(Function *f);
 void testReduce(Function *f);
 void testUTF(Function *f);
-void testUTFFromFile(Function *f);
+void testUTFFromFile(const char* filename);
 void testCalculate(Function *f);
 
 int main(int argc, char *agr[]){
-	Function *f;
-	/*int l;
-	if(argc < 2){
-		printf("An mathematics function must be entered.\n");
-		printf("Ex: f(x,y) = x + 2 * y\n");
-		return 0;
-	}*/
+	Function *f = NULL;
+	//char str[128];
+	//char command;
 
-	f = (Function*)malloc(sizeof(Function));
-	f->str = NULL;
-	f->len = 0;
-	f->valLen = 0;
-	f->prefix = NULL;
-	f->domain = NULL;
-	f->criterias = NULL;
+	/*
+	int l;
+	
+
+	if(argc < 2) {
+		printf("Not enough arguments.\n");
+		return 0;
+	}
+	*/
+	
 	/*
 #ifdef DEBUG
 	incNumberOfDynamicObject();
@@ -55,14 +56,25 @@ int main(int argc, char *agr[]){
 		printf("This expression is not a function due to variables not determined.\n");
 	}
 	*/
-	//testReduce(f);
-	//testDerivative(f);
-	//testGetSpaces(f);
-	testUTFFromFile(f);
-	//testCalculate(f);
-	//testReuseFunction(f);
-	//testCriteria2(f);
 
+	//do {
+		//testReduce(f);
+		//testDerivative(f);
+		//testGetSpaces(f);
+	//	fflush(stdin);
+	//	printf("Filename: ");
+	//	fgets(str, 128, stdin);
+
+		testUTFFromFile("/cygdrive/d/data.dat");
+		testUTFFromFile("/cygdrive/d/data1.dat");
+		//testCalculate(f);
+		//testReuseFunction(f);
+		//testCriteria2(f);
+	//	printf("Do you want to quit?\n");
+	//	command = getchar();
+	//}while(command != 'Y' && command != 'y');
+	
+	
 	releaseFunct(f);
 	clearPool();
 	free(f);
@@ -646,14 +658,15 @@ void testUTF(Function *f) {
 	}
 }
 
-void testUTFFromFile(Function *f) {
+void testUTFFromFile(const char *filename) {
+	Function *f;
 	FILE *file;
 	char str[64];
 	int len, size, i, k=0;
 	DParam dp;
 	TokenList tokens;
 
-	file = fopen("/cygdrive/d/data.dat", "rb");
+	file = fopen(filename, "rb");
 	if( file != NULL ) {
 		fseek(file, 0, SEEK_END);
 		size = ftell(file);
@@ -663,10 +676,25 @@ void testUTFFromFile(Function *f) {
 		fclose(file);
 
 		printf("Number of bytes read: %d\n", len);
-		for(i = 0; i<len; i++){
-			printf("0x%X(%d) ", str[i],str[i]);
+		for(i = 0; i<len; i++) {
+			printf("0x%X(%d) ", str[i], str[i]);
 		}
 		printf("\n");
+
+		if(functionAddress > 0) {
+			f = (Function*)functionAddress;
+			resetFunctUsingPool(f);
+		} else {
+			f = (Function*)malloc(sizeof(Function));
+			f->str = NULL;
+			f->len = 0;
+			f->valLen = 0;
+			f->prefix = NULL;
+			f->domain = NULL;
+			f->criterias = NULL;
+
+			functionAddress = (long)f;
+		}
 
 		//Lexer
 		tokens.loggedSize = len;
@@ -707,6 +735,8 @@ void testUTFFromFile(Function *f) {
 		if(getErrorCode() != NMATH_NO_ERROR) {
 			printError(getErrorColumn(), getErrorCode());
 		}
+	} else {
+		printf("[ERROR] File not found. \n");
 	}
 }
 
@@ -751,7 +781,7 @@ void testCalculate(Function *f) {
 
 		//release token list
 			
-		for(i = 0; i<tokens.size; i++){
+		for(i = 0; i<tokens.size; i++) {
 			printf("%X ", tokens.list[i].type);
 		}
 		printf("\n");

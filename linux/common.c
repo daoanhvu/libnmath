@@ -416,14 +416,16 @@ void putIntoPool(NMAST *node) {
 	if(node->right != NULL)
 		putIntoPool(node->right);
 
-	p = node->parent;
+	if(node->parent != NULL) {
+		p = node->parent;
+		if(p->left == node)
+			p->left = NULL;
+		else if(p->right == node)
+			p->right = NULL;
 
-	if(p->left == node)
-		p->left = NULL;
-	else if(p->right == node)
-		p->right = NULL;
+		node->parent = NULL;
+	}
 
-	node->parent = NULL;
 	node->valueType = TYPE_FLOATING_POINT;
 	node->sign = 1;
 	node->variable = 0;
