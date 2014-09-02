@@ -183,6 +183,8 @@ struct tagNMAST {
 	struct tagNMAST *parent;
 	struct tagNMAST *left;
 	struct tagNMAST *right;
+
+	char level;
 };
 
 struct tagNMASTList {

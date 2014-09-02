@@ -51,7 +51,7 @@ NMAST* d_atan(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
 int isContainVar(NMAST *t, char x);
 
 /* ultility for print NMAST */
-void getOperatorChar(int operatorType, char *opCh){
+void getOperatorChar(int operatorType, char *opCh) {
 	switch(operatorType){
 		case PLUS:
 			(*opCh) = '+';
@@ -74,7 +74,7 @@ void getOperatorChar(int operatorType, char *opCh){
 	}
 }
 
-void toString(const NMAST *t, char *str, int *curpos, int len){
+void toString(const NMAST *t, char *str, int *curpos, int len) {
 	DATA_TYPE_FP fr;
 	long lval;
 	int i, l;
@@ -93,8 +93,8 @@ void toString(const NMAST *t, char *str, int *curpos, int len){
 			else{
 				l = sprintf(tmp, "%ld", lval);
 			}
-			//for(i=0; i<l-1; i++){
-			for(i=0; i<l; i++){
+			
+			for(i=0; i<l; i++) {
 				str[(*curpos)] = tmp[i];
 				(*curpos)++;
 			}
