@@ -3,7 +3,7 @@
 
 #include "common.h"
 
-void lexicalAnalysisUTF8(const char *inStr, int length, TokenList *tokens);
+void lexicalAnalysisUTF8(const char *inStr, int length, TokenList *tokens, int appended);
 int getLexerError();
 int isLogicOperator(char c);
 int isDigit(char c);

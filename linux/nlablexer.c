@@ -23,7 +23,7 @@ extern int gErrorCode;
 	if SUCCESS, return the size of token
 	otherwise return a negative value
 */
-int addToken(TokenList *lst, int _type, const char *_text, char txtlen, int _col){
+int addToken(TokenList *lst, int _type, const char *_text, char txtlen, int _col) {
 
 	if(lst->size >= lst->loggedSize) {
 		return E_NOT_ENOUGH_PLACE;
@@ -120,13 +120,18 @@ int getCharacter(const char *str, int length, int index, int *nextIdx) {
 	return result;
 }
 
-void lexicalAnalysisUTF8(const char *inStr, int length, TokenList *tokens) {
+void lexicalAnalysisUTF8(const char *inStr, int length, TokenList *tokens, int appended) {
 	int chCode, type, k = 0;
 	int idx = 0, nextIdx;
 	int floatingPoint;
 
 	gErrorColumn = -1;
 	gErrorCode = NMATH_NO_ERROR;
+
+	if( (appended==TRUE) && (tokens->size > 0) ) {
+		idx = tokens->list[tokens->size-1].column;
+		tokens->size -= 1;
+	}
 
 	while( idx < length ) {
 		//LOGI(3, "index: %d, 0x%X(%d)", idx, inStr[idx], (char)(inStr[idx]));
