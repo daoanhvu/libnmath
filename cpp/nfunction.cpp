@@ -28,7 +28,7 @@ void NFunction::parse() {
 	printf("\n[NLabParser] Number of dynamic objects after parsing tokens: %d \n", numberOfDynamicObject() );
 #endif
 	
-	if( gErrorCode == NMATH_NO_ERROR ){
+	if( gErrorCode == NMATH_NO_ERROR ) {
 		result = parseFunctionExpression(&lst, outF);
 	}
 	free(lst.list);

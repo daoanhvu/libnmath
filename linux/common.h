@@ -17,13 +17,13 @@
 #define RPRACKET 		14
 #define IMPLY			15
 #define RARROW			16
-#define ELEMENT_OF 		17
+#define ELEMENT_OF 		0x00002208
 #define NUMBER			18
 #define NAME			19
 #define VARIABLE 		20
 #define PLUS 			21
 #define MINUS 			22
-#define MULTIPLY 		23
+#define MULTIPLY 		0x000000D7
 #define DIVIDE 			0x000000F7
 #define POWER 			25
 #define SIN 			26
