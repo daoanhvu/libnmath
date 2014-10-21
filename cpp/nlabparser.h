@@ -10,5 +10,6 @@
 */	
 int parseFunction(const char *str, int len, Function *outF);
 void parseExpression(TokenList *tokens, int *start, Function *f);
+int parseFunctionExpression(TokenList *tokens, Function *outF);
 
 #endif

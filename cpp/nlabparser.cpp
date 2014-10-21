@@ -8,16 +8,16 @@
 #include "common.h"
 #include "nlabparser.h"
 
-/**
+
 #ifdef _TARGET_HOST_ANDROID
 	#include <jni.h>
 	#include <android/log.h>
-	#define LOG_TAG "NMATH2"
+	#define LOG_TAG "NLABPARSER"
 	#define LOG_LEVEL 10
 	#define LOGI(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__);}
 	#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
 #endif
-*/
+
 
 extern int gErrorColumn;
 extern int gErrorCode;
@@ -158,7 +158,7 @@ void addFunction2Tree(NMASTList *t, Token * stItm){
 	@param outF a NOT-NULL Function pointer
 	@return errorCode
 */	
-int parseFunctionExpression(TokenList *tokens, Function *outF){
+int parseFunctionExpression(TokenList *tokens, Function *outF) {
 	int k, l, i, idx = 0;
 	char variables[4];
 	int variableCount = 0;
@@ -167,6 +167,7 @@ int parseFunctionExpression(TokenList *tokens, Function *outF){
 	gErrorCode = ERROR_NOT_A_FUNCTION;
 	gErrorColumn = tokens->list[idx].column;
 	
+	LOGI(3, "[NativeParser] GOT HERE - token size: %d", tokens->size);
 	/** This array will hold the variables of the function */	
 	if( (k=functionNotation(tokens, idx, variables, &variableCount)) > idx ){
 		if(tokens->list[k].type == EQ){
