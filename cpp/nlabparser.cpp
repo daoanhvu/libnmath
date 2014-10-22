@@ -167,7 +167,7 @@ int parseFunctionExpression(TokenList *tokens, Function *outF) {
 	gErrorCode = ERROR_NOT_A_FUNCTION;
 	gErrorColumn = tokens->list[idx].column;
 	
-	LOGI(3, "[NativeParser] GOT HERE - token size: %d", tokens->size);
+	// LOGI(3, "[NativeParser] GOT HERE - token size: %d", tokens->size);
 	/** This array will hold the variables of the function */	
 	if( (k=functionNotation(tokens, idx, variables, &variableCount)) > idx ){
 		if(tokens->list[k].type == EQ){
