@@ -14,9 +14,10 @@
 
 long functionAddress = 0;
 
+void printMenu();
 void printError(int col, int code);
 int testDerivative(Function *f);
-int testGetSpaces(Function *f);
+int testGetSpaces();
 void testReuseFunction(Function *f);
 void testCriteria1(int argc, char *agr[]);
 void testCriteria2(Function *f);
@@ -25,95 +26,108 @@ void testUTF(Function *f);
 void testUTFFromFile(const char* filename);
 void testCalculate(Function *f);
 
-int main(int argc, char *agr[]){
-	Function *f = NULL;
-	//char str[128];
-	//char command;
+int main(int argc, char *agr[]) {
+	int command;
 
-	/*
-	int l;
-	
+	do {
+		printMenu();
+		printf("command = ");
+		scanf("%d", &command);
 
-	if(argc < 2) {
-		printf("Not enough arguments.\n");
-		return 0;
-	}
-	*/
-	
-	/*
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-	printf("%s\n", agr[1]);
-	l = strlen(agr[1]);
-	parseFunction(agr[1], l, f);
-	if(getErrorCode() != NMATH_NO_ERROR) {
-		printError(getErrorColumn(), getErrorCode());
-		releaseFunct(f);
-		free(f);
-		return getErrorCode();
-	} else if( (getErrorCode() == NMATH_NO_ERROR) && (f->valLen==0)) {
-		printf("This expression is not a function due to variables not determined.\n");
-	}
-	*/
+		switch(command) {
+			case 0:
+			break;
 
-	//do {
+			case 1:
+			break;
+
+			case 2:
+			break;
+
+			case 3:
+				testGetSpaces();
+			break;
+		}
+
 		//testReduce(f);
 		//testDerivative(f);
-		//testGetSpaces(f);
 	//	fflush(stdin);
 	//	printf("Filename: ");
 	//	fgets(str, 128, stdin);
 
-		testUTFFromFile("/cygdrive/d/data.dat");
-		testUTFFromFile("/cygdrive/d/data1.dat");
+		
 		//testCalculate(f);
 		//testReuseFunction(f);
 		//testCriteria2(f);
-	//	printf("Do you want to quit?\n");
-	//	command = getchar();
-	//}while(command != 'Y' && command != 'y');
-	
-	
-	releaseFunct(f);
-	clearPool();
-	free(f);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-	printf("\n[EndOfProgram] Number of dynamic object alive: %d \n", numberOfDynamicObject());
-#endif
+	}while(command != 0);
 
 	return 0;
 }
 
-int parseRange(char *str, int len, DATA_TYPE_FP *bd, int *outlen){
-	int i=0, j, flag = FALSE;
-	int e;
-	int k = 0;
-	while(i<len){
-		if(str[i] >= 48 && str[i] <= 57){
-			flag = FALSE;
-			for(j=i; j<len; j++){
-				if( str[j] <48 || str[j]>57 ){
-					if(str[j] == '.'){
-						if(flag == TRUE){
-							return -1;
-						}
-						flag = TRUE;
-					}else if (str[j] == ' '){
-						bd[k++] = parseFloatingPoint(str, i, j-1, &e);
-						i = j;
-						break;
-					}else{
-						return -1;
-					}
+void printMenu() {
+	printf("0. Exit \n");
+	printf("1. Test lexer \n");
+	printf("2. Test parser \n");
+	printf("3. Test getSpace \n");
+	printf("-----------------------------------------------------------------------------------\n");
+}
+
+/**
+ * Just use this for quadratic vertex matrix
+ * @param vcount
+ * @param rows
+ * @return
+ */
+int* buildIndicesForGLLINEs(int vcount, int *rows, int rowCount, int *size, int *loggedSize){
+	int i, j, colCount=0, k;
+	int *indices;
+	int *tmp;
+	
+	*loggedSize = 100;
+	indices = (int*)malloc(sizeof(int) * (*loggedSize));
+	k = 0;
+	*size = 0;
+	for(i=0; i<rowCount; i++) {
+		colCount = rows[i];
+		for(j = 0; j<colCount; j++) {
+			if(*size >= (*loggedSize)) {
+				(*loggedSize) += 100;
+				tmp = (int*)realloc(indices, sizeof(int) * (*loggedSize));
+				indices = tmp;
+			}
+			indices[(*size)++] = k;
+			if(j>0 && j<colCount-1) {
+				if(*size >= (*loggedSize)) {
+					(*loggedSize) += 100;
+					tmp = (int*)realloc(indices, sizeof(int) * (*loggedSize));
+					indices = tmp;
 				}
+				indices[(*size)++] = k;
+			}
+			k++;
+		}
+	}
+	
+	colCount = rows[0];
+	for(j = 0; j<colCount; j++) {
+		for(i=0; i<rowCount; i++) {
+			if(*size >= (*loggedSize)) {
+				(*loggedSize) += 100;
+				tmp = (int*)realloc(indices, sizeof(int) * (*loggedSize));
+				indices = tmp;
+			}
+			indices[(*size)++] = j + colCount*i;
+			if(i> 0 && i<rowCount-1) {
+				if(*size >= (*loggedSize)) {
+					(*loggedSize) += 100;
+					tmp = (int*)realloc(indices, sizeof(int) * (*loggedSize));
+					indices = tmp;
+				}
+				indices[(*size)++] = j + colCount*i;
 			}
 		}
-		i++;
 	}
-	*outlen = k;
-	return k;
+	return indices;
 }
 
 void testCriteria1(int argc, char *agr[]){
@@ -515,15 +529,43 @@ void testReduce(Function *f) {
 	f->prefix->list[0] = dp.t;
 }
 
-int testGetSpaces(Function *f){
+int testGetSpaces() {
 	int cmd, k, numOfV=0, i, j, vcount;
 	DATA_TYPE_FP bd[]={-2, 2, -2, 2};
 	DATA_TYPE_FP eps = 0.2f;
 	ListFData *data;
 	FILE *file;
 	int *indice;
-	int indiceSize = 0, indiceLoggedSize;
-	char strbuff[256];
+	int l, indiceSize = 0, indiceLoggedSize;
+	char strbuff[256] = "f(x)=sin(x)";
+	Function *f = NULL;
+
+
+	//printf("Enter function: ");
+	//fflush(stdin);
+	//fgets(strbuff, 256, stdin);
+	//scanf("%s", &strbuff);
+
+	f = (Function*)malloc(sizeof(Function));
+	f->prefix = NULL;
+	f->domain = NULL;
+	f->criterias = NULL;
+	f->str = NULL;
+	f->len = 0;
+	f->variableNode = NULL;
+	f->numVarNode = 0;
+	f->valLen = 0;
+
+	l = strlen(strbuff);
+	parseFunction(strbuff, l, f);
+	if(getErrorCode() != NMATH_NO_ERROR) {
+		printError(getErrorColumn(), getErrorCode());
+		releaseFunct(f);
+		free(f);
+		return getErrorCode();
+	} else if( (getErrorCode() == NMATH_NO_ERROR) && (f->valLen==0)) {
+		printf("This expression is not a function due to variables not determined.\n");
+	}
 	
 	printf("The range for each variable is [-2, 2]\n");
 	printf("The epsilon = %lf \n", eps);
@@ -532,10 +574,11 @@ int testGetSpaces(Function *f){
 	if(cmd == 1){
 		printf("Enter the range for each variable, use space as delimiter: ");
 		fflush(stdin);
-		gets(strbuff);
+		//fgets(strbuff, 256, stdin);
+		scanf("%s", &strbuff);
 		printf("Enter epsilon: ");
 		scanf("%lf", &eps);
-		parseRange(strbuff, strlen(strbuff), bd, &numOfV);
+		// parseRange(strbuff, strlen(strbuff), bd, &numOfV);
 	}
 	
 	printf("\n");
@@ -581,9 +624,14 @@ int testGetSpaces(Function *f){
 		free(data->list);
 		free(data);
 #ifdef DEBUG
-	descNumberOfDynamicObject(2);
+	descNumberOfDynamicObjectBy(2);
 #endif
 	}
+
+	releaseFunct(f);
+	clearPool();
+	free(f);
+
 	return 0;
 }
 
@@ -622,7 +670,7 @@ void testUTF(Function *f) {
 	tokens.list = (Token*)malloc(sizeof(Token) * tokens.loggedSize);
 	tokens.size = 0;
 	/* build the tokens list from the input string */
-	lexicalAnalysisUTF8(str, len, &tokens);
+	lexicalAnalysisUTF8(str, len, &tokens, 0);
 
 	if( getErrorCode() == NMATH_NO_ERROR ) {
 		printf("lexical analysis successfully, number of token: %d\n", tokens.size);
@@ -701,7 +749,7 @@ void testUTFFromFile(const char *filename) {
 		tokens.list = (Token*)malloc(sizeof(Token) * tokens.loggedSize);
 		tokens.size = 0;
 		/* build the tokens list from the input string */
-		lexicalAnalysisUTF8(str, len, &tokens);
+		lexicalAnalysisUTF8(str, len, &tokens, 0);
 
 		if( getErrorCode() == NMATH_NO_ERROR ) {
 			printf("lexical analysis successfully, number of token: %d\n", tokens.size);
@@ -758,7 +806,7 @@ void testCalculate(Function *f) {
 	tokens.size = 0;
 	/* build the tokens list from the input string */
 	//lexicalAnalysis(exp, expLen, &tokens);
-	lexicalAnalysisUTF8(str, len, &tokens);
+	lexicalAnalysisUTF8(str, len, &tokens, 0);
 
 	if( getErrorCode() == NMATH_NO_ERROR ) {
 		printf("lexical analysis successfully, number of token: %d\n", tokens.size);
