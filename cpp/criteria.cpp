@@ -916,7 +916,7 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
 						const Criteria *c, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
 	int elementOnRow;
 	Criteria out1;
-	DATA_TYPE_FP right1, y;
+	DATA_TYPE_FP right1, y, lastX;
 	void *tmpP;
 	FData *mesh = NULL;
 	DParam param;
@@ -956,7 +956,7 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
 		
 	right1 = out1.rightVal;
 	if(out1.type == GT_LT || out1.type == GTE_LT)
-		param.values[0] = out1.leftVal - epsilon;
+		right1 = out1.rightVal - epsilon;
 		
 	elementOnRow = 0;
 	while(param.values[0] <= right1){
@@ -971,8 +971,25 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
 		mesh->data[mesh->dataSize++] = param.values[0];
 		mesh->data[mesh->dataSize++] = y;
 		elementOnRow++;
+		lastX = param.values[0];
 		param.values[0] += epsilon;
 	}
+
+	if(lastX < right1 && param.values[0]>right1){
+		param.values[0] = right1;
+		calc_t((void*)&param);
+		y = param.retv;
+		if(mesh->dataSize >= mesh->loggedSize - 2){
+			mesh->loggedSize += 20;
+			tmpP = realloc(mesh->data, sizeof(DATA_TYPE_FP) * mesh->loggedSize);
+			if(tmpP != NULL)
+				mesh->data = (DATA_TYPE_FP*)tmpP;
+		}
+		mesh->data[mesh->dataSize++] = param.values[0];
+		mesh->data[mesh->dataSize++] = y;
+		elementOnRow++;
+	}
+
 	mesh->rowInfo[mesh->rowCount++] = elementOnRow;
 	
 	free(param.values);
@@ -1129,8 +1146,8 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 #endif
 			if(f->domain == NULL){
 				c.objectType = SIMPLE_CRITERIA;
-				c.flag = AVAILABLE;
-				c.type = GT_LT;
+				c.flag = 0x07;// LEFT INFINITY & RIGHT INFINITY & AVAILABLE;
+				c.type = GTE_LTE;
 				c.variable = f->variable[0];
 				c.leftVal = bd[0];
 				c.rightVal = bd[1];

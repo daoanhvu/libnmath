@@ -556,6 +556,8 @@ int testGetSpaces() {
 	f->numVarNode = 0;
 	f->valLen = 0;
 
+	printf("Input function: ");
+	scanf("%s", &strbuff);
 	l = strlen(strbuff);
 	parseFunction(strbuff, l, f);
 	if(getErrorCode() != NMATH_NO_ERROR) {
