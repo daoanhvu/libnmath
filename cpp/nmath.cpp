@@ -1249,7 +1249,7 @@ void* calc_t(void *param){
 
 	if(t->type == VARIABLE){
 		var_index = isInArray(dp->variables, t->variable);
-		dp->retv = dp->values[var_index];
+		dp->retv = (t->sign>0)?(dp->values[var_index]):(-dp->values[var_index]);
 #ifdef WINDOWS
 		return dp->error;
 #else

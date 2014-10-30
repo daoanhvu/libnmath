@@ -24,7 +24,7 @@ void testCriteria2(Function *f);
 void testReduce(Function *f);
 void testUTF(Function *f);
 void testUTFFromFile(const char* filename);
-void testCalculate(Function *f);
+void testCalculate();
 
 int main(int argc, char *agr[]) {
 	int command;
@@ -46,6 +46,10 @@ int main(int argc, char *agr[]) {
 
 			case 3:
 				testGetSpaces();
+			break;
+
+			case 4:
+				testCalculate();
 			break;
 		}
 
@@ -69,6 +73,7 @@ void printMenu() {
 	printf("1. Test lexer \n");
 	printf("2. Test parser \n");
 	printf("3. Test getSpace \n");
+	printf("4. Test Calculating \n");
 	printf("-----------------------------------------------------------------------------------\n");
 }
 
@@ -565,7 +570,9 @@ int testGetSpaces() {
 		releaseFunct(f);
 		free(f);
 		return getErrorCode();
-	} else if( (getErrorCode() == NMATH_NO_ERROR) && (f->valLen==0)) {
+	} 
+
+	if( f->valLen==0 ) {
 		printf("This expression is not a function due to variables not determined.\n");
 	}
 	
@@ -790,55 +797,57 @@ void testUTFFromFile(const char *filename) {
 	}
 }
 
-void testCalculate(Function *f) {
+void testCalculate() {
 	char str[64];
 	int len=0, i, k=0;
 	DParam dp;
-	TokenList tokens;
+	char strbuff[256] = "f(x)=-x";
+	Function *f = NULL;
 
-	printf("Number of bytes read: %d\n", len);
-	for(i = 0; i<len; i++){
-		printf("0x%X(%d) ", str[i],str[i]);
-	}
-	printf("\n");
+	f = (Function*)malloc(sizeof(Function));
+	f->prefix = NULL;
+	f->domain = NULL;
+	f->criterias = NULL;
+	f->str = NULL;
+	f->len = 0;
+	f->variableNode = NULL;
+	f->numVarNode = 0;
+	f->valLen = 0;
 
-	//Lexer
-	tokens.loggedSize = len;
-	tokens.list = (Token*)malloc(sizeof(Token) * tokens.loggedSize);
-	tokens.size = 0;
-	/* build the tokens list from the input string */
-	//lexicalAnalysis(exp, expLen, &tokens);
-	lexicalAnalysisUTF8(str, len, &tokens, 0);
-
-	if( getErrorCode() == NMATH_NO_ERROR ) {
-		printf("lexical analysis successfully, number of token: %d\n", tokens.size);
-
-		parseExpression(&tokens, &k, f);
-
-		if( getErrorCode() == NMATH_NO_ERROR ) {
-			dp.error = NMATH_NO_ERROR;
-			dp.t = f->prefix->list[0];
-			reduce_t(&dp);
-			if(dp.error == NMATH_NO_ERROR) {
-				k = 0;
-				printNMAST(dp.t, 0);
-				printf("\n");
-				toString(dp.t, str, &k, 64);
-				f->prefix->list[0] = dp.t;
-				printf("Calculating result: %s\n", str);
-			}
-		}
-
-		//release token list
-			
-		for(i = 0; i<tokens.size; i++) {
-			printf("%X ", tokens.list[i].type);
-		}
-		printf("\n");
-		free(tokens.list);
-	}
-
+	//printf("Input function: ");
+	//scanf("%s", &strbuff);
+	len = strlen(strbuff);
+	parseFunction(strbuff, len, f);
 	if(getErrorCode() != NMATH_NO_ERROR) {
 		printError(getErrorColumn(), getErrorCode());
+		releaseFunct(f);
+		free(f);
+		return;
+	} 
+
+	if( f->valLen==0 ) {
+		printf("This expression is not a function due to variables not determined.\n");
 	}
+
+		
+	dp.error = NMATH_NO_ERROR;
+	dp.t = f->prefix->list[0];
+	dp.variables[0] = 'x';
+	dp.values[0] = 1.5;
+	//reduce_t(&dp);
+	calc_t(&dp);
+	if(dp.error == NMATH_NO_ERROR) {
+		k = 0;
+		printNMAST(dp.t, 0);
+		printf("\n");
+		toString(dp.t, str, &k, 64);
+		f->prefix->list[0] = dp.t;
+		printf("Calculating result: %ld\n", dp.retv);
+	}
+
+	//release token list
+
+	releaseFunct(f);
+	clearPool();
+	free(f);
 }

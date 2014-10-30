@@ -90,7 +90,44 @@ void addFunction2Tree(NMASTList *t, Token * stItm){
 	
 	switch(stItm->type){
 		case PLUS:
+			if(t->size > 1) {
+				ast = getFromPool();
+				ast->type = stItm->type;
+				ast->priority = stItm->priority;
+				ast->left = t->list[t->size-2];
+				ast->right = t->list[t->size-1];
+				if((t->list[t->size-2])!=NULL)
+					(t->list[t->size-2])->parent = ast;
+				if((t->list[t->size-1])!=NULL)
+					(t->list[t->size-1])->parent = ast;
+					
+				t->list[t->size-2] = ast;
+				t->list[t->size-1] = NULL;
+				t->size--;
+			}
+		break;
+
 		case MINUS:
+			if(t->size == 1) {
+				if((t->list[0]) != NULL)
+					(t->list[0])->sign = -1;
+			} else {
+				ast = getFromPool();
+				ast->type = stItm->type;
+				ast->priority = stItm->priority;
+				ast->left = t->list[t->size-2];
+				ast->right = t->list[t->size-1];
+				if((t->list[t->size-2])!=NULL)
+					(t->list[t->size-2])->parent = ast;
+				if((t->list[t->size-1])!=NULL)
+					(t->list[t->size-1])->parent = ast;
+					
+				t->list[t->size-2] = ast;
+				t->list[t->size-1] = NULL;
+				t->size--;
+			}
+		break;
+
 		case MULTIPLY:
 		case DIVIDE:
 		case POWER:
@@ -540,8 +577,8 @@ void parseExpression(TokenList *tokens, int *start, Function *f) {
 			case LN:
 			case LOG:
 			
+			/*
 				if( (i+2)>=tokens->size || tokens->list[i+1].type != LPAREN){
-					//After function name token is not a LPAREN
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
 #ifdef DEBUG
@@ -559,6 +596,7 @@ void parseExpression(TokenList *tokens, int *start, Function *f) {
 					gErrorCode = ERROR_PARENTHESE_MISSING;
 					return;
 				}
+			*/
 				
 				pushItem2Stack(&stack, &top, &allocLen, tk);
 				if(gErrorCode == E_NOT_ENOUGH_MEMORY){
@@ -577,10 +615,15 @@ void parseExpression(TokenList *tokens, int *start, Function *f) {
 					gErrorColumn = tk->column;
 					return;
 				}
+
 				/**
 					After a function name must be a LPAREN, and we just ignore that LPAREN token
+					i += 2;
 				*/
-				i += 2;
+
+				// the left-parenthese right after a function name is dimissed, so just don't care of it
+				i++;
+
 				break;
 
 			case NAME:

@@ -569,6 +569,8 @@ int isFunctionName(const char *inputString, int l, int index, int *outType, int 
 		result = FALSE;
 	}
 
+	(*outlen)++;
+
 	return result;
 }
 	

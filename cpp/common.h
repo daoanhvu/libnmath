@@ -34,6 +34,7 @@
 #define ACOS 			31
 #define ATAN 			32
 #define SQRT 			0x0000221A
+#define CBRT 			0x0000221B
 #define LN 				34
 #define LOG 			35
 #define PI_TYPE 		0x000003C0

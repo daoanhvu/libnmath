@@ -980,7 +980,7 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
 		calc_t((void*)&param);
 		y = param.retv;
 		if(mesh->dataSize >= mesh->loggedSize - 2){
-			mesh->loggedSize += 20;
+			mesh->loggedSize += 4;
 			tmpP = realloc(mesh->data, sizeof(DATA_TYPE_FP) * mesh->loggedSize);
 			if(tmpP != NULL)
 				mesh->data = (DATA_TYPE_FP*)tmpP;
