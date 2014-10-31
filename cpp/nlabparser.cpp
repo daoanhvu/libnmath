@@ -87,8 +87,8 @@ Token* popFromStack(Token **st, int *top){
 
 void addFunction2Tree(NMASTList *t, Token * stItm){
 	NMAST *ast = NULL;
-	
-	switch(stItm->type){
+	LOGI(2, "Type: %d (%s)", stItm->type, stItm->text);
+	switch(stItm->type) {
 		case PLUS:
 			if(t->size > 1) {
 				ast = getFromPool();
@@ -362,7 +362,7 @@ int functionNotation(const TokenList *tokens, int index, char *variables, int *v
 void parseExpression(TokenList *tokens, int *start, Function *f) {
 	int i, top=-1, allocLen=0, isEndExp = FALSE;
 	int error;
-	DATA_TYPE_FP val;
+	double val;
 	Token *tk = NULL;
 	Token **stack = NULL;
 	NMASTList *prefix;
@@ -392,7 +392,7 @@ void parseExpression(TokenList *tokens, int *start, Function *f) {
 		tk = &(tokens->list[i]);
 		switch(tk->type) {
 			case NUMBER:
-				val = parseFloatingPoint(tk->text, 0, tk->textLength, &error);
+				val = parseDouble(tk->text, 0, tk->textLength, &error);
 				if(val == 0 && error < 0) {
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
@@ -443,8 +443,11 @@ void parseExpression(TokenList *tokens, int *start, Function *f) {
 			case POWER:
 				if(top >= 0){
 					stItm = stack[top];
+					LOGI(2, "Token: type = %d, text=%s", tk->type, tk->text);
 					while((isAnOperatorType(stItm->type)==TRUE) && (stItm->priority) >= tk->priority){
 						stItm = popFromStack(stack, &top);
+
+						LOGI(2, "Token just popped from Stack: type = %d, text=%s, PREFIX SIZE= %d", stItm->type, stItm->text, prefix->size);
 
 						ast = getFromPool();
 						ast->type = stItm->type;
@@ -756,7 +759,7 @@ NMAST* domain(int *start, TokenList *tokens) {
 	int isEndExp = FALSE;
 	int i, index, top = -1, allocLen=0;
 	Token* tk;
-	DATA_TYPE_FP val, val2;
+	double val, val2;
 	Token **stack = NULL;
 	NMASTList *d;
 	Token *tokenItm = NULL;
@@ -827,7 +830,7 @@ NMAST* domain(int *start, TokenList *tokens) {
 */
 				switch(tk->type){
 					case NUMBER:
-						val = parseFloatingPoint(tk->text, 0, tk->textLength, &gErrorCode);
+						val = parseDouble(tk->text, 0, tk->textLength, &gErrorCode);
 						if(val == 0 && gErrorCode != NMATH_NO_ERROR){
 							clearStackWithoutFreeItem(stack, top+1);
 							free(stack);
@@ -1033,7 +1036,7 @@ NMAST* domain(int *start, TokenList *tokens) {
 						/** ========START Parse floating point values======= */
 						switch(tokens->list[index+3].type) {
 							case NUMBER:
-								val = parseFloatingPoint(tokens->list[index+3].text, 0, tokens->list[index+3].textLength, &gErrorCode);
+								val = parseDouble(tokens->list[index+3].text, 0, tokens->list[index+3].textLength, &gErrorCode);
 								if(val == 0 && gErrorCode != NMATH_NO_ERROR){
 									clearStackWithoutFreeItem(stack, top+1);
 									free(stack);
@@ -1062,7 +1065,7 @@ NMAST* domain(int *start, TokenList *tokens) {
 						
 						switch(tokens->list[index+5].type){
 							case NUMBER:
-								val2 = parseFloatingPoint(tokens->list[index+5].text, 0, tokens->list[index+5].textLength, &gErrorCode);
+								val2 = parseDouble(tokens->list[index+5].text, 0, tokens->list[index+5].textLength, &gErrorCode);
 								if(val2 == 0 && gErrorCode != NMATH_NO_ERROR){
 									clearStackWithoutFreeItem(stack, top+1);
 									free(stack);
@@ -1202,7 +1205,7 @@ NMAST* domain(int *start, TokenList *tokens) {
 NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, Token* valtk2){
 	NMAST* ast = NULL;
 	NMAST *valNode1, *valNode2;
-	DATA_TYPE_FP val1, val2;
+	double val1, val2;
 	int type, isSwap = FALSE;
 	
 	/** ERROR cases: -3 < x > 3 or -3 > x < 3  */
@@ -1216,7 +1219,7 @@ NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, T
 	/** ======================================================================== */
 	switch(valtk1->type){
 		case NUMBER:
-			val1 = parseFloatingPoint(valtk1->text, 0, valtk1->textLength, &gErrorCode);
+			val1 = parseDouble(valtk1->text, 0, valtk1->textLength, &gErrorCode);
 			if(val1 == 0 && gErrorCode != NMATH_NO_ERROR){
 				gErrorColumn = valtk1->column;
 				return NULL;
@@ -1233,7 +1236,7 @@ NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, T
 					
 	switch(valtk2->type){
 		case NUMBER:
-			val2 = parseFloatingPoint(valtk2->text, 0, valtk2->textLength, &gErrorCode);
+			val2 = parseDouble(valtk2->text, 0, valtk2->textLength, &gErrorCode);
 			if(val2 == 0 && gErrorCode != NMATH_NO_ERROR){
 				gErrorColumn = valtk2->column;
 				return NULL;

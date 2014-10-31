@@ -18,15 +18,14 @@
 	#define NULL_ZERO NULL
 #endif
 
-/**
 #ifdef _TARGET_HOST_ANDROID
-	#include<android/log.h>
-	#define LOG_TAG "NMATH2"
+	#include <jni.h>
+	#include <android/log.h>
+	#define LOG_TAG "NativeFunction"
 	#define LOG_LEVEL 10
 	#define LOGI(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__);}
 	#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
 #endif
-*/
 
 void reduce_triple_divide(NMAST *ast);
 
@@ -75,7 +74,7 @@ void getOperatorChar(int operatorType, char *opCh) {
 }
 
 void toString(const NMAST *t, char *str, int *curpos, int len) {
-	DATA_TYPE_FP fr;
+	double fr;
 	long lval;
 	int i, l;
 	char operatorChar = 0;
@@ -1221,6 +1220,96 @@ void reduce_triple_divide(NMAST *ast) {
 /** ================================================================================================================================ */
 
 #ifdef WINDOWS
+unsigned int __stdcall calcF_t(void *param){
+	HANDLE thread_1 = 0, thread_2 = 0;
+#else
+void* calcF_t(void *param){
+	pthread_t thrLeft, thrRight;
+	int idThrLeft=-1, idThrRight = -1;
+#endif
+	DParamF *dp = (DParamF *)param;
+	NMAST *t = dp->t;
+	DParamF this_param_left;
+	DParamF this_param_right;
+	int var_index = -1;
+
+	this_param_left.error = this_param_right.error = 0;
+	this_param_left.variables[0] = this_param_right.variables[0] = dp->variables[0];
+	this_param_left.variables[1] = this_param_right.variables[1] = dp->variables[1];
+	this_param_left.variables[2] = this_param_right.variables[2] = dp->variables[2];
+	this_param_left.variables[3] = this_param_right.variables[3] = dp->variables[3];
+	//memcpy(this_param_left.variables, dp->variables, 4);
+	//memcpy(this_param_right.variables, dp->variables, 4);
+	this_param_left.values = this_param_right.values = dp->values;
+	
+	/* If the input tree is NULL, we do nothing */
+	if(t==NULL) return 0;
+	
+
+	if(t->type == VARIABLE){
+		var_index = isInArray(dp->variables, t->variable);
+		dp->retv = (t->sign>0)?(dp->values[var_index]):(-dp->values[var_index]);
+#ifdef WINDOWS
+		return dp->error;
+#else
+		return &(dp->error);
+#endif
+	}
+		
+	if( (t->type == NUMBER) || (t->type == PI_TYPE) ||(t->type == E_TYPE) ){
+		dp->retv = t->value;
+#ifdef WINDOWS
+		return dp->error;
+#else
+		return &(dp->error);
+#endif
+	}
+
+	this_param_left.t = t->left;
+	this_param_right.t = t->right;
+#ifdef WINDOWS
+	thread_1 = (HANDLE)_beginthreadex(NULL, 0, &calcF_t, (void*)&this_param_left, 0, NULL);
+	thread_2 = (HANDLE)_beginthreadex(NULL, 0, &calcF_t, (void*)&this_param_right, 0, NULL);
+	if(thread_1 != 0){
+		WaitForSingleObject(thread_1, INFINITE);
+		CloseHandle(thread_1);
+	}
+	if(thread_2 != 0){
+		WaitForSingleObject(thread_2, INFINITE);
+		CloseHandle(thread_2);
+	}
+#else
+	idThrLeft = pthread_create(&thrLeft, NULL, calcF_t, (void*)&this_param_left);
+	idThrRight = pthread_create(&thrRight, NULL, calcF_t, (void*)&this_param_right);
+	if(idThrLeft == NMATH_NO_ERROR){
+		pthread_join(thrLeft, NULL);
+	}
+	if(idThrRight == NMATH_NO_ERROR){
+		pthread_join(thrRight, NULL);
+	}
+#endif
+	/*******************************************************************************/
+
+	/* Actually, we don't need to check error here b'cause the reduce phase does that
+	if(this_param_left.error != 0){
+		dp->error = this_param_left.error;
+		return dp->error;
+	}
+	
+	if(this_param_right.error != 0){
+		dp->error = this_param_right.error;
+		return dp->error;
+	}*/
+	//LOGI(2, "sign: %d, operand1= %f, operand2=%f, operator: %d", t->sign, this_param_left.retv, this_param_right.retv, t->type);	
+	dp->retv = t->sign * doCalculateF(this_param_left.retv, this_param_right.retv, t->type, &(dp->error));
+#ifdef WINDOWS
+	return dp->error;
+#else
+	return &(dp->error);
+#endif
+}
+
+#ifdef WINDOWS
 unsigned int __stdcall calc_t(void *param){
 	HANDLE thread_1 = 0, thread_2 = 0;
 #else
@@ -1302,7 +1391,7 @@ void* calc_t(void *param){
 		return dp->error;
 	}*/
 		
-	dp->retv = doCalculate(this_param_left.retv, this_param_right.retv, t->type, &(dp->error));
+	dp->retv = t->sign * doCalculate(this_param_left.retv, this_param_right.retv, t->type, &(dp->error));
 #ifdef WINDOWS
 	return dp->error;
 #else
@@ -1310,20 +1399,12 @@ void* calc_t(void *param){
 #endif
 }
 
-DATA_TYPE_FP calc(Function *f, DATA_TYPE_FP *values, int numOfValue, int *error){
-
+double calc(Function *f, double *values, int numOfValue, int *error){
 	DParam rp;
-	//int i;
-
 	rp.error = 0;
 	rp.t = *(f->prefix->list);
 	rp.values = values;	
 	memcpy(rp.variables, f->variable, 4);
-
-	//replace variable by value
-	//for(i=0; i<f->numVarNode; i++){
-	//}
-
 	calc_t((void*)&rp);
 	return rp.retv;
 }

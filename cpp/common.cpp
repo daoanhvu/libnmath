@@ -83,7 +83,7 @@ int isPrime(long n){
 	long i, sq;
 	if(n<2) return 0;
 	if(n==2) return 1;
-	sq = (long) sqrt((DATA_TYPE_FP)n);
+	sq = (long) sqrt((double)n);
 	for(i=2;i<=sq;i++)
 		if( (n%i) == 0)
 			return 0;
@@ -105,9 +105,9 @@ long lcm(long a, long b){
 	return (a*b)/gcd(a, b);
 }
 
-DATA_TYPE_FP parseFloatingPoint(const char *str, int start, int end, int *error){
+double parseDouble(const char *str, int start, int end, int *error){
 	int i;
-	DATA_TYPE_FP val = 0;
+	double val = 0;
 	char isFloatingPoint = 0;
 	long floating = 1;
 	char negative = 1;
@@ -137,7 +137,7 @@ DATA_TYPE_FP parseFloatingPoint(const char *str, int start, int end, int *error)
 		}else{
 			if(isFloatingPoint){
 				floating *= 10;
-				val = val + (str[i] - 48)*ONE_FP/floating;
+				val = val + (double)(str[i] - 48)/floating;
 			}else
 				val = val * 10 + (str[i] - 48);
 		}
@@ -182,9 +182,14 @@ void clearTreeContent(NMAST *prf){
 	}
 }
 
-long l_cast(DATA_TYPE_FP val, DATA_TYPE_FP *fr){
+long l_cast(double val, double *fr){
 	(*fr) = val - (long)val;
 	return (long)val;
+}
+
+int l_castF(float val, float *fr){
+	(*fr) = val - (int)val;
+	return (int)val;
 }
 
 int contains(int type, const int *aset, int len){
@@ -195,14 +200,25 @@ int contains(int type, const int *aset, int len){
 	return FALSE;
 }
 
-DATA_TYPE_FP logab(DATA_TYPE_FP a, DATA_TYPE_FP b, int *error){
+double logab(double a, double b, int *error){
 	(*error) = 0;
-	if( (b > ZERO_FP) && (a > ZERO_FP) && (a != ONE_FP))
+	if( (b > 0.0) && (a > 0.0) && (a != 1.0))
 		return log(b)/log(a);
 
 	(*error) = ERROR_LOG;
 	return 0;
 }
+
+
+float logabF(float a, float b, int *error){
+	(*error) = 0;
+	if( (b > 0.0f) && (a > 0.0f) && (a != 1.0f))
+		return log(b)/log(a);
+
+	(*error) = ERROR_LOG;
+	return 0;
+}
+
 
 char getPriorityOfType(int type) {
 	switch(type){
@@ -244,7 +260,7 @@ char getPriorityOfType(int type) {
 	}
 }
 
-DATA_TYPE_FP doCalculate(DATA_TYPE_FP val1, DATA_TYPE_FP val2, int type, int *error){
+double doCalculate(double val1, double val2, int type, int *error) {
 	(*error) = 0;
 	switch(type){
 		case PLUS:
@@ -260,7 +276,7 @@ DATA_TYPE_FP doCalculate(DATA_TYPE_FP val1, DATA_TYPE_FP val2, int type, int *er
 			return val1 * val2;
 
 		case DIVIDE:
-			if(val2 == ZERO_FP){
+			if(val2 == 0.0){
 				(*error) = ERROR_DIV_BY_ZERO;
 				return 0;
 			}
@@ -271,6 +287,83 @@ DATA_TYPE_FP doCalculate(DATA_TYPE_FP val1, DATA_TYPE_FP val2, int type, int *er
 
 		case LOG:
 			return logab(val1, val2, error);
+
+		case LN:
+			return log(val2);
+
+		case SIN:
+			return sin(val2);
+
+		case ASIN:
+			return asin(val2);
+
+		case COS:
+			return cos(val2);
+
+		case ACOS:
+			return acos(val2);
+
+		case COTAN:
+			if(val2==0 || val2 == PI){
+				(*error) = ERROR_DIV_BY_ZERO;
+				return 0;
+			}
+			return cos(val2)/sin(val2);
+
+		case TAN:
+			if(val2==PI/2){
+				(*error) = ERROR_DIV_BY_ZERO;
+				return 0;
+			}
+			return tan(val2);
+
+		case ATAN:
+			return atan(val2);
+		
+		case SEC:
+			if(val2==PI/2){
+				(*error) = ERROR_DIV_BY_ZERO;
+				return 0;
+			}
+			return 1/cos(val2);
+
+		case SQRT:
+			if(val2 < 0){
+				(*error) = ERROR_OUT_OF_DOMAIN;
+				return 0;
+			}
+			return sqrt(val2);
+	}
+	return 0;
+}
+
+float doCalculateF(float val1, float val2, int type, int *error) {
+	(*error) = 0;
+	switch(type){
+		case PLUS:
+			/*printf("%lf+%lf=%lf\n", val1, val2, val1 + val2);*/
+			return val1 + val2;
+
+		case MINUS:
+			/*printf("%lf-%lf=%lf\n", val1, val2, val1 - val2);*/
+			return val1 - val2;
+
+		case MULTIPLY:
+			/*printf("%lf*%lf=%lf\n", val1, val2, val1 * val2);*/
+			return val1 * val2;
+
+		case DIVIDE:
+			if(val2 == 0.0f){
+				(*error) = ERROR_DIV_BY_ZERO;
+				return 0;
+			}
+			return val1/val2;
+
+		case POWER:
+			return pow(val1, val2);
+
+		case LOG:
+			return logabF(val1, val2, error);
 
 		case LN:
 			return log(val2);

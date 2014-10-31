@@ -88,9 +88,6 @@
 
 #define MAXTEXTLEN 16
 #define INCLEN 8
-#define DATA_TYPE_FP double
-#define ZERO_FP	0.0
-#define ONE_FP	1.0
 #define PI		3.14159265358979323846
 #define E		2.718281828
 
@@ -122,8 +119,8 @@ typedef struct tagNMAST NMAST;
 typedef struct tagNMASTList NMASTList;
 
 //Function poiters
-typedef void (*FPGetIntervalF)(const void *, const DATA_TYPE_FP *, int, void *);
-typedef int (*FPCheck)(const void *, DATA_TYPE_FP *, int);
+typedef void (*FPGetIntervalF)(const void *, const float *, int, void *);
+typedef int (*FPCheck)(const void *, float *, int);
 
 struct tagFraction {
 	int numerator;
@@ -172,7 +169,7 @@ struct tagNMAST {
 	 1: Fraction value
 	 * */
 	char valueType;
-	DATA_TYPE_FP value;
+	double value;
 	Fraction frValue;
 
 	//if this ast is a VARIABLE and NAME
@@ -180,7 +177,7 @@ struct tagNMAST {
 	
 	/* this flag is just used for function cause the function cannot express its sign itself */
 	/* MUST = 1 by default */
-	char sign;
+	int sign;
 	struct tagNMAST *parent;
 	struct tagNMAST *left;
 	struct tagNMAST *right;
@@ -210,8 +207,8 @@ struct tagCriteria {
 	/** GT_LT, GTE_LT, GT_LTE, GTE_LTE */
 	int type;
 	char variable;
-	DATA_TYPE_FP leftVal;
-	DATA_TYPE_FP rightVal;
+	double leftVal;
+	double rightVal;
 	
 	/*
 		bit 0: right infinity
@@ -254,7 +251,7 @@ struct tagListCriteria {
 };
 
 struct tagFData {
-	DATA_TYPE_FP *data;
+	float *data;
 	unsigned int dataSize;
 	unsigned int loggedSize;
 	char dimension;
@@ -286,11 +283,15 @@ int isPrime(long n);
 /* Greatest Common Divisor*/
 long gcd(long a, long b);
 long lcm(long a, long b);
-long l_cast(DATA_TYPE_FP val, DATA_TYPE_FP *fr);
-DATA_TYPE_FP parseFloatingPoint(const char *str, int start, int end, int *error);
+long l_cast(double val, double *fr);
+int l_castF(float val, float *fr);
+double parseDouble(const char *str, int start, int end, int *error);
+// float parseFloat(const char *str, int start, int end, int *error);
 int contains(int type, const int *aset, int len);
-DATA_TYPE_FP logab(DATA_TYPE_FP a, DATA_TYPE_FP b, int *error);
-DATA_TYPE_FP doCalculate(DATA_TYPE_FP val1, DATA_TYPE_FP val2, int type, int *error);
+double logab(double a, double b, int *error);
+float logabF(float a, float b, int *error);
+double doCalculate(double val1, double val2, int type, int *error);
+float doCalculateF(float val1, float val2, int type, int *error);
 void clearTree(NMAST **prf);
 void clearTreeContent(NMAST *prf);
 char getPriorityOfType(int type);

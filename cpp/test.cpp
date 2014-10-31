@@ -17,6 +17,7 @@ long functionAddress = 0;
 void printMenu();
 void printError(int col, int code);
 int testDerivative(Function *f);
+void jniJLexerGetSpace();
 int testGetSpaces();
 void testReuseFunction(Function *f);
 void testCriteria1(int argc, char *agr[]);
@@ -45,6 +46,7 @@ int main(int argc, char *agr[]) {
 			break;
 
 			case 3:
+				//jniJLexerGetSpace();
 				testGetSpaces();
 			break;
 
@@ -69,7 +71,7 @@ int main(int argc, char *agr[]) {
 }
 
 void printMenu() {
-	printf("0. Exit \n");
+	printf("\n0. Exit \n");
 	printf("1. Test lexer \n");
 	printf("2. Test parser \n");
 	printf("3. Test getSpace \n");
@@ -141,14 +143,14 @@ void testCriteria1(int argc, char *agr[]){
 	CompositeCriteria *cp1;
 	int error;
 	int i, j, outlen, chk;
-	DATA_TYPE_FP *vals;
+	float *vals;
 	CombinedCriteria *outIntList;
 	CompositeCriteria *outDomain;
 	
 	//Test -1 < x  < 2.1
 	ci1 = newCriteria(GT_LT, 'x', -1.0, 2.1, FALSE, FALSE);
-	vals = (DATA_TYPE_FP*)malloc(sizeof(DATA_TYPE_FP));
-	vals[0] = parseFloatingPoint(agr[1], 0, strlen(agr[1]), &error);	
+	vals = (float*)malloc(sizeof(float));
+	vals[0] = parseDouble(agr[1], 0, strlen(agr[1]), &error);	
 	if(error != NMATH_NO_ERROR)
 		return;
 	
@@ -162,7 +164,7 @@ void testCriteria1(int argc, char *agr[]){
 	vals = NULL;
 		
 	//Test CombinedInterval  -1 < x  < 2.1 AND 0 < y
-	vals = (DATA_TYPE_FP*)malloc(sizeof(DATA_TYPE_FP) * 4);
+	vals = (float*)malloc(sizeof(float) * 4);
 	vals[0] = -0.7f;
 	vals[1] = 2.2f;
 	vals[2] = -0.9f;
@@ -209,7 +211,7 @@ void testCriteria1(int argc, char *agr[]){
 	free(outIntList);
 	
 	//Test CompositeCriteria   x  < -1 OR x > 0
-	vals = (DATA_TYPE_FP*)malloc(sizeof(DATA_TYPE_FP) * 2);
+	vals = (float*)malloc(sizeof(float) * 2);
 	vals[0] = -1.7f;
 	vals[1] = 1.3f;
 	
@@ -494,8 +496,8 @@ void printError(int col, int code){
 int testDerivative(Function *f) {
 	DParam d;
 	int error;
-	DATA_TYPE_FP vars[] = {4, 1};
-	DATA_TYPE_FP ret;
+	double vars[] = {4, 1};
+	double ret;
 	char dstr[64];
 	int l = 0;
 	
@@ -536,8 +538,8 @@ void testReduce(Function *f) {
 
 int testGetSpaces() {
 	int cmd, k, numOfV=0, i, j, vcount;
-	DATA_TYPE_FP bd[]={-2, 2, -2, 2};
-	DATA_TYPE_FP eps = 0.2f;
+	float bd[]={-2, 2, -2, 2};
+	float eps = 0.2f;
 	ListFData *data;
 	FILE *file;
 	int *indice;
@@ -592,7 +594,7 @@ int testGetSpaces() {
 	
 	printf("\n");
 	data = getSpaces(f, bd, f->valLen * 2, eps);
-	if(data != NULL){
+	if(data != NULL) {
 		file = fopen("../data.txt", "w+");
 		for(i=0; i<data->size; i++){
 			vcount = data->list[i]->dataSize/data->list[i]->dimension;
@@ -645,9 +647,9 @@ int testGetSpaces() {
 }
 
 void testReuseFunction(Function *f) {
-	DATA_TYPE_FP val;
+	double val;
 	int error;
-	DATA_TYPE_FP var[1] = {10};
+	double var[1] = {10};
 
 	releaseFunct(f);
 	parseFunction("f(x)=x + 1/2", 12, f);
@@ -801,8 +803,11 @@ void testCalculate() {
 	char str[64];
 	int len=0, i, k=0;
 	DParam dp;
-	char strbuff[256] = "f(x)=-x";
+	char strbuff[256] = "f(x)=-x^2";
 	Function *f = NULL;
+	double val[1];
+
+	dp.values = val;
 
 	f = (Function*)malloc(sizeof(Function));
 	f->prefix = NULL;
@@ -833,7 +838,7 @@ void testCalculate() {
 	dp.error = NMATH_NO_ERROR;
 	dp.t = f->prefix->list[0];
 	dp.variables[0] = 'x';
-	dp.values[0] = 1.5;
+	dp.values[0] = 2;
 	//reduce_t(&dp);
 	calc_t(&dp);
 	if(dp.error == NMATH_NO_ERROR) {
@@ -842,11 +847,118 @@ void testCalculate() {
 		printf("\n");
 		toString(dp.t, str, &k, 64);
 		f->prefix->list[0] = dp.t;
-		printf("Calculating result: %ld\n", dp.retv);
+		printf("Calculating result: %lf\n", dp.retv);
 	}
 
 	//release token list
 
+	releaseFunct(f);
+	clearPool();
+	free(f);
+}
+
+void jniJLexerGetSpace() {
+	Function *f;
+	DParam dp;
+	TokenList tokens;
+	char outString[256];
+	char strbuff[256] = "f(x)=-x^2";
+	int i, j, textLen, vertexCount, l=0;
+	int tokenNum = 9;
+	float bdarr[2] = {-2, 2};
+	float epsilon = 0.2;
+	ListFData *spaces;
+	float temp;
+	int k, r;
+	
+	f = (Function*)malloc(sizeof(Function));
+	f->prefix = NULL;
+	f->domain = NULL;
+	f->criterias = NULL;
+	f->str = NULL;
+	f->len = 0;
+	f->variableNode = NULL;
+	f->numVarNode = 0;
+	f->valLen = 0;
+	
+	tokens.loggedSize = tokenNum;
+	tokens.list = (Token*)malloc(sizeof(Token) * tokens.loggedSize);
+
+	tokens.list[0].type = 19;
+	tokens.list[0].column = 0;
+	tokens.list[0].priority = 0;
+	tokens.list[0].text[0]='f';
+	tokens.list[0].textLength = 1;
+
+	tokens.list[1].type = 11;
+	tokens.list[1].column = 1;
+	tokens.list[1].priority = 0;
+	tokens.list[1].text[0]='(';
+	tokens.list[1].textLength = 1;
+
+	tokens.list[2].type = 19;
+	tokens.list[2].column = 2;
+	tokens.list[2].priority = 0;
+	tokens.list[2].text[0]='x';
+	tokens.list[2].textLength = 1;
+
+	tokens.list[3].type = 12;
+	tokens.list[3].column = 3;
+	tokens.list[3].priority = 0;
+	tokens.list[3].text[0]=')';
+	tokens.list[3].textLength = 1;
+
+	tokens.list[4].type = 10;
+	tokens.list[4].column = 4;
+	tokens.list[4].priority = 0;
+	tokens.list[4].text[0]='=';
+	tokens.list[4].textLength = 1;
+
+	tokens.list[5].type = 22;
+	tokens.list[5].column = 5;
+	tokens.list[5].priority = 4;
+	tokens.list[5].text[0]='-';
+	tokens.list[5].textLength = 1;
+
+	tokens.list[6].type = 19;
+	tokens.list[6].column = 6;
+	tokens.list[6].priority = 0;
+	tokens.list[6].text[0]='x';
+	tokens.list[6].textLength = 1;
+
+	tokens.list[7].type = 25;
+	tokens.list[7].column = 7;
+	tokens.list[7].priority = 6;
+	tokens.list[7].text[0]='^';
+	tokens.list[7].textLength = 1;
+
+	tokens.list[8].type = 18;
+	tokens.list[8].column = 8;
+	tokens.list[8].priority = 0;
+	tokens.list[8].text[0]='2';
+	tokens.list[8].textLength = 1;
+
+	tokens.size = tokenNum;
+
+	parseFunctionExpression(&tokens, f);
+	if( getErrorCode() == NMATH_NO_ERROR ) {
+		spaces = getSpaces(f, bdarr, f->valLen * 2, epsilon);
+		if(spaces != NULL) {
+			for(i=0; i<spaces->size; i++) {
+				for(j=0; j<spaces->list[i]->dataSize; j++) {
+					printf("%lf ", (spaces->list[i]->data[j]));
+				}
+			}
+
+			free(spaces->list[0]->data);
+			free(spaces->list[0]->rowInfo);
+			free(spaces->list[0]);
+			free(spaces->list);
+			free(spaces);
+		}
+	}
+	
+	free(tokens.list);
 	releaseFunct(f);
 	clearPool();
 	free(f);

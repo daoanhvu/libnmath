@@ -5,7 +5,7 @@
 #ifdef _TARGET_HOST_ANDROID
 	#include <jni.h>
 	#include <android/log.h>
-	#define LOG_TAG "NMATH2"
+	#define LOG_TAG "NativeFunction"
 	#define LOG_LEVEL 10
 	#define LOGI(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__);}
 	#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
@@ -36,7 +36,7 @@ void copyCombinedCriteria(CombinedCriteria *from, CombinedCriteria *target){
 	
 }
 
-Criteria *newCriteria(int type, char var, DATA_TYPE_FP lval, DATA_TYPE_FP rval, 
+Criteria *newCriteria(int type, char var, float lval, float rval, 
 										int leftInfinity, int rightInfinity) {
 	Criteria *result = (Criteria *)malloc(sizeof(Criteria));
 	result->objectType = SIMPLE_CRITERIA;
@@ -81,7 +81,7 @@ CompositeCriteria *newCompositeInterval() {
 	return result;
 }
 
-int isInInterval(const void *interval, DATA_TYPE_FP *values, int varCount) {
+int isInInterval(const void *interval, float *values, int varCount) {
 	int result = FALSE;
 	Criteria* criteria = (Criteria*)interval;
 	if( (criteria->flag & 0x03) == 0x03) //Check left and right infinity is set (bit 0 and 1 = TRUE)
@@ -153,7 +153,7 @@ int isInInterval(const void *interval, DATA_TYPE_FP *values, int varCount) {
 }
 
 //AND Criteria
-int isInCombinedInterval(const void *interval, DATA_TYPE_FP *values, int varCount) {
+int isInCombinedInterval(const void *interval, float *values, int varCount) {
 	CombinedCriteria *criteria = (CombinedCriteria*)interval;
 	int i;
 	
@@ -167,7 +167,7 @@ int isInCombinedInterval(const void *interval, DATA_TYPE_FP *values, int varCoun
 
 
 //OR CombinedCriteria
-int isInCompositeInterval(const void *interval, DATA_TYPE_FP *values, int varCount) {
+int isInCompositeInterval(const void *interval, float *values, int varCount) {
 	CompositeCriteria *criteria = (CompositeCriteria*)interval;
 	int i;
 	
@@ -179,7 +179,7 @@ int isInCompositeInterval(const void *interval, DATA_TYPE_FP *values, int varCou
 	return FALSE;
 }
 
-void getInterval(const void *interval, const DATA_TYPE_FP *values, int unused, void *outIntervalObj){
+void getInterval(const void *interval, const float *values, int unused, void *outIntervalObj){
 	Criteria *criteria = (Criteria*)interval;
 	Criteria *outInterval = (Criteria*)outIntervalObj;
 	
@@ -354,7 +354,7 @@ void getInterval(const void *interval, const DATA_TYPE_FP *values, int unused, v
 		This is a matrix N row and 2 columns which each row is for each continuous interval of a single variable
 		It means that N = varCount
 */
-void getCombinedInterval(const void *intervalObj, const DATA_TYPE_FP *values, int varCount, void *outListIntervalObj){
+void getCombinedInterval(const void *intervalObj, const float *values, int varCount, void *outListIntervalObj){
 	CombinedCriteria *criteria = (CombinedCriteria*)intervalObj;
 	CombinedCriteria *outListInterval = (CombinedCriteria *)outListIntervalObj;
 	Criteria *interval;
@@ -391,7 +391,7 @@ void getCombinedInterval(const void *intervalObj, const DATA_TYPE_FP *values, in
 		This output parameter, it's a matrix N row and M columns which each row is for each continuous space for the expression
 		It means that each row will hold a combined-interval for n-tule variables and M equal varCount * 2
 */
-void getCompositeInterval(const void *interval, const DATA_TYPE_FP *values, int varCount, void *outDomainObj){
+void getCompositeInterval(const void *interval, const float *values, int varCount, void *outDomainObj){
 	CompositeCriteria *criteria = (CompositeCriteria*)interval;
 	CompositeCriteria *outDomain = (CompositeCriteria *)outDomainObj;
 	CombinedCriteria *listIn;
@@ -510,7 +510,7 @@ void buildCompositeCriteria(const NMAST *domain, const char *vars, int varCount,
 	Need to test here
 */
 int andTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria *out){
-	DATA_TYPE_FP d[2];
+	float d[2];
 	Criteria *interval;
 	if(c1->variable == c2->variable){
 		interval = newCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
@@ -550,7 +550,7 @@ int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out){
 	int objTypeLeft = *((char*)c1);
 	int objTypeRight = *((char*)c2);
 	int i, result = FALSE;
-	DATA_TYPE_FP d[2];
+	float d[2];
 	Criteria *interval, *cr;
 	CombinedCriteria *cb, *comb1, *comb2;
 	CompositeCriteria *inputComp, *outComp, *comp1, *comp2;
@@ -800,7 +800,7 @@ int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out){
 	Need to implement
 */
 int orTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria *out){
-	DATA_TYPE_FP d[2];
+	float d[2];
 	Criteria *interval;
 	if(c1->variable == c2->variable){
 		interval = newCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
@@ -913,13 +913,15 @@ int orTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria
  *	@param epsilon
  */
 FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
-						const Criteria *c, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
+						const Criteria *c, const float *bd, int bdlen, float epsilon){
 	int elementOnRow;
 	Criteria out1;
-	DATA_TYPE_FP right1, y, lastX;
+	float right1, lastX;
+	float y;
+	float values[1];
 	void *tmpP;
 	FData *mesh = NULL;
-	DParam param;
+	DParamF param;
 	
 	out1.objectType = SIMPLE_CRITERIA;
 	out1.type = GT_LT;
@@ -938,14 +940,14 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
 	
 	param.t = exp;
 	param.variables[0] = variables[0];
-	param.values = (DATA_TYPE_FP*)malloc(sizeof(DATA_TYPE_FP));
+	param.values = values;
 	param.error = 0;
 	
 	mesh = (FData*)malloc(sizeof(FData));
 	mesh->dimension = 2;
 	mesh->loggedSize = 20;
 	mesh->dataSize = 0;
-	mesh->data = (DATA_TYPE_FP*)malloc(sizeof(DATA_TYPE_FP) * mesh->loggedSize);
+	mesh->data = (float*)malloc(sizeof(float) * mesh->loggedSize);
 	mesh->rowCount = 0;
 	mesh->loggedRowCount = 1;
 	mesh->rowInfo = (int*)malloc(sizeof(int));
@@ -960,13 +962,13 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
 		
 	elementOnRow = 0;
 	while(param.values[0] <= right1){
-		calc_t((void*)&param);
+		calcF_t((void*)&param);
 		y = param.retv;
 		if(mesh->dataSize >= mesh->loggedSize - 2){
 			mesh->loggedSize += 20;
-			tmpP = realloc(mesh->data, sizeof(DATA_TYPE_FP) * mesh->loggedSize);
+			tmpP = realloc(mesh->data, sizeof(float) * mesh->loggedSize);
 			if(tmpP != NULL)
-				mesh->data = (DATA_TYPE_FP*)tmpP;
+				mesh->data = (float*)tmpP;
 		}
 		mesh->data[mesh->dataSize++] = param.values[0];
 		mesh->data[mesh->dataSize++] = y;
@@ -977,13 +979,13 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
 
 	if(lastX < right1 && param.values[0]>right1){
 		param.values[0] = right1;
-		calc_t((void*)&param);
+		calcF_t((void*)&param);
 		y = param.retv;
 		if(mesh->dataSize >= mesh->loggedSize - 2){
 			mesh->loggedSize += 4;
-			tmpP = realloc(mesh->data, sizeof(DATA_TYPE_FP) * mesh->loggedSize);
+			tmpP = realloc(mesh->data, sizeof(float) * mesh->loggedSize);
 			if(tmpP != NULL)
-				mesh->data = (DATA_TYPE_FP*)tmpP;
+				mesh->data = (float*)tmpP;
 		}
 		mesh->data[mesh->dataSize++] = param.values[0];
 		mesh->data[mesh->dataSize++] = y;
@@ -991,8 +993,6 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
 	}
 
 	mesh->rowInfo[mesh->rowCount++] = elementOnRow;
-	
-	free(param.values);
 	return mesh;
 }
 
@@ -1004,13 +1004,16 @@ FData* generateOneUnknows(NMAST* exp, const char *variables /*1 in length*/,
  *	@param bdlen MUST be 4 
  *	@param epsilon
  */
-FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables, const CombinedCriteria *c, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
+FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables, const CombinedCriteria *c, const float *bd, 
+													int bdlen, float epsilon) {
 	int elementOnRow;
 	Criteria out1, out2;
-	DATA_TYPE_FP right1, left2, right2, y;
+	float right1, left2, right2;
+	float y;
+	float values[2];
 	void *tmpP;
 	FData *mesh = NULL;
-	DParam param;
+	DParamF param;
 	
 	out1.objectType = SIMPLE_CRITERIA;
 	out1.flag = AVAILABLE;
@@ -1040,17 +1043,14 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 	param.t = exp;
 	param.variables[0] = variables[0];
 	param.variables[1] = variables[1];
-	param.values = (DATA_TYPE_FP*)malloc(sizeof(DATA_TYPE_FP) * 2);
+	param.values = values;
 	param.error = 0;
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
 	
 	mesh = (FData*)malloc(sizeof(FData));
 	mesh->dimension = 3;
 	mesh->loggedSize = 20;
 	mesh->dataSize = 0;
-	mesh->data = (DATA_TYPE_FP*)malloc(sizeof(DATA_TYPE_FP) * mesh->loggedSize);
+	mesh->data = (float*)malloc(sizeof(float) * mesh->loggedSize);
 	mesh->loggedRowCount = 0;
 	mesh->rowCount = 0;
 	mesh->rowInfo= NULL;
@@ -1079,13 +1079,13 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 		param.values[1] = left2;
 		elementOnRow = 0;
 		while(param.values[1] <= right2){
-			calc_t((void*)&param);
+			calcF_t((void*)&param);
 			y = param.retv;
 			if(mesh->dataSize >= mesh->loggedSize - 3){
 				mesh->loggedSize += 20;
-				tmpP = realloc(mesh->data, sizeof(DATA_TYPE_FP) * mesh->loggedSize);
+				tmpP = realloc(mesh->data, sizeof(float) * mesh->loggedSize);
 				if(tmpP != NULL)
-					mesh->data = (DATA_TYPE_FP*)tmpP;
+					mesh->data = (float*)tmpP;
 			}
 			mesh->data[mesh->dataSize++] = param.values[0];
 			mesh->data[mesh->dataSize++] = param.values[1];
@@ -1103,14 +1103,10 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 		mesh->rowInfo[mesh->rowCount++] = elementOnRow;
 		param.values[0] += epsilon;
 	}
-	free(param.values);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
 	return mesh;
 }
 
-ListFData *getValueRangeForOneVariableF(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
+ListFData *getValueRangeForOneVariableF(Function *f, const float *bd, int bdlen, float epsilon){
 	ListFData *lst = NULL;
 	FData *sp;
 	int i;
@@ -1128,7 +1124,7 @@ ListFData *getValueRangeForOneVariableF(Function *f, const DATA_TYPE_FP *bd, int
 	return lst;
 }
 
-ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
+ListFData *getSpaces(Function *f, const float *bd, int bdlen, float epsilon) {
 	ListFData *lst = NULL;
 	FData *sp;
 	CombinedCriteria *comb;
@@ -1325,7 +1321,7 @@ ListFData *getSpaces(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_F
 	return lst;
 }
 
-ListFData *getSpaces2(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_FP epsilon){
+ListFData *getSpaces2(Function *f, const float *bd, int bdlen, float epsilon){
 	ListFData *lst = NULL;
 	FData *sp;
 	CombinedCriteria *comb;
@@ -1525,7 +1521,7 @@ ListFData *getSpaces2(Function *f, const DATA_TYPE_FP *bd, int bdlen, DATA_TYPE_
 /**
 	Get the normal vector at each point in values
 */
-DATA_TYPE_FP *getNormalVectors(Function *f, DATA_TYPE_FP *values, int numOfPoint) {
+double *getNormalVectors(Function *f, double *values, int numOfPoint) {
 	DParam d;
 	DParam rp;
 	NMAST *dx;
