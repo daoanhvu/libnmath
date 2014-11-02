@@ -87,7 +87,7 @@ Token* popFromStack(Token **st, int *top){
 
 void addFunction2Tree(NMASTList *t, Token * stItm){
 	NMAST *ast = NULL;
-	LOGI(2, "Type: %d (%s)", stItm->type, stItm->text);
+	// LOGI(2, "Type: %d (%s)", stItm->type, stItm->text);
 	switch(stItm->type) {
 		case PLUS:
 			if(t->size > 1) {
@@ -369,27 +369,30 @@ void parseExpression(TokenList *tokens, int *start, Function *f) {
 	Token *stItm = NULL;
 	NMAST *ast = NULL;
 	//NMAST* varNodes[50];
-
 	if(tokens == NULL) {
 		gErrorColumn = 0;
 		gErrorCode = ERROR_BAD_TOKEN;
 		return ;
 	}
 	prefix = (NMASTList*)malloc(sizeof(NMASTList));
+	
 #ifdef DEBUG
 	incNumberOfDynamicObject();
 #endif
+
 	prefix->size = 0;
 	prefix->loggedSize = 0;
 	prefix->list = NULL;
-	
+
 	gErrorColumn = -1;
 	gErrorCode = NMATH_NO_ERROR;
 	
 	f->numVarNode = 0;
 	i = (*start);
-	while(i < tokens->size && !isEndExp) {
+	// LOGI(2, "[parseExpression] Before while loop i=%d", i);
+	while( (i < tokens->size) && !isEndExp) {
 		tk = &(tokens->list[i]);
+		// LOGI(2, "token %d type:%d", i, tk->type);
 		switch(tk->type) {
 			case NUMBER:
 				val = parseDouble(tk->text, 0, tk->textLength, &error);
@@ -443,27 +446,31 @@ void parseExpression(TokenList *tokens, int *start, Function *f) {
 			case POWER:
 				if(top >= 0){
 					stItm = stack[top];
-					LOGI(2, "Token: type = %d, text=%s", tk->type, tk->text);
+					// LOGI(2, "Token: type = %d, text=%s", tk->type, tk->text);
 					while((isAnOperatorType(stItm->type)==TRUE) && (stItm->priority) >= tk->priority){
 						stItm = popFromStack(stack, &top);
 
-						LOGI(2, "Token just popped from Stack: type = %d, text=%s, PREFIX SIZE= %d", stItm->type, stItm->text, prefix->size);
+						//LOGI(2, "Token just popped from Stack: type = %d, text=%s, PREFIX SIZE= %d", stItm->type, stItm->text, prefix->size);
 
-						ast = getFromPool();
-						ast->type = stItm->type;
-						ast->priority = stItm->priority;
-						ast->left = prefix->list[prefix->size-2];
-						ast->right = prefix->list[prefix->size-1];
-						
-						if((ast->left)!=NULL)
-							(ast->left)->parent = ast;
-						if((ast->right)!=NULL)
-							(ast->right)->parent = ast;
-						
-						prefix->list[prefix->size-2] = ast;
-						prefix->list[prefix->size-1] = NULL;
-						prefix->size--;
-						
+						if(prefix->size == 1) {
+							prefix->list[0]->sign = -1;
+						} else {
+							ast = getFromPool();
+							ast->type = stItm->type;
+							ast->priority = stItm->priority;
+							ast->left = prefix->list[prefix->size-2];
+							ast->right = prefix->list[prefix->size-1];
+							
+							if((ast->left)!=NULL)
+								(ast->left)->parent = ast;
+							if((ast->right)!=NULL)
+								(ast->right)->parent = ast;
+
+							prefix->list[prefix->size-2] = ast;
+							prefix->list[prefix->size-1] = NULL;
+							prefix->size--;
+						}
+
 						if(top < 0)
 							break;
 
