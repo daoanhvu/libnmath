@@ -16,7 +16,7 @@ long functionAddress = 0;
 
 void printMenu();
 void printError(int col, int code);
-int testDerivative(Function *f);
+int testDerivative();
 void jniJLexerGetSpace();
 int testGetSpaces();
 void testReuseFunction(Function *f);
@@ -43,6 +43,7 @@ int main(int argc, char *agr[]) {
 			break;
 
 			case 2:
+				testDerivative();
 			break;
 
 			case 3:
@@ -73,7 +74,7 @@ int main(int argc, char *agr[]) {
 void printMenu() {
 	printf("\n0. Exit \n");
 	printf("1. Test lexer \n");
-	printf("2. Test parser \n");
+	printf("2. Test derivative \n");
 	printf("3. Test getSpace \n");
 	printf("4. Test Calculating \n");
 	printf("-----------------------------------------------------------------------------------\n");
@@ -493,16 +494,40 @@ void printError(int col, int code){
 	}
 }
 
-int testDerivative(Function *f) {
+int testDerivative() {
 	DParam d;
 	int error;
 	double vars[] = {4, 1};
 	double ret;
 	char dstr[64];
 	int l = 0;
+	Function *f;
+
+	f = (Function*)malloc(sizeof(Function));
+	f->prefix = NULL;
+	f->domain = NULL;
+	f->criterias = NULL;
+	f->str = NULL;
+	f->len = 0;
+	f->variableNode = NULL;
+	f->numVarNode = 0;
+	f->valLen = 0;
+
+	printf("Input function: ");
+	scanf("%s", &strbuff);
+	l = strlen(strbuff);
+	parseFunction(strbuff, l, f);
+	if(getErrorCode() != NMATH_NO_ERROR) {
+		printError(getErrorColumn(), getErrorCode());
+		releaseFunct(f);
+		free(f);
+		return getErrorCode();
+	} 
+
+	if( f->valLen==0 ) {
+		printf("This expression is not a function due to variables not determined.\n");
+	}
 	
-	ret = calc(f, vars, 2, &error);
-	printf("Ret = %lf \n", ret );
 	d.t = f->prefix->list[0];
 	d.error = 0;
 	d.returnValue = NULL;
@@ -513,6 +538,11 @@ int testDerivative(Function *f) {
 	toString(d.returnValue, dstr, &l, 64);
 	printf("f' = %s\n", dstr);
 	clearTree(&(d.returnValue));
+
+	releaseFunct(f);
+	clearPool();
+	free(f);
+
 	return 0;
 }
 

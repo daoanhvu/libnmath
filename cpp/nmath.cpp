@@ -2287,9 +2287,9 @@ int isContainVar(NMAST *t, char x){
 	if( (t==NULL) || (t->type==NUMBER) || (t->type==PI_TYPE) || (t->type==E_TYPE) )
 		return 0;
 		
-	if( t->type == VARIABLE ){
+	if( t->type == VARIABLE ) {
 		if(t->variable == x)
-			return 1;
+			return (t->sign>0?1:-1);
 		return 0;
 	}
 	
