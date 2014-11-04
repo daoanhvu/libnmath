@@ -10,10 +10,23 @@ CompositeCriteria::~CompositeCriteria(){
 
 }
 
-CombinedCriteria CompositeCriteria::operator [](int index){
-
+void CompositeCriteria::release() {
+	
 }
 
-int CompositeCriteria::isInInterval(const float* values){
+CombinedCriteria CompositeCriteria::operator [](int index){
+	if(list == NULL || index >= size) return NULL;
 
+	return list[index];
+}
+
+int CompositeCriteria::isInInterval(const float* values) {
+	int i;
+	
+	for(i=0; i<this->size; i++){
+		if( list[i]->isInInterval(values) == TRUE)
+			return TRUE;
+	}
+	
+	return FALSE;
 }

@@ -36,9 +36,6 @@ Criteria::Criteria(int type, char var, float lval, float rval,
 	this->fgetInterval = getInterval;
 }
 
-Criteria::~Criteria() {
-}
-
 int Criteria::isInInterval(float values) {
 	int result = FALSE;
 	
@@ -108,33 +105,6 @@ int Criteria::isInInterval(float values) {
 	}
 	
 	return result;
-}
-
-//AND Criteria
-int isInCombinedInterval(const void *interval, float *values, int varCount) {
-	CombinedCriteria *criteria = (CombinedCriteria*)interval;
-	int i;
-	
-	for(i=0; i<criteria->size; i++){
-		if((criteria->list[i]->fcheck(criteria->list[i], values+i, 1)) == FALSE)
-			return FALSE;
-	}
-	
-	return TRUE;
-}
-
-
-//OR CombinedCriteria
-int isInCompositeInterval(const void *interval, float *values, int varCount) {
-	CompositeCriteria *criteria = (CompositeCriteria*)interval;
-	int i;
-	
-	for(i=0; i<criteria->size; i++){
-		if((criteria->list[i])->fcheck( criteria->list[i], values+i, 1) == TRUE)
-			return TRUE;
-	}
-	
-	return FALSE;
 }
 
 Criteria* Criteria::and(const float *values ){
@@ -758,20 +728,66 @@ int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out){
 /**
 	Need to implement
 */
-int orTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria *out){
+CompositeCriteria Criteria::or(const Criteria *c) {
 	float d[2];
 	Criteria *interval;
-	if(c1->variable == c2->variable){
+	CombinedCriteria* cb;
+	CompositeCriteria* out = new CompositeCriteria();
+
+	if(this->variable == c->variable) {
+
+		/*
+			If this interval is close
+		*/
+		if( (this->flag | 0x04) == 0x04) {
+			if( (c->flag | 0x04) == 0x04) {
+			} else if( (c->flag | 0x05) == 0x05) {
+			} else if( (c->flag | 0x06) == 0x06) {
+			}
+		} if( (this->flag | 0x05) == 0x05 ) { /* This interval is close on RIGHT and open on LEFT  */
+
+		} if( (this->flag | 0x06) == 0x06 ) { /* This interval is close on LEFT and open on RIGHT  */
+
+		}
+
+		if( ((this->flag & 0x05)==0x05) && ((c->flag & 0x06)==0x06) ) {
+			if(this->rightVal >= c->leftVal) {
+				interval = new Criteria(this->variable, -9999, 9999, RIGHT_INF, LEFT_INF);
+				cb = new CombinedCriteria();
+				cb->and(interval);
+				out->or(cb);
+			} else {
+				interval = this->clone();
+				cb = new CombinedCriteria();
+				cb->and(interval);
+				out->or(cb);
+
+				interval = c->clone();
+				cb = new CombinedCriteria();
+				cb->and(interval);
+				out->or(cb);
+			}
+		} else if( ((this->flag & 0x05)==0x05) && ((c->flag & 0x05)==0x05) ) {
+			if(this->rightVal >= c->rightVal) {
+				interval = this->clone();
+			} else {
+				interval = c->clone();
+			}
+			cb = new CombinedCriteria();
+			cb->and(interval);
+			out->or(cb);
+
+		} else if( ((this->flag & 0x05)==0x05) && ((c->flag & 0x05)==0x05) ) {
+
+		}
+
+
 		interval = newCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
 		d[0] = c2->leftVal;
 		d[1] = c2->rightVal;
 		c1->fgetInterval(c1, d, 1, (void*)interval);
 		if( (interval->flag & AVAILABLE) == 0){
 			free(interval);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-			out->cr = newCompositeInterval();
 			((CompositeCriteria*)(out->cr))->list = (CombinedCriteria**)malloc(sizeof(CombinedCriteria*)*2);
 			((CompositeCriteria*)(out->cr))->loggedSize = 2;
 			((CompositeCriteria*)(out->cr))->size = 2;
@@ -805,12 +821,6 @@ int orTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria
 			((CompositeCriteria*)(out->cr))->list[1]->list[0]->fgetInterval = getInterval;
 			//set available bit, unset left and right infinity
 			((CompositeCriteria*)(out->cr))->list[1]->list[0]->flag = AVAILABLE | (c2->flag | 0xfc);
-			
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-	incNumberOfDynamicObject();
-	incNumberOfDynamicObject();
-#endif
 			return TRUE;
 		}
 		
@@ -819,49 +829,18 @@ int orTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria
 		
 		out->cr = interval;
 	}else{
-		out->cr = newCompositeInterval();
-		((CompositeCriteria*)(out->cr))->list = (CombinedCriteria**)malloc(sizeof(CombinedCriteria*)*2);
-		((CompositeCriteria*)(out->cr))->loggedSize = 2;
-		((CompositeCriteria*)(out->cr))->size = 2;
-		
-		((CompositeCriteria*)(out->cr))->list[0] = newCombinedInterval();
-		((CompositeCriteria*)(out->cr))->list[0]->list = (Criteria**)malloc(sizeof(Criteria*));
-		((CompositeCriteria*)(out->cr))->list[0]->loggedSize = 1;
-		((CompositeCriteria*)(out->cr))->list[0]->size = 1;
-		((CompositeCriteria*)(out->cr))->list[0]->list[0] = (Criteria*)malloc(sizeof(Criteria));
-		((CompositeCriteria*)(out->cr))->list[0]->list[0]->objectType = SIMPLE_CRITERIA;
-		((CompositeCriteria*)(out->cr))->list[0]->list[0]->type = c1->type;
-		((CompositeCriteria*)(out->cr))->list[0]->list[0]->variable = c1->variable;
-		((CompositeCriteria*)(out->cr))->list[0]->list[0]->leftVal = c1->leftVal;
-		((CompositeCriteria*)(out->cr))->list[0]->list[0]->rightVal = c1->rightVal;
-		((CompositeCriteria*)(out->cr))->list[0]->list[0]->fcheck = isInInterval;
-		((CompositeCriteria*)(out->cr))->list[0]->list[0]->fgetInterval = getInterval;
-		//set available bit, unset left and right infinity
-		((CompositeCriteria*)(out->cr))->list[0]->list[0]->flag = (AVAILABLE) | (c1->flag | 0xfc);
-			
-		((CompositeCriteria*)(out->cr))->list[1] = newCombinedInterval();
-		((CompositeCriteria*)(out->cr))->list[1]->list = (Criteria**)malloc(sizeof(Criteria*));
-		((CompositeCriteria*)(out->cr))->list[1]->loggedSize = 1;
-		((CompositeCriteria*)(out->cr))->list[1]->size = 1;
-		((CompositeCriteria*)(out->cr))->list[1]->list[0] = (Criteria*)malloc(sizeof(Criteria));
-		((CompositeCriteria*)(out->cr))->list[1]->list[0]->objectType = SIMPLE_CRITERIA;
-		((CompositeCriteria*)(out->cr))->list[1]->list[0]->type = c2->type;
-		((CompositeCriteria*)(out->cr))->list[1]->list[0]->variable = c2->variable;
-		((CompositeCriteria*)(out->cr))->list[1]->list[0]->leftVal = c2->leftVal;
-		((CompositeCriteria*)(out->cr))->list[1]->list[0]->rightVal = c2->rightVal;
-		((CompositeCriteria*)(out->cr))->list[1]->list[0]->fcheck = isInInterval;
-		((CompositeCriteria*)(out->cr))->list[1]->list[0]->fgetInterval = getInterval;
-		//set available bit, unset left and right infinity
-		((CompositeCriteria*)(out->cr))->list[1]->list[0]->flag = AVAILABLE | (c2->flag | 0xfc);
+		interval = this->clone();
+		cb = new CombinedCriteria();
+		cb->and(interval);
+		out->or(cb);
 
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-	incNumberOfDynamicObject();
-	incNumberOfDynamicObject();
-#endif
+		interval = c->clone();
+		cb = new CombinedCriteria();
+		cb->and(interval);
+		out->or(cb);
 	}
 	
-	return TRUE;
+	return out;
 }
 
 /**

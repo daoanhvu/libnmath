@@ -28,18 +28,18 @@ void CombinedCriteria::operator =(CombinedCriteria& dest, CombinedCriteria& src)
 		/**
 			Combine (AND) this criteria with each pair of value in bounds
 		*/
-void CombinedCriteria::getInterval(const float *bounds, int varCount, CombinedCriteria *outListInterval) {	
+CombinedCriteria* CombinedCriteria::getInterval(const float *bounds, int varCount) {	
 	Criteria *interval;
+	CombinedCriteria* outListInterval = new CombinedCriteria();
 	int i, k;
 	
 	for(k=0; k<varCount; k++){
-		interval = newCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
+		interval = new Criteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
 		
-		this->list[k]->fgetInterval(criteria->list[k], bounds + k*2, varCount, interval);
-		if( (interval->flag & AVAILABLE) != AVAILABLE ){
-			free(interval);
+		interval = list[k]->and(bounds + k*2, varCount);
+		if( (interval == NULL) || (interval->flag & AVAILABLE) != AVAILABLE ) {
 			for(i=0; i<outListInterval->size; i++)
-				free(outListInterval->list[i]);
+				delete (outListInterval->list[i]);
 			free(outListInterval->list);
 			outListInterval->list = NULL;
 			outListInterval->size = 0;
@@ -53,4 +53,15 @@ void CombinedCriteria::getInterval(const float *bounds, int varCount, CombinedCr
 		}
 		outListInterval->list[outListInterval->size++] = interval;
 	}
+}
+
+int CombinedCriteria::isInInterval(const float *values) {
+	int i;
+	
+	for(i=0; i<this->size; i++) {
+		if( list[i]->isInInterval(*(values+i)) == FALSE)
+			return FALSE;
+	}
+	
+	return TRUE;
 }

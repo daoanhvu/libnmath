@@ -22,10 +22,10 @@ class Criteria {
 		Criteria();
 		Criteria::Criteria(int type, char var, float lval, float rval, 
 										int leftInfinity, int rightInfinity);
-		~Criteria();
 
 		/* And this criteria with pair of values */
-		Criteria* and(const float *values, int varCount);
+		Criteria* and(const float *values);
+		Criteria* and(const Criteria* c);
 		CompositeCriteria* or(const Criteria *c);
 		int isInInterval(float value);
 };

@@ -12,10 +12,15 @@ class CompositeCriteria {
 	public:
 		CompositeCriteria();
 		~CompositeCriteria();
+		void release();
 
 		int getSize();
 		CombinedCriteria operator [](int index);
 		int isInInterval(const float* values);
+
+		CompositeCriteria operator +(CombinedCriteria &);
+
+		static void operator =(CompositeCriteria &, CompositeCriteria &);
 };
 
 inline int CompositeCriteria::getSize() {return size;}
