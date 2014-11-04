@@ -18,143 +18,90 @@ int orTwoSimpleCriteria(const Criteria* c1, const Criteria* c2, OutBuiltCriteria
 int andTwoCriteria(const void* c1, const void* c2, OutBuiltCriteria* out);
 
 Criteria::Criteria() {
-	this->flag = AVAILABLE | (leftInfinity & LEFT_INF) | (rightInfinity & RIGHT_INF) ;
+	this->flag = 7;
 	this->type = type;
 	this->variable = var;
 	this->leftVal = lval;
 	this->rightVal = rval;
 }
 
+Criteria::Criteria(int type, char var, float lval, float rval, 
+										int leftInfinity, int rightInfinity) {
+	this->flag = AVAILABLE | (leftInfinity & LEFT_INF) | (rightInfinity & RIGHT_INF) ;
+	this->type = type;
+	this->variable = var;
+	this->leftVal = lval;
+	this->rightVal = rval;
+	this->fcheck = isInInterval;
+	this->fgetInterval = getInterval;
+}
+
 Criteria::~Criteria() {
 }
 
-void copyCombinedCriteria(CombinedCriteria *from, CombinedCriteria *target){
-	int i;
-	target->loggedSize = from->loggedSize;
-	target->size = from->size;
-	target->list = (Criteria**)malloc(sizeof(Criteria*) * target->loggedSize);
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-	for(i=0; i<target->size; i++){
-		target->list[i] = newCriteria(from->list[i]->type, 
-											from->list[i]->variable,
-											from->list[i]->leftVal,
-											from->list[i]->rightVal, 
-											(from->list[i]->flag & LEFT_INF) >> 1,
-											from->list[i]->flag & RIGHT_INF);
-	}
-	
-}
-
-Criteria *newCriteria(int type, char var, float lval, float rval, 
-										int leftInfinity, int rightInfinity) {
-	Criteria *result = (Criteria *)malloc(sizeof(Criteria));
-	result->objectType = SIMPLE_CRITERIA;
-	result->flag = AVAILABLE | (leftInfinity & LEFT_INF) | (rightInfinity & RIGHT_INF) ;
-	result->type = type;
-	result->variable = var;
-	result->leftVal = lval;
-	result->rightVal = rval;
-	result->fcheck = isInInterval;
-	result->fgetInterval = getInterval;
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-	return result;
-}
-
-CombinedCriteria *newCombinedInterval() {
-	CombinedCriteria *result = (CombinedCriteria *)malloc(sizeof(CombinedCriteria));
-	result->objectType = COMBINED_CRITERIA;
-	result->fcheck = isInCombinedInterval;
-	result->fgetInterval = getCombinedInterval;
-	result->list = NULL;
-	result->loggedSize = 0;
-	result->size = 0;
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-	return result;
-}
-
-CompositeCriteria *newCompositeInterval() {
-	CompositeCriteria *result = (CompositeCriteria*)malloc(sizeof(CompositeCriteria));
-	result->objectType = COMPOSITE_CRITERIA;
-	result->fcheck = isInCompositeInterval;
-	result->fgetInterval = getCompositeInterval;
-	result->list = NULL;
-	result->loggedSize = 0;
-	result->size = 0;
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-	return result;
-}
-
-int isInInterval(const void *interval, float *values, int varCount) {
+int Criteria::isInInterval(float values) {
 	int result = FALSE;
-	Criteria* criteria = (Criteria*)interval;
-	if( (criteria->flag & 0x03) == 0x03) //Check left and right infinity is set (bit 0 and 1 = TRUE)
-		return (values!=NULL)?TRUE:FALSE;
+	
+	if( (this->flag & 0x03) == 0x03) //Check left and right infinity is set (bit 0 and 1 = TRUE)
+		return TRUE;
 		
-	if( (criteria->flag & LEFT_INF) == LEFT_INF){
+	if( (this->flag & LEFT_INF) == LEFT_INF){
 		/** HERE we don't need to take care of leftVal */
-		switch(criteria->type){
+		switch(this->type){
 			case GT_LT:
 			case GTE_LT:
 				// x < rightVal
-				if(*values < criteria->rightVal)
+				if(values < this->rightVal)
 					result = TRUE;
 			break;
 			
 			case GT_LTE:
 			case GTE_LTE:
 				// x <= rightVal
-				if(*values <= criteria->rightVal)
+				if(values <= this->rightVal)
 					result = TRUE;
 			break;
 		}
-	}else if ( (criteria->flag & RIGHT_INF) == RIGHT_INF ){
+	}else if ( (this->flag & RIGHT_INF) == RIGHT_INF ){
 		/** HERE we don't need to take care of rightVal */
-		switch(criteria->type){
+		switch(this->type){
 			case GT_LT:
 			case GT_LTE:
 				// leftVal < x
-				if(criteria->leftVal < (*values))
+				if(this->leftVal < values)
 					result = TRUE;
 			break;
 			
 			case GTE_LT:
 			case GTE_LTE:
 				// leftVal <= x
-				if(criteria->leftVal <= (*values))
+				if(this->leftVal <= values)
 					result = TRUE;
 			break;
 		}
 	}else{
-		switch(criteria->type){
+		switch(this->type){
 			case GT_LT:
 				// leftVal < x < rightVal
-				if(criteria->leftVal < (*values) && (*values < criteria->rightVal))
+				if( (this->leftVal < values) && (values < this->rightVal))
 					result = TRUE;
 			break;
 			
 			case GT_LTE:
 				// leftVal < x <= rightVal
-				if(criteria->leftVal < (*values) && (*values <= criteria->rightVal))
+				if( (this->leftVal < values) && (values <= this->rightVal))
 					result = TRUE;
 			break;
 			
 			case GTE_LT:
 				// leftVal <= x < rightVal
-				if(criteria->leftVal <= (*values) && (*values < criteria->rightVal))
+				if( (this->leftVal <= values) && (values < this->rightVal))
 					result = TRUE;
 			break;
 			
 			case GTE_LTE:
 				// leftVal <= x <= rightVal
-				if(criteria->leftVal <= (*values) && (*values <= criteria->rightVal))
+				if( (this->leftVal <= values) && (values <= this->rightVal))
 					result = TRUE;
 			break;
 		}
@@ -190,169 +137,170 @@ int isInCompositeInterval(const void *interval, float *values, int varCount) {
 	return FALSE;
 }
 
-void getInterval(const void *interval, const float *values, int unused, void *outIntervalObj){
-	Criteria *criteria = (Criteria*)interval;
-	Criteria *outInterval = (Criteria*)outIntervalObj;
+Criteria* Criteria::and(const float *values ){
+	Criteria *outInterval = new Criteria();
 	
-	outInterval->flag = outInterval->flag & (criteria->flag | 0xfb);
-	if( (criteria->flag & 0x03) == 0x03){ //Check if left and right is set (bit 0 and 1 is TRUE)
+	outInterval->flag = outInterval->flag & (this->flag | 0xfb);
+	if( (this->flag & 0x03) == 0x03){ //Check if left and right is set (bit 0 and 1 is TRUE)
 		outInterval->leftVal = values[0];
 		outInterval->rightVal = values[1];
 		outInterval->type = GTE_LTE;
 		return;
 	}
 		
-	if( (criteria->flag & LEFT_INF) == LEFT_INF){
+	if( (this->flag & LEFT_INF) == LEFT_INF){
 		/** HERE we don't need to take care of leftVal */
 		outInterval->leftVal = values[0];
-		switch(criteria->type){
+		switch(this->type){
 			case GT_LT:
 			case GTE_LT:
 				// x < rightVal
-				if(criteria->rightVal <= values[0]){
+				if(this->rightVal <= values[0]){
 					//return empty set, available bit set to FALSE
 					outInterval->flag = outInterval->flag & 0xfb;
 					return;
 				}
 				outInterval->type = GTE_LT; //TODO: need to test here
-				if(values[1] < criteria->rightVal)
+				if(values[1] < this->rightVal)
 					outInterval->rightVal = values[1];
 				else 
-					outInterval->rightVal = criteria->rightVal;
-					//outInterval->rightVal = criteria->rightVal - epsilon;
+					outInterval->rightVal = this->rightVal;
+					//outInterval->rightVal = this->rightVal - epsilon;
 			break;
 			
 			case GT_LTE:
 			case GTE_LTE:
 				// x <= rightVal
-				if(criteria->rightVal < values[0]){
+				if(this->rightVal < values[0]){
 					//return empty set, available bit set to FALSE
 					outInterval->flag = outInterval->flag & 0xfb;
 					return;
 				}
 				
 				outInterval->type = GTE_LTE; //TODO: need to test here
-				if(values[1] <= criteria->rightVal)
+				if(values[1] <= this->rightVal)
 					outInterval->rightVal = values[1];
 				else 
-					outInterval->rightVal = criteria->rightVal;
+					outInterval->rightVal = this->rightVal;
 			break;
 		}
-	}else if ( (criteria->flag & RIGHT_INF) == RIGHT_INF){
+	}else if ( (this->flag & RIGHT_INF) == RIGHT_INF){
 		/** HERE we don't need to take care of rightVal */
 		outInterval->rightVal = values[1];
-		switch(criteria->type){
+		switch(this->type){
 			case GT_LT:
 			case GT_LTE:
 				// leftVal < x
-				if(criteria->leftVal >= values[1]){
+				if(this->leftVal >= values[1]){
 					//return empty set, available bit set to FALSE
 					outInterval->flag = outInterval->flag & 0xfb;
 					return;
 				}
 				outInterval->type = GT_LTE; //TODO: need to test here
-				if(criteria->leftVal < values[0])
+				if(this->leftVal < values[0])
 					outInterval->leftVal = values[0];
 				else 
-					outInterval->leftVal = criteria->leftVal;
+					outInterval->leftVal = this->leftVal;
 			break;
 			
 			case GTE_LT:
 			case GTE_LTE:
 				// leftVal <= x
-				if(criteria->leftVal > values[1]){
+				if(this->leftVal > values[1]){
 					//return empty set, available bit set to FALSE
 					outInterval->flag = outInterval->flag & 0xfb;
 					return;
 				}
 				
 				outInterval->type = GTE_LTE; //TODO: need to test here
-				if(criteria->leftVal <= values[0])
+				if(this->leftVal <= values[0])
 					outInterval->leftVal = values[0];
 				else 
-					outInterval->leftVal = criteria->leftVal;
+					outInterval->leftVal = this->leftVal;
 			break;
 		}
 	}else{
-		switch(criteria->type){
+		switch(this->type){
 			case GT_LT:
 				// leftVal < x < rightVal
-				if(criteria->leftVal >= values[1] || criteria->rightVal <= values[0]){
+				if(this->leftVal >= values[1] || this->rightVal <= values[0]){
 					//return empty set, available bit set to FALSE
 					outInterval->flag = outInterval->flag & 0xfb;
 					return;
 				}
 				
-				if(criteria->leftVal < values[0])
+				if(this->leftVal < values[0])
 					outInterval->leftVal = values[0];
 				else 
-					outInterval->leftVal = criteria->leftVal;
+					outInterval->leftVal = this->leftVal;
 				
-				if(values[1] < criteria->rightVal)
+				if(values[1] < this->rightVal)
 					outInterval->rightVal = values[1];
 				else 
-					outInterval->rightVal = criteria->rightVal;
+					outInterval->rightVal = this->rightVal;
 					
 			break;
 			
 			case GT_LTE:
-				if(criteria->leftVal >= values[1] || criteria->rightVal < values[0]){
+				if(this->leftVal >= values[1] || this->rightVal < values[0]){
 					//return empty set, available bit set to FALSE
 					outInterval->flag = outInterval->flag & 0xfb;
 					return;
 				}
 				
-				if(criteria->leftVal < values[0])
+				if(this->leftVal < values[0])
 					outInterval->leftVal = values[0];
 				else 
-					outInterval->leftVal = criteria->leftVal;
+					outInterval->leftVal = this->leftVal;
 					
-				if(values[1] <= criteria->rightVal)
+				if(values[1] <= this->rightVal)
 					outInterval->rightVal = values[1];
 				else 
-					outInterval->rightVal = criteria->rightVal;
+					outInterval->rightVal = this->rightVal;
 					
 			break;
 			
 			case GTE_LT:
 				// leftVal <= x < rightVal
-				if(criteria->leftVal > values[1] || criteria->rightVal <= values[0]){
+				if(this->leftVal > values[1] || this->rightVal <= values[0]){
 					//return empty set, available bit set to FALSE
 					outInterval->flag = outInterval->flag & 0xfb;
 					return;
 				}
 				
-				if(criteria->leftVal <= values[0])
+				if(this->leftVal <= values[0])
 					outInterval->leftVal = values[0];
 				else 
-					outInterval->leftVal = criteria->leftVal;
+					outInterval->leftVal = this->leftVal;
 					
-				if(values[1] < criteria->rightVal)
+				if(values[1] < this->rightVal)
 					outInterval->rightVal = values[1];
 				else 
-					outInterval->rightVal = criteria->rightVal;
+					outInterval->rightVal = this->rightVal;
 			break;
 			
 			case GTE_LTE:
 				// leftVal <= x <= rightVal
-				if(criteria->leftVal > values[1] || criteria->rightVal < values[0]){
+				if(this->leftVal > values[1] || this->rightVal < values[0]){
 					//return empty set, available bit set to FALSE
 					outInterval->flag = outInterval->flag & 0xfb;
 					return;
 				}
 				
-				if(criteria->leftVal <= values[0])
+				if(this->leftVal <= values[0])
 					outInterval->leftVal = values[0];
 				else 
-					outInterval->leftVal = criteria->leftVal;
+					outInterval->leftVal = this->leftVal;
 					
-				if(values[1] <= criteria->rightVal)
+				if(values[1] <= this->rightVal)
 					outInterval->rightVal = values[1];
 				else 
-					outInterval->rightVal = criteria->rightVal;
+					outInterval->rightVal = this->rightVal;
 			break;
 		}
 	}
+
+	return outInterval;
 }
 
 /**

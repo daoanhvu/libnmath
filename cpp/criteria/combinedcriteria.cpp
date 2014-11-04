@@ -10,6 +10,21 @@ CombinedCriteria::~CombinedCriteria() {
 	
 }
 
+void CombinedCriteria::operator =(CombinedCriteria& dest, CombinedCriteria& src) {
+	int i;
+	dest->loggedSize = src->loggedSize;
+	dest->size = src->size;
+	dest->list = (Criteria**)malloc(sizeof(Criteria*) * dest->loggedSize);
+	for(i=0; i<dest->size; i++){
+		dest->list[i] = newCriteria(src->list[i]->type, 
+											src->list[i]->variable,
+											src->list[i]->leftVal,
+											src->list[i]->rightVal, 
+											(src->list[i]->flag & LEFT_INF) >> 1,
+											src->list[i]->flag & RIGHT_INF);
+	}
+}
+
 		/**
 			Combine (AND) this criteria with each pair of value in bounds
 		*/

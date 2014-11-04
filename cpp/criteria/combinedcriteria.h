@@ -19,6 +19,7 @@ class CombinedCriteria {
 			Combine (AND) this criteria with each pair of value in bounds
 		*/
 		CombinedCriteria* getInterval(const float *bounds, int varCount);
+		static void operator =(CombinedCriteria &, CombinedCriteria &);
 };
 
 #endif
