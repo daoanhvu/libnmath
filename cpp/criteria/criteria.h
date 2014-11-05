@@ -24,20 +24,18 @@ class Criteria {
 										int leftInfinity, int rightInfinity);
 
 		/* And this criteria with pair of values */
-		Criteria* and(const float *values);
-		Criteria* and(const Criteria* c);
-		CompositeCriteria* or(const Criteria *c);
-		int isInInterval(float value);
+		Criteria& and(const float *values);
+		Criteria& and(const Criteria* c);
+		CombinedCriteria& and(const CombinedCriteria& c);
+
+		CompositeCriteria& or(const Criteria& c);
+
+		static Criteria& operator =(Criteria& c1, Criteria& c2);
+
+		/* check if value does belong to this interval */
+		int check(float value);
 };
 
-Criteria *newCriteria(int type, char var, float lval, float rval, 
-										int leftInfinity, int rightInfinity);
-CombinedCriteria *newCombinedInterval();
-CompositeCriteria *newCompositeInterval();
-
-int isInInterval(const void *interval, float *values, int varCount);
-int isInCombinedInterval(const void *interval, float *values, int varCount);
-int isInCompositeInterval(const void *interval, float *values, int varCount);
 
 void getInterval(const void *interval, const float *values, int varCount, void *outInterval);
 

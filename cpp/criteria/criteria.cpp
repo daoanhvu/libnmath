@@ -36,7 +36,7 @@ Criteria::Criteria(int type, char var, float lval, float rval,
 	this->fgetInterval = getInterval;
 }
 
-int Criteria::isInInterval(float values) {
+int Criteria::check(float values) {
 	int result = FALSE;
 	
 	if( (this->flag & 0x03) == 0x03) //Check left and right infinity is set (bit 0 and 1 = TRUE)
@@ -107,7 +107,7 @@ int Criteria::isInInterval(float values) {
 	return result;
 }
 
-Criteria* Criteria::and(const float *values ){
+Criteria& Criteria::and(const float& values ){
 	Criteria *outInterval = new Criteria();
 	
 	outInterval->flag = outInterval->flag & (this->flag | 0xfb);
@@ -115,7 +115,7 @@ Criteria* Criteria::and(const float *values ){
 		outInterval->leftVal = values[0];
 		outInterval->rightVal = values[1];
 		outInterval->type = GTE_LTE;
-		return;
+		return outInterval;
 	}
 		
 	if( (this->flag & LEFT_INF) == LEFT_INF){
@@ -273,201 +273,52 @@ Criteria* Criteria::and(const float *values ){
 	return outInterval;
 }
 
-/**
-	Number of variable of expression, it equals length of values / 2
-	
-	values [IN]
-		This is a matrix N rows x 2 columns which N equals varCount
-	
-	outInterval [OUT]
-		This is a matrix N row and 2 columns which each row is for each continuous interval of a single variable
-		It means that N = varCount
-*/
-void getCombinedInterval(const void *intervalObj, const float *values, int varCount, void *outListIntervalObj){
-	CombinedCriteria *criteria = (CombinedCriteria*)intervalObj;
-	CombinedCriteria *outListInterval = (CombinedCriteria *)outListIntervalObj;
-	Criteria *interval;
-	int i, k;
-	
-	for(k=0; k<varCount; k++){
-		interval = newCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
-		
-		(criteria->list[k])->fgetInterval(criteria->list[k], values + k*2, varCount, interval);
-		if( (interval->flag & AVAILABLE) != AVAILABLE ){
-			free(interval);
-			for(i=0; i<outListInterval->size; i++)
-				free(outListInterval->list[i]);
-			free(outListInterval->list);
-			outListInterval->list = NULL;
-			outListInterval->size = 0;
-			outListInterval->loggedSize = 0;
-			return;
-		}
-		
-		if(outListInterval->size >= outListInterval->loggedSize){
-			outListInterval->loggedSize += INCLEN;
-			outListInterval->list = (Criteria**)realloc(outListInterval->list, sizeof(Criteria*) * outListInterval->loggedSize);
-		}
-		outListInterval->list[outListInterval->size++] = interval;
-	}
-}
-
-/**
-	values [IN]
-		This is a matrix N rows x 2 columns which N equals varCount
-		
-	@param outInterval
-		This output parameter, it's a matrix N row and M columns which each row is for each continuous space for the expression
-		It means that each row will hold a combined-interval for n-tule variables and M equal varCount * 2
-*/
-void getCompositeInterval(const void *interval, const float *values, int varCount, void *outDomainObj){
-	CompositeCriteria *criteria = (CompositeCriteria*)interval;
-	CompositeCriteria *outDomain = (CompositeCriteria *)outDomainObj;
-	CombinedCriteria *listIn;
-	int i;
-	
-	for(i=0; i<criteria->size; i++){
-		listIn = newCombinedInterval();
-		
-		(criteria->list[i])->fgetInterval(criteria->list[i], values, varCount, listIn);
-		if(listIn->size > 0 ){
-			if(outDomain->size >= outDomain->loggedSize){
-				outDomain->loggedSize += INCLEN;
-				outDomain->list = (CombinedCriteria**)realloc(outDomain->list, sizeof(CombinedCriteria*) * outDomain->loggedSize);
+CombinedCriteria& Criteria::and(const CombinedCriteria& cb){
+	int i = 0;
+	CombinedCriteria* out;
+	for(i=0; i < cb->getSize(); i++) {
+		if( this->variable == cb[i]->variable ){
+			interval = this->and(cb[i]);
+			if( (interval != NULL) && ((interval->flag & AVAILABLE) == AVAILABLE) {
+				out = cb;
+				out[i]->variable = interval->variable;
+				out[i]->leftVal = interval->leftVal;
+				out[i]->rightVal = interval->rightVal;
+				out[i]->flag = interval->flag;
+				return NULL;
+			}else{
+				/** ERROR: AND two contracting criteria */
+				return NULL;
 			}
-			outDomain->list[outDomain->size++] = listIn;
-		}else{
-			free(listIn);
+			break;
 		}
 	}
-}
 
-/**
-	@param domain
-	result [OUT] MUST an level-2 NOT-NULL pointer
-*/
-void buildCompositeCriteria(const NMAST *domain, const char *vars, int varCount, OutBuiltCriteria *result){
-	OutBuiltCriteria leftResult;
-	OutBuiltCriteria rightResult;
-	CombinedCriteria *outCombinedCriteria;
-	Criteria *interval;
-	int i, objTypeLeft, objTypeRight /*, type*/;
-	
-	if(domain == NULL){
-		if(varCount == 1){
-			result->cr = newCriteria(GT_LT, vars[0], -9999, 9999, TRUE, TRUE);
-			return;
-		}
+	/*
+		We got here because c1 (SimpleCriteria) has variable that not same as vaiable of any criteria in CombinedCriteria
+	*/
+	cr = (Criteria*)c1;
+	comb1 = newCombinedInterval();
+	comb1->loggedSize = cb->loggedSize + 1;
+	comb1->size = 0;
+	comb1->list = (Criteria**)malloc(sizeof(Criteria*) * comb1->loggedSize);
 
-		outCombinedCriteria = newCombinedInterval();
-		outCombinedCriteria->loggedSize = varCount;
-		outCombinedCriteria->size = 0;
-		outCombinedCriteria->list = (Criteria**)malloc(sizeof(Criteria*) * outCombinedCriteria->loggedSize);
-		for(i=0; i<varCount; i++) {
-			interval = newCriteria(GT_LT, vars[i], -9999, 9999, TRUE, TRUE);
-			outCombinedCriteria->list[(outCombinedCriteria->size)++] = interval;
-		}
-		result->cr = outCombinedCriteria;
-		return;
+	for(i=0; i<cb->size; i++){
+		comb1->list[(comb1->size)++] = newCriteria(cb->list[i]->type, 
+												cb->list[i]->variable,
+												cb->list[i]->leftVal,
+												cb->list[i]->rightVal, 
+												(cb->list[i]->flag & LEFT_INF) >> 1,
+												cb->list[i]->flag & RIGHT_INF);
 	}
-	
-	leftResult.cr = NULL;
-	rightResult.cr = NULL;
-	switch(domain->type){
-		case GT_LT:
-		case GTE_LT:
-		case GT_LTE:
-		case GTE_LTE:
-			result->cr = (void*)newCriteria(domain->type, domain->variable, domain->left->value, domain->right->value, FALSE, FALSE);
-		break;
-		
-		case LT:
-			result->cr = (void*)newCriteria(GT_LT, domain->left->variable, 99999, domain->right->value, TRUE, FALSE);
-		break;
-		
-		case LTE:
-			result->cr = (void*)newCriteria(GT_LTE, domain->left->variable, 99999, domain->right->value, TRUE, FALSE);
-		break;
-		
-		case GT:
-			result->cr = (void*)newCriteria(GT_LT, domain->left->variable, domain->right->value, 99999, FALSE, TRUE);
-		break;
-		
-		case GTE:
-			result->cr = (void*)newCriteria(GTE_LT, domain->left->variable, domain->right->value, 99999, FALSE, TRUE);
-		break;
-		
-		case AND:
-			if(domain->left == NULL || domain->right == NULL) //Do we need check NULL here?
-				return;
-			buildCompositeCriteria(domain->left, vars, varCount, &leftResult);
-			buildCompositeCriteria(domain->right, vars, varCount, &rightResult);
-			andTwoCriteria(leftResult.cr, rightResult.cr, result);
-		break;
-		
-		case OR:
-			if(domain->left == NULL || domain->right == NULL) //Do we need check NULL here?
-				return;
-			buildCompositeCriteria(domain->left, vars, varCount, &leftResult);
-			buildCompositeCriteria(domain->right, vars, varCount, &rightResult);
-
-			objTypeLeft = *((char*)(leftResult.cr));
-			objTypeRight = *((char*)(rightResult.cr));
-			
-			if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
-				orTwoSimpleCriteria((Criteria*)leftResult.cr, (Criteria*)rightResult.cr, result);
-			} else if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == COMBINED_CRITERIA ) {
-			} else if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
-			
-			} else if( objTypeLeft == COMBINED_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
-			} else if( objTypeLeft == COMBINED_CRITERIA && objTypeRight == COMBINED_CRITERIA ) {
-			} else if( objTypeLeft == COMBINED_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
-			
-			} else if( objTypeLeft == COMPOSITE_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
-			} else if( objTypeLeft == COMPOSITE_CRITERIA && objTypeRight == COMBINED_CRITERIA ) {
-			} else if( objTypeLeft == COMPOSITE_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
-			
-			}
-		break;
-		
-		default:
-		break;
-	}
-}
-
-/**
-	Need to test here
-*/
-int andTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria *out){
-	float d[2];
-	Criteria *interval;
-	if(c1->variable == c2->variable){
-		interval = newCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
-		d[0] = c2->leftVal;
-		d[1] = c2->rightVal;
-		c1->fgetInterval(c1, d, 1, (void*)interval);
-		if( (interval->flag & AVAILABLE) != AVAILABLE){
-			free(interval);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-			return FALSE;
-		}
-		out->cr = interval;
-	}else{
-		out->cr = newCombinedInterval();
-		((CombinedCriteria*)(out->cr))->list = (Criteria**)malloc(sizeof(Criteria*)*2);
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-		((CombinedCriteria*)(out->cr))->loggedSize = 2;
-		((CombinedCriteria*)(out->cr))->size = 2;
-		((CombinedCriteria*)(out->cr))->list[0] = newCriteria(c1->type, c1->variable, c1->leftVal, c1->rightVal, (c1->flag & LEFT_INF) >> 1, c1->flag & RIGHT_INF);
-		((CombinedCriteria*)(out->cr))->list[1] = newCriteria(c2->type, c2->variable, c2->leftVal, c2->rightVal, (c2->flag & LEFT_INF) >> 1, c2->flag & RIGHT_INF);
-
-	}
-	
-	return TRUE;
+	comb1->list[(comb1->size)++] = newCriteria(cr->type, 
+												cr->variable,
+												cr->leftVal,
+												cr->rightVal, 
+												(cr->flag & LEFT_INF) >> 1,
+												cr->flag & RIGHT_INF);
+	result = TRUE;
+	out->cr = comb1;
 }
 
 /**
@@ -489,60 +340,7 @@ int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out){
 	if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
 		result = andTwoSimpleCriteria((const Criteria*)c1, (const Criteria*)c2, out);
 	} else if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == COMBINED_CRITERIA ) {
-		cb = (CombinedCriteria*)c2;
-		i = 0;
-		while(i<cb->size){
-			if( ((Criteria*)c1)->variable == cb->list[i]->variable ){
-				interval = newCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
-				d[0] = cb->list[i]->leftVal;
-				d[1] = cb->list[i]->rightVal;
-				((Criteria*)c1)->fgetInterval(c1, d, 1, (void*)interval);
-				if( (interval->flag & AVAILABLE) == AVAILABLE){
-					out->cr = newCombinedInterval();
-					copyCombinedCriteria(cb, (CombinedCriteria*)out->cr);
-					((CombinedCriteria*)(out->cr))->list[i]->variable = interval->variable;
-					((CombinedCriteria*)(out->cr))->list[i]->leftVal = interval->leftVal;
-					((CombinedCriteria*)(out->cr))->list[i]->rightVal = interval->rightVal;
-					((CombinedCriteria*)(out->cr))->list[i]->flag = interval->flag;
-					free(interval);
-					return TRUE;
-				}else{
-					/** ERROR: AND two contracting criteria */
-					return FALSE;
-				}
-				break;
-			}
-			i++;
-		}
-
-		/*
-			We got here because c1 (SimpleCriteria) has variable that not same as vaiable of any criteria in CombinedCriteria
-		*/
-		cr = (Criteria*)c1;
-		comb1 = newCombinedInterval();
-		int i;
-		comb1->loggedSize = cb->loggedSize + 1;
-		comb1->size = 0;
-		comb1->list = (Criteria**)malloc(sizeof(Criteria*) * comb1->loggedSize);
-#ifdef DEBUG
-		incNumberOfDynamicObject();
-#endif
-		for(i=0; i<cb->size; i++){
-			comb1->list[(comb1->size)++] = newCriteria(cb->list[i]->type, 
-												cb->list[i]->variable,
-												cb->list[i]->leftVal,
-												cb->list[i]->rightVal, 
-												(cb->list[i]->flag & LEFT_INF) >> 1,
-												cb->list[i]->flag & RIGHT_INF);
-		}
-		comb1->list[(comb1->size)++] = newCriteria(cr->type, 
-												cr->variable,
-												cr->leftVal,
-												cr->rightVal, 
-												(cr->flag & LEFT_INF) >> 1,
-												cr->flag & RIGHT_INF);
-		result = TRUE;
-		out->cr = comb1;
+		
 	} else if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
 		/**
 			c1 and (c2 or  c3) = (c1 and c2) or (c1 and c3)
