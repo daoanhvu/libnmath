@@ -10,13 +10,11 @@ CombinedCriteria::~CombinedCriteria() {
 	
 }
 
-void CombinedCriteria::operator =(CombinedCriteria& dest, CombinedCriteria& src) {
+void CombinedCriteria::operator =(CombinedCriteria& dest, const CombinedCriteria& src) {
 	int i;
-	dest->loggedSize = src->loggedSize;
-	dest->size = src->size;
-	dest->list = (Criteria**)malloc(sizeof(Criteria*) * dest->loggedSize);
+	dest->list = new (Criteria*)[dest->getLoggedSize()];
 	for(i=0; i<dest->size; i++){
-		dest->list[i] = newCriteria(src->list[i]->type, 
+		dest->list[i] = new Criteria(src->list[i]->type, 
 											src->list[i]->variable,
 											src->list[i]->leftVal,
 											src->list[i]->rightVal, 
@@ -25,9 +23,55 @@ void CombinedCriteria::operator =(CombinedCriteria& dest, CombinedCriteria& src)
 	}
 }
 
-		/**
-			Combine (AND) this criteria with each pair of value in bounds
-		*/
+CombinedCriteria& CombinedCriteria::operator &(const Criteria& c) {
+	CombinedCriteria* out;
+	int i = 0, size = v.size();
+	for(i=0; i<size; i++){
+		if( ((Criteria*)c2)->variable == v[i]->variable ){
+			interval = c & v[i];
+			if( (interval != NULL) && (interval->flag & AVAILABLE) == AVAILABLE){
+				out = new CombinedCriteria();
+				out = this;
+				out[i] = interval;
+				delete interval;
+				return out;
+			}else{
+				/** ERROR: AND two contracting criteria */
+				if(interval != NULL) delete interval;
+				return NULL;
+			}
+			break;
+		}
+		i++;
+	}
+
+	/*	
+		We got here because c has variable that not same as vaiable of any criteria in CombinedCriteria
+	*/
+	out = new CombinedCriteria();
+	out = this;
+	out &= c;
+	return out;
+}
+
+CombinedCriteria& CombinedCriteria::operator &(const CombinedCriteria& c) {
+	int i, size = c->size();
+	CombinedCriteria *out;
+	out = new CombinedInterval();
+	for(i=0; i<size; i++) {
+		cb = this & c[i];
+		cb->moveListTo(out);
+		delete cb;
+	}
+	return out;
+}
+
+CompositeCriteria& CombinedCriteria::operator &(const CompositeCriteria& c) {
+}
+
+/**
+	Combine (AND) this criteria with each pair of value in bounds
+*/
 CombinedCriteria* CombinedCriteria::getInterval(const float *bounds, int varCount) {	
 	Criteria *interval;
 	CombinedCriteria* outListInterval = new CombinedCriteria();

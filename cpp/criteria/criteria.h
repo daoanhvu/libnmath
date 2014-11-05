@@ -25,10 +25,13 @@ class Criteria {
 
 		/* And this criteria with pair of values */
 		Criteria& and(const float *values);
-		Criteria& and(const Criteria* c);
-		CombinedCriteria& and(const CombinedCriteria& c);
-
-		CompositeCriteria& or(const Criteria& c);
+		Criteria& operator &(const Criteria* c);
+		CombinedCriteria& operator &(const CombinedCriteria& c);
+		CompositeCriteria& operator &(const CompositeCriteria& c);
+		
+		CompositeCriteria& operator |(const Criteria& c);
+		CompositeCriteria& operator |(const CombinedCriteria& c);
+		CompositeCriteria& operator |(const CompositeCriteria& c);
 
 		static Criteria& operator =(Criteria& c1, Criteria& c2);
 

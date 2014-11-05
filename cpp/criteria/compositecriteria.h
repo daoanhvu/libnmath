@@ -3,26 +3,37 @@
 
 #include "combinedcriteria.h"
 
+using namespace std;
+
 class CompositeCriteria {
 	private:
-		CombinedCriteria **list;
-		unsigned int loggedSize;
-		unsigned int size;
-
+		std::vector<CombinedCriteria&>  v;
+		
 	public:
 		CompositeCriteria();
 		~CompositeCriteria();
 		void release();
 
-		int getSize();
+		int size();
+		int check(const float* values);
+		
 		CombinedCriteria operator [](int index);
-		int isInInterval(const float* values);
-
-		CompositeCriteria operator +(CombinedCriteria &);
+		
+		CompositeCriteria& operator |(Criteria &);
+		CompositeCriteria& operator |(CompositeCriteria &);
+		CompositeCriteria& operator |(CombinedCriteria &);
+		
+		CompositeCriteria& operator &(Criteria &);
+		CompositeCriteria& operator &(CompositeCriteria &);
+		CompositeCriteria& operator &(CombinedCriteria &);
+		
+		CompositeCriteria& operator |=(CombinedCriteria &);
+		CompositeCriteria& operator &=(Criteria &);
+		CompositeCriteria& operator &=(CombinedCriteria &);
 
 		static void operator =(CompositeCriteria &, CompositeCriteria &);
 };
 
-inline int CompositeCriteria::getSize() {return size;}
+inline int CompositeCriteria::getSize() {return v.size();}
 
 #endif
