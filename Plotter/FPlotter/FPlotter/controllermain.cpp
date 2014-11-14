@@ -1,4 +1,5 @@
 #include "controllermain.h"
+#include "resource.h"
 
 using namespace Win;
 
@@ -16,7 +17,7 @@ int ControllerMain::command(int id, int cmd, LPARAM msg) {   // for WM_COMMAND
 	/* Should use switch struct here if you have many case of command id */
 
 	if(id == ID_FILE_EXIT) {
-		::PostMessage(handle, WM_CLOSE, 0, 0);
+		::PostMessage(mHandle, WM_CLOSE, 0, 0);
 		return 0;
 	}
 	
@@ -28,8 +29,8 @@ int ControllerMain::create() {    // for WM_CRERATE
 
 int ControllerMain::close() {
 	//Close all child windows first
-	::EnumChildWindows(handle, (WNDENUMPROC)enumerateChildren, (LPARAM)WM_CLOSE);
-	::DestroyWindow(handle);
+	::EnumChildWindows(mHandle, (WNDENUMPROC)enumerateChildren, (LPARAM)WM_CLOSE);
+	::DestroyWindow(mHandle);
 	return 0;
 }
 
@@ -38,16 +39,16 @@ int ControllerMain::destroy() {
 	return 0;
 }
 
-int ControllerMain::size(int w, int h, WPARAM wParam) {      // for WM_SIZE: width, height, type(SIZE_MAXIMIZED...)
+int ControllerMain::size(int width, int height, WPARAM wParam) {      // for WM_SIZE: width, height, type(SIZE_MAXIMIZED...)
 	RECT rect;
 	int statusHeight, consolePaneHeight, glHeight;
 	//Get height of status bar
-	HWND statusHandle = ::GetDlgItem(handle, IDC_STATUSBAR);
+	HWND statusHandle = ::GetDlgItem(mHandle, IDC_STATUSBAR);
 	::GetWindowRect(statusHandle, &rect);
 	statusHeight = rect.bottom - rect.top;
 	
 	//Get height of the console pane
-	::GetWindowRect(consolePaneHandler, &rect);
+	::GetWindowRect(consolePaneHandle, &rect);
 	consolePaneHeight = rect.bottom - rect.top;
 	
 	//Resize the height of glWin

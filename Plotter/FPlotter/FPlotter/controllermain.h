@@ -2,6 +2,7 @@
 #define _CONTROLLERMAIN_H
 
 #include <windows.h>
+#include "controller.h"
 
 namespace Win {
 	class ControllerMain: public Controller {

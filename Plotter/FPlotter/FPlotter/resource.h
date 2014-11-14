@@ -1,0 +1,3 @@
+#define ID_FILE_EXIT 100
+
+#define IDC_STATUSBAR 2002

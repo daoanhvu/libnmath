@@ -1,12 +1,21 @@
+#pragma warning(disable: 4996)
+#include <sstream>
+#include <iostream>
+#include <cstring>
 #include "window.h"
+#include "procedure.h"
+
+using std::wstringstream;
+using std::wcout;
+using namespace Win;
 
 Window::Window(HINSTANCE hInst, const wchar_t *name, HWND hParent, Controller *ctrl):handle(0), instance(hInst), controller(ctrl),
-	winStyle(WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN), windStyleEx(WS_EX_CLIENTEDGE), x(CW_USEDEFAULT), y(CW_USEDEFAULT),
+	winStyle(WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN), winStyleEx(WS_EX_CLIENTEDGE), x(CW_USEDEFAULT), y(CW_USEDEFAULT),
 	width(CW_USEDEFAULT), height(CW_USEDEFAULT), parentHandle(hParent), menuHandle(0){
 	
 	//copy class name and window name
-	cwsncpy(this->title, name, MAX_STRING - 1);
-	cwsncpy(this->className, name, MAX_STRING - 1);
+	wcsncpy(this->title, name, MAX_STRING - 1);
+	wcsncpy(this->className, name, MAX_STRING - 1);
 	
 	//populate window class struct
 	winClass.cbSize 	   = sizeof(WNDCLASSEX);
