@@ -5,6 +5,7 @@
 
 namespace Win {
 	LRESULT CALLBACK windowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
+	INT_PTR CALLBACK dialogProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 }
 
 #endif

@@ -1,40 +1,45 @@
+#define WIN32_LEAN_AND_MEAN             // exclude rarely-used stuff from Windows headers
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <windows.h>
-//#include <GL/glew.h>
-//#include <GL/freeglut.h>
+#include <CommCtrl.h>
+#include "resource.h"
+#include "controllermain.h"
+#include "window.h"
 
-#include <common.h>
-#include <nlabparser.h>
-#include <nmath.h>
-
-LRESULT CALLBACK MessageProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
-
-const char gSzClassName[] = "FunctionPlotter";
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPSTR lpCmdLine, int nCmdShow) {
 	WNDCLASSEX wce;
     HWND hwnd;
     MSG msg;
+	wchar_t appName[256];
 
-    wce.cbSize        = sizeof(WNDCLASSEX);
-    wce.style         = 0;
-    wce.lpfnWndProc   = MessageProcedure;
-    wce.cbClsExtra    = 0;
-    wce.cbWndExtra    = 0;
-    wce.hInstance     = hInstance;
-    wce.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
-    wce.hCursor       = LoadCursor(NULL, IDC_ARROW);
-    wce.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
-    wce.lpszMenuName  = NULL;
-    wce.lpszClassName = gSzClassName;
-    wce.hIconSm       = LoadIcon(NULL, IDI_APPLICATION);
+	INITCOMMONCONTROLSEX commonCtrlEx;
+	commonCtrlEx.dwSize = sizeof(commonCtrlEx);
+	commonCtrlEx.dwICC = ICC_BAR_CLASSES;	//trackbar in this class
+	::InitCommonControlsEx(&commonCtrlEx);
+
+	//get App name from resource file
+	::LoadString(hInstance, IDS_APP_NAME, appName, 256);
+
+	Win::ControllerMain ctrlMain;
+	Win::Window windowMain(hInstance, appName, 0, &ctrlMain);
+
+	windowMain.setMenuName(MAKEINTRESOURCE(IDR_MAIN_MENU));
+	windowMain.setSize(800, 650);
+	windowMain.setWindowStyleEx(WS_EX_WINDOWEDGE);
+
+	windowMain.create();
+
+
 
 	if(!RegisterClassEx(&wce)) {
-		MessageBox(NULL, "Window Registration Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
+		MessageBox(NULL, L"Window Registration Failed!", L"Error!", MB_ICONEXCLAMATION | MB_OK);
 	    return 0;
 	}
 
+	/*
 	hwnd = CreateWindowEx(
         WS_EX_CLIENTEDGE,
         gSzClassName,
@@ -47,6 +52,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPSTR lpCmdLine,
         MessageBox(NULL, "Window Creation Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
         return 0;
     }
+	*/
 
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
@@ -57,21 +63,4 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPSTR lpCmdLine,
     }
 
     return msg.wParam;
-}
-
-LRESULT CALLBACK MessageProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
-	switch(msg) {
-		case WM_DESTROY:
-			PostQuitMessage(0);
-		break;
-
-		case WM_CLOSE:
-			DestroyWindow(hwnd);
-		break;
-
-		default:
-			return DefWindowProc(hwnd, msg, wparam, lparam);
-	}
-
-	return 0;
 }

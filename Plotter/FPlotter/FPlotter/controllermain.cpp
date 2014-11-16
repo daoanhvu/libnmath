@@ -65,6 +65,8 @@ int ControllerMain::size(int width, int height, WPARAM wParam) {      // for WM_
     wss << "Window Size (Client Area): " << width << " x " << height;
     ::SendMessage(statusHandle, SB_SETTEXT, 0, (LPARAM)wss.str().c_str());
 	*/
+
+	return 0;
 }
 
 bool CALLBACK enumerateChildren(HWND childHandle, LPARAM lParam) {

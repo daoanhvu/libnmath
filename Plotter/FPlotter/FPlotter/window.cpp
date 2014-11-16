@@ -52,21 +52,21 @@ void Window::show(int shw) {
 }
 
 HICON Window::loadIcon(int id) {
-	return (HICON) ::LoadImage(instance, MAKEINRESOURCE(id), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE);
+	return (HICON) ::LoadImage(instance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE);
 }
 
 HCURSOR Window::loadCursor(int id) {
-	return (HCURSOR)::LoadImage(instance, MAKEINRESOURCE(id), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE);
+	return (HCURSOR)::LoadImage(instance, MAKEINTRESOURCE(id), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE);
 }
 
 void Window::setIcon(int id) {
-	winClass.hIcon = (HICON) ::LoadImage(instance, MAKEINRESOURCE(id), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE);
+	winClass.hIcon = (HICON) ::LoadImage(instance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE);
 }
 
 void Window::setIconSmall(int id) {
-	winClass.hIconSm = (HICON) ::LoadImage(instance, MAKEINRESOURCE(id), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE);
+	winClass.hIconSm = (HICON) ::LoadImage(instance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE);
 }
 
 void Window::setCursor(int id) {
-	winClass.hCursor = (HCURSOR)::LoadImage(instance, MAKEINRESOURCE(id), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE);
+	winClass.hCursor = (HCURSOR)::LoadImage(instance, MAKEINTRESOURCE(id), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE);
 }

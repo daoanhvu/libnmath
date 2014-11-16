@@ -1,18 +1,18 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
-#define COMMA			1
-#define SEMI			2
+#define COMMA			0x0000002C
+#define SEMI			0x0000003B
 #define AND				0x00002227
 #define OR				0x00002228
-#define GT				5 //>
-#define LT				6 //<
+#define GT				0x000000E3 //>
+#define LT				0x0000003C //<
 #define GTE				0x00002265 //>=
 #define LTE				0x00002264 //<=
 #define NE				0x00002260 // not equals !=
-#define EQ				10 // equals =
-#define LPAREN			11
-#define RPAREN			12
+#define EQ				0x0000003D // equals =
+#define LPAREN			0x00000028
+#define RPAREN			0x00000029
 #define LPRACKET 		13
 #define RPRACKET 		14
 #define IMPLY			15
@@ -21,11 +21,11 @@
 #define NUMBER			18
 #define NAME			19
 #define VARIABLE 		20
-#define PLUS 			21
-#define MINUS 			22
+#define PLUS 			0x0000002B
+#define MINUS 			0x0000002D
 #define MULTIPLY 		0x000000D7
 #define DIVIDE 			0x000000F7
-#define POWER 			25
+#define POWER 			0x0000005E
 #define SIN 			26
 #define COS 			27
 #define TAN 			28
