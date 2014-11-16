@@ -11,8 +11,9 @@
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPSTR lpCmdLine, int nCmdShow) {
 	WNDCLASSEX wce;
-    HWND hwnd;
+    HWND hwnd, activeWindow;
     MSG msg;
+	HACCEL hAccelTable = 0;
 	wchar_t appName[256];
 
 	INITCOMMONCONTROLSEX commonCtrlEx;
@@ -29,7 +30,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPSTR lpCmdLine,
 	windowMain.setMenuName(MAKEINTRESOURCE(IDR_MAIN_MENU));
 	windowMain.setSize(800, 650);
 	windowMain.setWindowStyleEx(WS_EX_WINDOWEDGE);
-
 	windowMain.create();
 
 
@@ -39,27 +39,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPSTR lpCmdLine,
 	    return 0;
 	}
 
-	/*
-	hwnd = CreateWindowEx(
-        WS_EX_CLIENTEDGE,
-        gSzClassName,
-        "Function Plotter v1.0",
-        WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT, 240, 120,
-        NULL, NULL, hInstance, NULL);
-
-	if(hwnd == NULL) {
-        MessageBox(NULL, "Window Creation Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
-        return 0;
-    }
-	*/
-
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
 
-    while(GetMessage(&msg, NULL, 0, 0) > 0) {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+
+    while(::GetMessage(&msg, NULL, 0, 0) > 0) {
+		activeWindow = ::GetActiveWindow();
+
+		if(!::TranslateAccelerator(msg.hwnd, hAccelTable, &msg)) {
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
     }
 
     return msg.wParam;
