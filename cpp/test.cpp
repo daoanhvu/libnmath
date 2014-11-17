@@ -514,9 +514,9 @@ int testDerivative() {
 	f->valLen = 0;
 
 	printf("Input function: ");
-	scanf("%s", &strbuff);
-	l = strlen(strbuff);
-	parseFunction(strbuff, l, f);
+	scanf("%s", &dstr);
+	l = strlen(dstr);
+	parseFunction(dstr, l, f);
 	if(getErrorCode() != NMATH_NO_ERROR) {
 		printError(getErrorColumn(), getErrorCode());
 		releaseFunct(f);

@@ -10,13 +10,9 @@ class Criteria {
 		char variable;
 		double leftVal;
 		double rightVal;
-		
-		/*
-			bit 0: right infinity
-			bit 1: left infinity
-			bit 2: available
-		*/
-		char flag;
+		char rightInfinity;
+		char leftInfinity;
+		char available;
 
 	public:
 		Criteria();
@@ -25,7 +21,7 @@ class Criteria {
 
 		/* And this criteria with pair of values */
 		Criteria& and(const float *values);
-		Criteria& operator &(const Criteria* c);
+		Criteria& operator &(const Criteria& c);
 		CombinedCriteria& operator &(const CombinedCriteria& c);
 		CompositeCriteria& operator &(const CompositeCriteria& c);
 		
