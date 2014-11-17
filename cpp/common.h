@@ -1,6 +1,7 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
+/* Unicode values */
 #define COMMA			0x0000002C
 #define SEMI			0x0000003B
 #define AND				0x00002227
@@ -13,39 +14,41 @@
 #define EQ				0x0000003D // equals =
 #define LPAREN			0x00000028
 #define RPAREN			0x00000029
-#define LPRACKET 		13
-#define RPRACKET 		14
-#define IMPLY			15
-#define RARROW			16
+#define LPRACKET 		0x0000005B
+#define RPRACKET 		0x0000005D
 #define ELEMENT_OF 		0x00002208
-#define NUMBER			18
-#define NAME			19
-#define VARIABLE 		20
 #define PLUS 			0x0000002B
 #define MINUS 			0x0000002D
 #define MULTIPLY 		0x000000D7
 #define DIVIDE 			0x000000F7
 #define POWER 			0x0000005E
-#define SIN 			26
-#define COS 			27
-#define TAN 			28
-#define COTAN 			29
-#define ASIN 			30
-#define ACOS 			31
-#define ATAN 			32
 #define SQRT 			0x0000221A
 #define CBRT 			0x0000221B
-#define LN 				34
-#define LOG 			35
 #define PI_TYPE 		0x000003C0
 #define E_TYPE 			0x0000212F
-#define SEC 			38
-#define DOMAIN_NOTATION	39
-#define GT_LT			40
-#define GTE_LT			41
-#define GT_LTE			42
-#define GTE_LTE			43
 #define TYPE_INFINITY	0x0000221E
+
+/* Custom values */
+#define SEC 			0x000100E2
+#define DOMAIN_NOTATION	0x000100E3
+#define GT_LT			0x00010010
+#define GTE_LT			0x00010011
+#define GT_LTE			0x00010012
+#define GTE_LTE			0x00010013
+#define LN 				0x000100E0
+#define LOG 			0x000100E1
+#define IMPLY			0x00010000
+#define RARROW			0x00010001
+#define SIN 			0x000100F0
+#define COS 			0x000100F1
+#define TAN 			0x000100F2
+#define COTAN 			0x000100F3
+#define ASIN 			0x000100F4
+#define ACOS 			0x000100F5
+#define ATAN 			0x000100F6
+#define NUMBER			0x00010002
+#define NAME			0x00010003
+#define VARIABLE 		0x00010004
 
 #define TYPE_FLOATING_POINT 0
 #define TYPE_FRACTION 1
