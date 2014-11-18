@@ -18,31 +18,33 @@ int orTwoSimpleCriteria(const Criteria* c1, const Criteria* c2, OutBuiltCriteria
 int andTwoCriteria(const void* c1, const void* c2, OutBuiltCriteria* out);
 
 Criteria::Criteria() {
-	this->flag = 7;
+	this->rightInfinity = 1;
+	this->leftInfinity = 1;
+	this->available = 1;
 	this->type = type;
-	this->variable = var;
-	this->leftVal = lval;
-	this->rightVal = rval;
+	this->variable = 0;
+	this->leftVal = 0;
+	this->rightVal = 0;
 }
 
 Criteria::Criteria(int type, char var, float lval, float rval, 
-										int leftInfinity, int rightInfinity) {
-	this->flag = AVAILABLE | (leftInfinity & LEFT_INF) | (rightInfinity & RIGHT_INF) ;
+										char leftInfinity, char rightInfinity) {
 	this->type = type;
 	this->variable = var;
 	this->leftVal = lval;
 	this->rightVal = rval;
-	this->fcheck = isInInterval;
-	this->fgetInterval = getInterval;
+	this->rightInfinity = rightInfinity;
+	this->leftInfinity = leftInfinity;
+	this->available = 1;
 }
 
 int Criteria::check(float values) {
 	int result = FALSE;
 	
-	if( (this->flag & 0x03) == 0x03) //Check left and right infinity is set (bit 0 and 1 = TRUE)
+	if( (this->leftInfinity) && (this->rightInfinity) )
 		return TRUE;
 		
-	if( (this->flag & LEFT_INF) == LEFT_INF){
+	if( this->leftInfinity ) {
 		/** HERE we don't need to take care of leftVal */
 		switch(this->type){
 			case GT_LT:
@@ -59,7 +61,7 @@ int Criteria::check(float values) {
 					result = TRUE;
 			break;
 		}
-	}else if ( (this->flag & RIGHT_INF) == RIGHT_INF ){
+	}else if ( this->rightInfinity ) {
 		/** HERE we don't need to take care of rightVal */
 		switch(this->type){
 			case GT_LT:
@@ -110,15 +112,18 @@ int Criteria::check(float values) {
 Criteria& Criteria::and(const float& values ){
 	Criteria *outInterval = new Criteria();
 	
-	outInterval->flag = outInterval->flag & (this->flag | 0xfb);
-	if( (this->flag & 0x03) == 0x03) { //Check if left and right is set (bit 0 and 1 is TRUE)
+	outInterval->available = 1;
+	outInterval->leftInfinity = 0;
+	outInterval->rightInfinity = 0;
+
+	if( this->leftInfinity && this->rightInfinity ) {
 		outInterval->leftVal = values[0];
 		outInterval->rightVal = values[1];
 		outInterval->type = GTE_LTE;
 		return outInterval;
 	}
 		
-	if( (this->flag & LEFT_INF) == LEFT_INF){
+	if( this->leftInfinity ) {
 		/** HERE we don't need to take care of leftVal */
 		outInterval->leftVal = values[0];
 		switch(this->type){
@@ -127,7 +132,7 @@ Criteria& Criteria::and(const float& values ){
 				// x < rightVal
 				if(this->rightVal <= values[0]){
 					//return empty set, available bit set to FALSE
-					outInterval->flag = outInterval->flag & 0xfb;
+					outInterval->available = 0;
 					return;
 				}
 				outInterval->type = GTE_LT; //TODO: need to test here
@@ -143,7 +148,7 @@ Criteria& Criteria::and(const float& values ){
 				// x <= rightVal
 				if(this->rightVal < values[0]){
 					//return empty set, available bit set to FALSE
-					outInterval->flag = outInterval->flag & 0xfb;
+					outInterval->available = 0;
 					return;
 				}
 				
@@ -154,7 +159,7 @@ Criteria& Criteria::and(const float& values ){
 					outInterval->rightVal = this->rightVal;
 			break;
 		}
-	}else if ( (this->flag & RIGHT_INF) == RIGHT_INF){
+	}else if ( this->rightInfinity ) {
 		/** HERE we don't need to take care of rightVal */
 		outInterval->rightVal = values[1];
 		switch(this->type){
@@ -163,7 +168,7 @@ Criteria& Criteria::and(const float& values ){
 				// leftVal < x
 				if(this->leftVal >= values[1]){
 					//return empty set, available bit set to FALSE
-					outInterval->flag = outInterval->flag & 0xfb;
+					outInterval->available = 0;
 					return;
 				}
 				outInterval->type = GT_LTE; //TODO: need to test here
@@ -178,7 +183,7 @@ Criteria& Criteria::and(const float& values ){
 				// leftVal <= x
 				if(this->leftVal > values[1]){
 					//return empty set, available bit set to FALSE
-					outInterval->flag = outInterval->flag & 0xfb;
+					outInterval->available = 0;
 					return;
 				}
 				
@@ -195,7 +200,7 @@ Criteria& Criteria::and(const float& values ){
 				// leftVal < x < rightVal
 				if(this->leftVal >= values[1] || this->rightVal <= values[0]){
 					//return empty set, available bit set to FALSE
-					outInterval->flag = outInterval->flag & 0xfb;
+					outInterval->available = 0;
 					return;
 				}
 				
@@ -214,7 +219,7 @@ Criteria& Criteria::and(const float& values ){
 			case GT_LTE:
 				if(this->leftVal >= values[1] || this->rightVal < values[0]){
 					//return empty set, available bit set to FALSE
-					outInterval->flag = outInterval->flag & 0xfb;
+					outInterval->available = 0;
 					return;
 				}
 				
@@ -234,7 +239,7 @@ Criteria& Criteria::and(const float& values ){
 				// leftVal <= x < rightVal
 				if(this->leftVal > values[1] || this->rightVal <= values[0]){
 					//return empty set, available bit set to FALSE
-					outInterval->flag = outInterval->flag & 0xfb;
+					outInterval->available = 0;
 					return;
 				}
 				
@@ -253,7 +258,7 @@ Criteria& Criteria::and(const float& values ){
 				// leftVal <= x <= rightVal
 				if(this->leftVal > values[1] || this->rightVal < values[0]){
 					//return empty set, available bit set to FALSE
-					outInterval->flag = outInterval->flag & 0xfb;
+					outInterval->available = 0;
 					return;
 				}
 				
@@ -273,39 +278,150 @@ Criteria& Criteria::and(const float& values ){
 	return outInterval;
 }
 
-CombinedCriteria& Criteria::operator &(const Criteria* c) {
+CombinedCriteria& Criteria::operator &(const Criteria &c) {
 	CombinedCriteria* out = NULL;
 	Criteria* outCriteria;
 	float d[2] = {c->leftVal, c->rightVal};
 
 	if(this->variable == c->variable) {	
-		if( (this->flag & 0x04) == 0x04) { /* If this interval is close*/
-			if( (c->flag & 0x04) == 0x04) { //c is close both on left and right 100
+		if( !(this->leftInfinity) && !(this->rightInfinity)) { /* If this interval is closed*/
+			if( !(c->leftInfinity) && !(c->rightInfinity) ) { //c is closed
 				outCriteria = this->and(d);
 				out = new CombinedCriteria();
 				out->add(outCriteria);
-			} else if( (c->flag & 0x05) == 0x05) { //c is close on left and open on right 101
+			} else if( !(c->leftInfinity) && (c->rightInfinity) ) { //c is close on left and open on right 101
 				if(this->leftVal >= c->leftVal) {
+					/*
+						This   |--------|
+						c    |-----------
+					*/
 					out = new CombinedCriteria();
-					out += this;
+					out->add(this->clone());
 				} else if( (this->leftVal < c->leftVal) && (this->rightVal >= c->leftVal) ) {
+					/*
+						This   |--------|
+						c        |---------
+					*/
 					out = new CombinedCriteria();
-					outCriteria = this;
+					outCriteria = this->clone();
 					outCriteria->leftVal = c->leftVal;
 					out->add(outCriteria);
 				}
-			} else if( (c->flag & 0x06) == 0x06) { //c is close on right and open on left 110
-			
+			} else if( (c->leftInfinity) && !(c->rightInfinity) ) { //c is close on right and open on left 110
+				if( this->rightVal <= c->rightVal) {
+					/*
+						This   |--------|
+						c     ---------------|
+					*/
+					out = new CombinedCriteria();
+					out->add(this->clone());
+				} else if( (c->rightVal<=this->rightVal) && (c->rightVal > this->leftVal) )  {
+					/*
+						This   |--------|
+						c     --------|
+					*/
+					out = new CombinedCriteria();
+					outCriteria = this->clone();
+					outCriteria->rightVal = c->rightVal;
+					out->add(outCriteria);
+				}
 			}
-		} if( (this->flag & 0x05) == 0x05 ) { /* This interval is close on RIGHT and open on LEFT  */
-
-		} if( (this->flag & 0x06) == 0x06 ) { /* This interval is close on LEFT and open on RIGHT  */
-
+		} if( !(this->leftInfinity) && (this->rightInfinity) ) { /* This interval is close on LEFT and open on RIGHT  */
+			if( !(c->leftInfinity) && !(c->rightInfinity) ) { //c is closed
+				if(c->leftVal >= this->leftVal) {
+					/*
+						This   |-----------------
+						c    	|-----------|
+					*/
+					out = new CombinedCriteria();
+					out->add(c->clone());
+				} else if(c->leftVal < this->leftVal) {
+					/*
+						This   |-----------------
+						c    |-----------|
+					*/
+					out = new CombinedCriteria();
+					outCriteria = c->clone();
+					outCriteria->leftVal = this->leftVal;
+					out->add(outCriteria;
+				}
+			} else if( !(c->leftInfinity) && (c->rightInfinity) ) { //c is close on left and open on right 101
+				if() { DEN DAY
+					/*
+						This   |--------|
+						c    |-----------
+					*/
+					
+				} else if(  ) {
+					/*
+						This   |--------|
+						c        |---------
+					*/
+					
+				}
+			} else if( (c->leftInfinity) && !(c->rightInfinity) ) { //c is close on right and open on left 110
+				if( ) {
+					/*
+						This   |--------|
+						c     ---------------|
+					*/
+					
+				} else if(  )  {
+					/*
+						This   |--------|
+						c     --------|
+					*/
+					
+				}
+			}
+		} if( (this->leftInfinity) && !(this->rightInfinity) ) { /* This interval is close on RIGHT and open on LEFT  */
+			if( !(c->leftInfinity) && !(c->rightInfinity) ) { //c is closed
+				if() {
+					/*
+						This   |-----------------
+						c    	|-----------|
+					*/
+					
+				} else if() {
+					/*
+						This   |-----------------
+						c    |-----------|
+					*/
+				}
+			} else if( !(c->leftInfinity) && (c->rightInfinity) ) { //c is close on left and open on right 101
+				if() {
+					/*
+						This   |--------|
+						c    |-----------
+					*/
+					
+				} else if(  ) {
+					/*
+						This   |--------|
+						c        |---------
+					*/
+					
+				}
+			} else if( (c->leftInfinity) && !(c->rightInfinity) ) { //c is close on right and open on left 110
+				if( ) {
+					/*
+						This   |--------|
+						c     ---------------|
+					*/
+					
+				} else if(  )  {
+					/*
+						This   |--------|
+						c     --------|
+					*/
+					
+				}
+			}
 		}
 	} else {
 		out = new CombinedCriteria();
-		out += this;
-		out += c;
+		out &= this;
+		out &= c;
 	}
 
 	return out;
