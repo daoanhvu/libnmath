@@ -673,6 +673,7 @@ void parseExpression(TokenList *tokens, int *start, Function *f) {
 #endif
 				gErrorColumn = tk->column;
 				gErrorCode = ERROR_BAD_TOKEN;
+				LOGI(2, "[parseExpression] Error at Token_index=%d; Token_type=%d; ErrorCode=%d; ErrorColumn=%d", i, tk->type, gErrorCode, gErrorColumn);
 				return;
 		}//end switch
 	}//end while
