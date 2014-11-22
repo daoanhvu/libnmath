@@ -1,5 +1,5 @@
 #ifndef _MODELGL_H
-#define MODELGL_H
+#define _MODELGL_H
 
 class ModelGL {
 	private:
@@ -7,6 +7,7 @@ class ModelGL {
 		void createObject();
 
 	protected:
+
 	public:
 		ModelGL();
 		~ModelGL();
@@ -16,8 +17,6 @@ class ModelGL {
 		void setViewport(int width, int height);
 		void resizeWindow(int width, int height);
 		void draw();
-
-
 };
 
 #endif

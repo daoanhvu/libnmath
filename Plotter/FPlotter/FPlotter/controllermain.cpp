@@ -1,3 +1,6 @@
+#include <Windows.h>
+#include <CommCtrl.h>
+#include <sstream>
 #include "controllermain.h"
 #include "resource.h"
 
@@ -9,7 +12,7 @@ using namespace Win;
 bool CALLBACK enumerateChildren(HWND childHandle, LPARAM lParam);
 
 
-ControllerMain::ControllerMain():glHandle(0) {
+ControllerMain::ControllerMain():glHandle(0), consolePaneHandle(0) {
 }
 
 int ControllerMain::command(int id, int cmd, LPARAM msg) {   // for WM_COMMAND
@@ -20,7 +23,8 @@ int ControllerMain::command(int id, int cmd, LPARAM msg) {   // for WM_COMMAND
 		::PostMessage(mHandle, WM_CLOSE, 0, 0);
 		return 0;
 	}
-	
+
+	return 0;
 }
 
 int ControllerMain::create() {    // for WM_CRERATE
@@ -59,12 +63,11 @@ int ControllerMain::size(int width, int height, WPARAM wParam) {      // for WM_
 	::SendMessage(statusHandle, WM_SIZE, 0, 0); //automatically resize width so send 0s
 	::InvalidateRect(statusHandle, 0, FALSE);
 	
-	/*
+	
 	// display OpenGL window dimension on the status bar
     std::wstringstream wss;
     wss << "Window Size (Client Area): " << width << " x " << height;
     ::SendMessage(statusHandle, SB_SETTEXT, 0, (LPARAM)wss.str().c_str());
-	*/
 
 	return 0;
 }

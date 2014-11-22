@@ -1,13 +1,14 @@
 #ifndef _CONTROLLERMAIN_H
 #define _CONTROLLERMAIN_H
 
-#include <windows.h>
 #include "controller.h"
 
 namespace Win {
 	class ControllerMain: public Controller {
 		private:
 			HWND glHandle;
+
+			//this is handle for control panel
 			HWND consolePaneHandle;
 		public:
 			ControllerMain();
@@ -19,7 +20,7 @@ namespace Win {
 			int destroy();
 			int size(int w, int h, WPARAM wParam);      // for WM_SIZE: width, height, type(SIZE_MAXIMIZED...)
 			
-			void setGLHandle(HWND handle)		{ glHandle = handle; };
+			void setGLHandle(HWND handle)			{ glHandle = handle; };
 			void setConsoleHandle(HWND handle)		{ consolePaneHandle = handle; };
 	};
 }

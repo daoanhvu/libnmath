@@ -1,7 +1,7 @@
 #ifndef _CONTROLLER_H
 #define _CONTROLLER_H
 
-#include <windows.h>
+#include <Windows.h>
 
 namespace Win {
 	class Controller {
@@ -9,7 +9,7 @@ namespace Win {
 			HWND mHandle;
 		public:
 			Controller();
-			virtual ~Controller();
+			virtual ~Controller(void);
 
 			void setHandle(HWND handle);
 
@@ -41,7 +41,31 @@ namespace Win {
 	};
 
 	inline void Controller::setHandle(HWND handle) { mHandle = handle; }
-	inline int Controller::close() {::DestroyWindow(mHandle); return 0;}
+	inline int Controller::close() { ::DestroyWindow(mHandle); return 0; }
+	inline int Controller::command(int id, int cmd, LPARAM msg) { return 0; }
+    inline int Controller::contextMenu(HWND handle, int x, int y) { return 0; }
+    inline int Controller::create() { return 0; }
+    inline int Controller::destroy() { return 0; }
+    inline int Controller::enable(bool flag) { return 0; }
+    inline int Controller::eraseBackground(HDC hdc) { return 0; }
+    inline int Controller::hScroll(WPARAM wParam, LPARAM lParam) { return 0; }
+    inline int Controller::keyDown(int key, LPARAM lParam) { return 0; }
+    inline int Controller::keyUp(int key, LPARAM lParam) { return 0; }
+    inline int Controller::lButtonDown(WPARAM wParam, int x, int y) { return 0; }
+    inline int Controller::lButtonUp(WPARAM wParam, int x, int y) { return 0; }
+    inline int Controller::mButtonDown(WPARAM wParam, int x, int y) { return 0; }
+    inline int Controller::mButtonUp(WPARAM wParam, int x, int y) { return 0; }
+    inline int Controller::mouseHover(int state, int x, int y) { return 0; }
+    inline int Controller::mouseLeave() { return 0; }
+    inline int Controller::mouseMove(WPARAM keyState, int x, int y) { return 0; }
+    inline int Controller::mouseWheel(int state, int delta, int x, int y) { return 0; }
+    inline int Controller::notify(int id, LPARAM lParam) { return 0; }
+    inline int Controller::paint() { return 0; }
+    inline int Controller::rButtonDown(WPARAM wParam, int x, int y) { return 0; }
+    inline int Controller::rButtonUp(WPARAM wParam, int x, int y) { return 0; }
+    inline int Controller::size(int w, int h, WPARAM type) { return 0; }
+    inline int Controller::timer(WPARAM id, LPARAM lParam) { return 0; }
+    inline int Controller::vScroll(WPARAM wParam, LPARAM lParam) { return 0; }
 }
 
 #endif

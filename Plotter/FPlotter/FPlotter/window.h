@@ -1,7 +1,7 @@
 #ifndef _WINDOW_H
 #define _WINDOW_H
 
-#include <windows.h>
+#include <Windows.h>
 #include "controller.h"
 
 namespace Win {
