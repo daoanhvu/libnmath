@@ -1,0 +1,42 @@
+﻿Build started 11/23/2014 9:03:10 PM.
+     1>Project "D:\projects\libnmath\FunctionPlotter\FunctionPlotter\FunctionPlotter.vcxproj" on node 2 (build target(s)).
+     1>InitializeBuildStatus:
+         Creating "Debug\FunctionPlotter.unsuccessfulbuild" because "AlwaysCreate" was specified.
+       ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /I"D:\documents\gl_external\glew-1.11.0\include" /I"D:\documents\gl_external\src\glm-0.9.4.0" /I"D:\documents\gl_external\src\glfw-3.0.3\include" /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _WINDOWS /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt modelgl.cpp
+         modelgl.cpp
+       ResourceCompile:
+         All outputs are up-to-date.
+       ManifestResourceCompile:
+         All outputs are up-to-date.
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\projects\libnmath\FunctionPlotter\Debug\FunctionPlotter.exe" /INCREMENTAL /NOLOGO /LIBPATH:"D:\documents\gl_external\glew-1.11.0\lib\Release\Win32" Comctl32.lib opengl32.lib glu32.lib glew32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\FunctionPlotter.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\projects\libnmath\FunctionPlotter\Debug\FunctionPlotter.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\projects\libnmath\FunctionPlotter\Debug\FunctionPlotter.lib" /MACHINE:X86 Debug\plotter.res
+         Debug\FunctionPlotter.exe.embed.manifest.res
+         Debug\ConsolePaneController.obj
+         Debug\ConsoleView.obj
+         Debug\controller.obj
+         Debug\controllermain.obj
+         Debug\dialogwindow.obj
+         Debug\fplotter.obj
+         Debug\functionmodel.obj
+         Debug\glcontroller.obj
+         Debug\modelgl.obj
+         Debug\plotter.obj
+         Debug\procedure.obj
+         Debug\utility.obj
+         Debug\viewgl.obj
+         Debug\window.obj
+       Manifest:
+         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /out:"Debug\FunctionPlotter.exe.embed.manifest" /manifest Debug\FunctionPlotter.exe.intermediate.manifest
+         All outputs are up-to-date.
+       LinkEmbedManifest:
+         All outputs are up-to-date.
+         FunctionPlotter.vcxproj -> D:\projects\libnmath\FunctionPlotter\Debug\FunctionPlotter.exe
+       FinalizeBuildStatus:
+         Deleting file "Debug\FunctionPlotter.unsuccessfulbuild".
+         Touching "Debug\FunctionPlotter.lastbuildstate".
+     1>Done Building Project "D:\projects\libnmath\FunctionPlotter\FunctionPlotter\FunctionPlotter.vcxproj" (build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:01.86
