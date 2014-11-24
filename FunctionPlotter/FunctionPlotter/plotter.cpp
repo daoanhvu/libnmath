@@ -5,6 +5,7 @@
 #include <Windows.h>
 #include <CommCtrl.h>
 #include "resource.h"
+#include "fplotter.h"
 #include "controllermain.h"
 #include "glcontroller.h"
 #include "window.h"

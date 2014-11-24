@@ -343,80 +343,112 @@ CombinedCriteria& Criteria::operator &(const Criteria &c) {
 					out = new CombinedCriteria();
 					outCriteria = c->clone();
 					outCriteria->leftVal = this->leftVal;
-					out->add(outCriteria;
+					out->add(outCriteria);
 				}
 			} else if( !(c->leftInfinity) && (c->rightInfinity) ) { //c is close on left and open on right 101
-				if() { DEN DAY
+				if( c->leftVal <= this->leftVal ) {
 					/*
-						This   |--------|
+						This   |----------
 						c    |-----------
 					*/
-					
-				} else if(  ) {
+					out = new CombinedCriteria();
+					out->add(this->clone());
+				} else {
 					/*
-						This   |--------|
+						This   |--------
 						c        |---------
 					*/
-					
+					out = new CombinedCriteria();
+					out->add(c->clone());
 				}
 			} else if( (c->leftInfinity) && !(c->rightInfinity) ) { //c is close on right and open on left 110
 				if( ) {
 					/*
-						This   |--------|
+						This   |-------------
 						c     ---------------|
 					*/
-					
-				} else if(  )  {
+					out = new CombinedCriteria();
+					outCriteria = c->clone();
+					outCriteria->leftVal = this->leftVal;
+					out->add(outCriteria);
+				} else {
 					/*
-						This   |--------|
+						This   			|--------
 						c     --------|
 					*/
-					
+					out = NULL;
 				}
+			} else { // c is open
+				out = new CombinedCriteria();
+				out->add(this->clone());
 			}
 		} if( (this->leftInfinity) && !(this->rightInfinity) ) { /* This interval is close on RIGHT and open on LEFT  */
 			if( !(c->leftInfinity) && !(c->rightInfinity) ) { //c is closed
-				if() {
+				if( c->rightVal <= this->rightVal) {
 					/*
-						This   |-----------------
+						This   -----------------|
 						c    	|-----------|
 					*/
-					
-				} else if() {
-					/*
-						This   |-----------------
-						c    |-----------|
-					*/
+					out = new CombinedCriteria();
+					out->add(c->clone());
+				} else {
+					if(c->leftVal <= this->rightVal) {
+						/*
+							This   ---------|
+							c    |------------|
+						*/
+						out = new CombinedCriteria();
+						outCriteria = c->clone();
+						outCriteria->rightVal = this->rightVal;
+						out->add(outCriteria);
+					} else {
+						/*
+							This   ----|
+							c    		 |------|
+						*/
+						out = NULL;
+					}
 				}
 			} else if( !(c->leftInfinity) && (c->rightInfinity) ) { //c is close on left and open on right 101
-				if() {
+				if( c->leftVal <= this->rightVal ) { CODE GONE HERE
 					/*
-						This   |--------|
+						This   --------|
 						c    |-----------
 					*/
-					
-				} else if(  ) {
+					out = new CombinedCriteria();
+					outCriteria = c->clone();
+					outCriteria->rightVal = this->rightVal;
+					out->add(outCriteria);
+				} else {
 					/*
-						This   |--------|
-						c        |---------
+						This   ---|
+						c        	|-----
 					*/
-					
+					out = NULL;
 				}
 			} else if( (c->leftInfinity) && !(c->rightInfinity) ) { //c is close on right and open on left 110
-				if( ) {
+				if( c->rightVal >= this->rightVal ) {
 					/*
-						This   |--------|
-						c     ---------------|
+						This   --------|
+						c     ------------|
 					*/
-					
-				} else if(  )  {
+					out = new CombinedCriteria();
+					out->add(this->clone());
+				} else {
 					/*
-						This   |--------|
-						c     --------|
+						This   --------|
+						c     ------|
 					*/
-					
+					out = new CombinedCriteria();
+					out->add(c->clone());
 				}
+			} else {		//c is OPEN
+				out = new CombinedCriteria();
+				out->add(this->clone());
 			}
+		} else { //this is OPEN
+			out = new CombinedCriteria();
+			out->add(c->clone());
 		}
 	} else {
 		out = new CombinedCriteria();
@@ -430,22 +462,10 @@ CombinedCriteria& Criteria::operator &(const Criteria &c) {
 CombinedCriteria& Criteria::operator &(const CombinedCriteria& cb) {
 	int i = 0;
 	CombinedCriteria* out;
-	Criteria* c;
 	for(i=0; i < cb->size(); i++) {
 		if( this->variable == cb[i]->variable ){
-			interval = this & cb[i];
-			if( (interval != NULL) && ((interval->flag & AVAILABLE) == AVAILABLE) {
-				out = new CombinedCriteria();
-				out = cb;
-				out[i] = interval;
-				delete interval;
-				return out;
-			}else{
-				if(interval != NULL) delete interval;
-				/** ERROR: AND two contracting criteria */
-				return NULL;
-			}
-			break;
+			out = this & cb[i];
+			return out;
 		}
 	}
 
@@ -453,7 +473,7 @@ CombinedCriteria& Criteria::operator &(const CombinedCriteria& cb) {
 		We got here because this criteria has variable that not same as vaiable of any criteria in CombinedCriteria
 	*/
 	out = new CombinedCriteria();
-	out = cb;
+	out = cb->clone();
 	out &= this;
 	return out;
 }
@@ -588,21 +608,20 @@ int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out){
 /**
 	Need to implement
 */
-CompositeCriteria Criteria::or(const Criteria *c) {
+CompositeCriteria Criteria::operator |(const Criteria *c) {
 	float d[2];
 	Criteria *interval;
 	CombinedCriteria* cb;
 	CompositeCriteria* out = new CompositeCriteria();
 
 	if(this->variable == c->variable) {
+		if( !(this->leftInfinity) && !(this->rightInfinity) ) { //If this interval is close
+			if( !(c->leftInfinity) && !(c->rightInfinity) ) { //c is close
 
-		/*
-			If this interval is close
-		*/
-		if( (this->flag | 0x04) == 0x04) {
-			if( (c->flag | 0x04) == 0x04) {
-			} else if( (c->flag | 0x05) == 0x05) {
-			} else if( (c->flag | 0x06) == 0x06) {
+			} else if( !(c->leftInfinity) && c->rightInfinity ) { // c is close on LEFT and open on RIGHT
+
+			} else if( c->leftInfinity && !(c->rightInfinity) ) { //c is open on LEFT and close on RIGHT
+
 			}
 		} if( (this->flag | 0x05) == 0x05 ) { /* This interval is close on RIGHT and open on LEFT  */
 
