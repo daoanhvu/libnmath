@@ -1,0 +1,7 @@
+http://www.gametutorials.com/tutorials/opengl-tutorials/
+http://www.swiftless.com/tutorials/opengl4/1-opengl-window.html
+https://github.com/PatrickChin/Gema/blob/master/winmain.cpp
+https://github.com/asmCode/taxibynight/blob/master/BunniesView/WinMain.cpp
+http://www.3dcpptutorials.sk/index.php?id=29
+
+https://code.google.com/p/begui/wiki/GettingStartedPart1

@@ -37,7 +37,7 @@ int GLController::paint() {
 }
 
 int GLController::size(int w, int h, WPARAM wParam) {
-	mModel->resizeWindow(w, h);
+	mView->resizeWindow(w, h);
     return 0;
 }
 
@@ -73,10 +73,12 @@ void GLController::runThread() {
 	mModel->init();
 
 	::GetClientRect(mHandle, &rect);
-	mModel->resizeWindow(rect.right, rect.bottom);
+	mView->resizeWindow(rect.right, rect.bottom);
 
 	while(mLoopFlag) {
 		Sleep(1);		//yield to other processes or threads
+		
+		mView->resetViewportIfNeeded();
 		mModel->draw();
 		mView->swapBuffers();
 	}

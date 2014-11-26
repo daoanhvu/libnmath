@@ -16,6 +16,7 @@ namespace TankGame {
 			virtual void setLocation(float x, float y, float z)	{ mX = x; mY = y; mZ = z; }
 			virtual void setHP(int hp) { mHP = hp; }
 			virtual int getHP() { return mHP; }
+			virtual int load(float *vertices, int size)	{ return 0; }
 	};
 }
 

@@ -33,6 +33,8 @@ namespace TankGame {
 			void onMouseUp(int x, int y, int button);
 			void onMouseMove(int x, int y);
 
+			static GLuint loadShaders(const char *vertexFile, const char *fragmentFile);
+
 	};
 }
 

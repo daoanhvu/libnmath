@@ -15,6 +15,8 @@ namespace TankGame {
 			void init();
 			int loadFromFile(const char *filename);
 			int saveToFile(const char *filename);
+
+			void render();
 	};
 }
 

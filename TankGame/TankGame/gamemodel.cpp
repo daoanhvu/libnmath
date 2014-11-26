@@ -20,3 +20,7 @@ int GameModel::loadFromFile(const char *filename) {
 int GameModel::saveToFile(const char *filename) {
 	return 0;
 }
+
+void GameModel::render() {
+
+}

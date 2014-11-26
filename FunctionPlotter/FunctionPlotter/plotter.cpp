@@ -14,6 +14,10 @@
 #include "viewgl.h"
 #include "ConsolePaneController.h"
 
+/*
+	https://www.opengl.org/wiki/Tutorial:_OpenGL_3.1_The_First_Triangle_%28C%2B%2B/Win%29
+*/
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPSTR lpCmdLine, int nCmdShow) {
     HWND activeWindow;
     MSG msg;
