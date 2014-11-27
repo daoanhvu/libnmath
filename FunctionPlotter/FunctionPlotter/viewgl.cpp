@@ -7,6 +7,10 @@
 
 using namespace Win;
 
+/*
+http://www.mbsoftworks.sk/index.php?page=tutorials&series=1&tutorial=2&list=1
+*/
+
 ViewGL::ViewGL(void): mHdc(0), mHglrc(0) {
 }
 
@@ -87,11 +91,12 @@ bool ViewGL::createContext(HWND handle, int colorBits, int depthBits, int stenci
 	memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
 	pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
 	pfd.nVersion = 1;
-	pfd.dwFlags = PFD_DOUBLEBUFFER | PFD_SUPPORT_OPENGL | PFD_DRAW_TO_WINDOW;
+	pfd.dwFlags = PFD_DOUBLEBUFFER | PFD_SUPPORT_OPENGL | PFD_DRAW_TO_WINDOW | PFD_GENERIC_ACCELERATED;
 	pfd.iPixelType = PFD_TYPE_RGBA;
 	pfd.cColorBits = 32;
 	pfd.cDepthBits = 32;
-	pfd.iLayerType = PFD_MAIN_PLANE;
+	//pfd.iLayerType = PFD_MAIN_PLANE;
+	pfd.iLayerType = PFD_TYPE_RGBA;
 
 	int nPixelFormat = ::ChoosePixelFormat(mHdc, &pfd);
 
@@ -110,18 +115,18 @@ bool ViewGL::createContext(HWND handle, int colorBits, int depthBits, int stenci
 	if (glewInit() != GLEW_OK)
 		return false;
 
-	int attribs[] = {	WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
-						WGL_CONTEXT_MINOR_VERSION_ARB, 0,
+	wglMakeCurrent(NULL, NULL);
+	wglDeleteContext(tempRContext);
+
+	int attribs[] = {	WGL_CONTEXT_MAJOR_VERSION_ARB, 2,
+						WGL_CONTEXT_MINOR_VERSION_ARB, 1,
 						WGL_CONTEXT_FLAGS_ARB, 0,
 						0 };
-	//if (glewIsSupported("WGL_ARB_create_context")) {
-		mHglrc = wglCreateContextAttribsARB(mHdc, 0, attribs);
-		::wglMakeCurrent(NULL, NULL);
-		::wglDeleteContext(mHglrc);
-		::wglMakeCurrent(mHdc, mHglrc);
-	//} else {
-		//mHglrc = tempRContext;
-	//}
+	
+	mHglrc = wglCreateContextAttribsARB(mHdc, 0, attribs);
+	::wglMakeCurrent(NULL, NULL);
+	::wglDeleteContext(mHglrc);
+	::wglMakeCurrent(mHdc, mHglrc);
 
 	//Checking GL version
 	const GLubyte *glVersionString = glGetString(GL_VERSION);
@@ -134,8 +139,10 @@ bool ViewGL::createContext(HWND handle, int colorBits, int depthBits, int stenci
 
 	if (mHglrc == NULL) return false;
 
-	mProgramID = loadShader("D:\\Documents\\testapp\\libnmath\\FunctionPlotter\\FunctionPlotter\\shaders\\fplotter.vertextsharder",
-		"D:\\Documents\\testapp\\libnmath\\FunctionPlotter\\FunctionPlotter\\shaders\\fplotter.fragmentshader");
+	//mProgramID = loadShader("D:\\Documents\\testapp\\libnmath\\FunctionPlotter\\FunctionPlotter\\shaders\\fplotter.vertextsharder",
+	//	"D:\\Documents\\testapp\\libnmath\\FunctionPlotter\\FunctionPlotter\\shaders\\fplotter.fragmentshader");
+	mProgramID = loadShader("D:\\projects\\libnmath\\FunctionPlotter\\FunctionPlotter\\shaders\\fplotter.vertextsharder",
+		"D:\\projects\\libnmath\\FunctionPlotter\\FunctionPlotter\\shaders\\fplotter.fragmentsharder");
 	if (mProgramID <= 0) {
 		return false;
 	}
@@ -192,6 +199,7 @@ void ViewGL::resizeWindow(int width, int height) {
 GLuint ViewGL::loadShader(const char *vertexShaderFile, const char *fragmentShaderFile) {
 	//GLuint vertexShaderID = glCreateShader(GL_VERTEX_SHADER);
 	//GLuint fragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
+	//PFNGLCREATESHADERPROC glCreateShader = (PFNGLCREATESHADERPROC)wglGetProcAddress("glCreateShaderARB");
 	GLuint vertexShaderID = glCreateShader(GL_VERTEX_SHADER);
 	GLuint fragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
 

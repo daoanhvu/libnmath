@@ -5,8 +5,6 @@
 #include <GL\glew.h>
 #include "modelgl.h"
 
-using namespace std;
-
 ModelGL::ModelGL() {
 	//bgColor[0] = bgColor[1] = bgColor[2] = bgColor[3] = 0;
 	bgColor[0] = bgColor[1] = bgColor[3] = 0;

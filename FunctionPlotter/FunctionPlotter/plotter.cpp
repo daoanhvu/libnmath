@@ -47,7 +47,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPSTR lpCmdLine,
 	Win::Window glChildWindow(hInstance, L"MyGLWindow", windowMain.getHandle(), &controllerGL);
 	Win::ConsoleView consoleView;
 
-	glChildWindow.setClassStyle(CS_OWNDC);
+	glChildWindow.setClassStyle(CS_HREDRAW|CS_VREDRAW|CS_OWNDC);
 	glChildWindow.setWindowStyle(WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
 	glChildWindow.setSize(800, 550);
 	glChildWindow.create();

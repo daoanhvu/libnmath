@@ -11,7 +11,7 @@
 #include "dialogwindow.h"
 #include "modelgl.h"
 #include "viewgl.h"
-
+#include "ConsolePaneController.h"
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPSTR lpCmdLine, int nCmdShow) {
     HWND activeWindow;
@@ -40,19 +40,30 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPSTR lpCmdLine,
 	Win::ViewGL viewGL;
 	Win::GLController controllerGL(&modelGL, &viewGL);
 	Win::Window glChildWindow(hInstance, L"MyGLWindow", windowMain.getHandle(), &controllerGL);
+	Win::ConsoleView consoleView;
+
 	glChildWindow.setClassStyle(CS_OWNDC);
 	glChildWindow.setWindowStyle(WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
 	glChildWindow.setSize(800, 550);
 	glChildWindow.create();
+
+	Win::ConsolePaneController consolePaneCtrl(&modelGL, &consoleView);
+
+	Win::DialogWindow dlgConsole(hInstance, IDD_CONSOLE, windowMain.getHandle(), &consolePaneCtrl);
+	dlgConsole.create();
 
 	statusHandle = ::CreateWindowEx(0, STATUSCLASSNAME, 0, WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP,
 		0, 0, 0, 0, windowMain.getHandle(), (HMENU)IDC_STATUSBAR, ::GetModuleHandle(0), 0);
 
 	if(statusHandle) {
         ::SendMessage(statusHandle, SB_SETTEXT, 0, (LPARAM)L"Ready");
-	}// else
-     //   Win::log("[ERROR] Failed to create status bar window.");
+	}
 
+	ctrlMain.setGLHandle(glChildWindow.getHandle());
+	ctrlMain.setConsoleHandle(dlgConsole.getHandle());
+
+	glChildWindow.show();
+	dlgConsole.show();
 	windowMain.show();
 
     while(::GetMessage(&msg, NULL, 0, 0) > 0) {

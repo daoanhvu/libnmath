@@ -25,8 +25,7 @@
 #include <windows.h>
 #include <commctrl.h>                   // common controls
 
-namespace Win
-{
+namespace Win {
     // constants //////////////////////////////////////////////////////////////
     enum { MAX_INDEX = 30000 };
 
@@ -34,8 +33,7 @@ namespace Win
     ///////////////////////////////////////////////////////////////////////////
     // base class of control object
     ///////////////////////////////////////////////////////////////////////////
-    class ControlBase
-    {
+    class ControlBase {
     public:
         // ctor / dtor
         ControlBase() : handle(0), parent(0), id(0), fontHandle(0) {}
@@ -92,12 +90,12 @@ namespace Win
                     SetWindowLongPtr(handle, GWL_STYLE, styles);
                     SetWindowPos(handle, 0, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
                   }
-        void removeStyles(long noStyles)
-                  { long styles = (long)GetWindowLongPtr(handle, GWL_STYLE);
-                    styles &= ~noStyles;
-                    SetWindowLongPtr(handle, GWL_STYLE, styles);
-                    SetWindowPos(handle, 0, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
-                  }
+        void removeStyles(long noStyles) { 
+			long styles = (long)GetWindowLongPtr(handle, GWL_STYLE);
+            styles &= ~noStyles;
+            SetWindowLongPtr(handle, GWL_STYLE, styles);
+            SetWindowPos(handle, 0, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+        }
 
     protected:
         HWND  handle;
