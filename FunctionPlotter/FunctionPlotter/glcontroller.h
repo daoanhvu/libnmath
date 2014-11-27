@@ -20,7 +20,7 @@ namespace Win {
 		public:
 			GLController(ModelGL *model, ViewGL *view);
 			~GLController(void) {}
-
+			int init();
 			int close();
 			int command(int id, int cmd, LPARAM msg);
 			int create();

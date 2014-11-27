@@ -8,6 +8,7 @@
 #endif
 
 namespace Win {
+	LRESULT CALLBACK fakeWindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 	LRESULT CALLBACK windowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 	INT_PTR CALLBACK dialogProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 }

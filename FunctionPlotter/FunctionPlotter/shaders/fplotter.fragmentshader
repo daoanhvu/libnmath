@@ -1,8 +1,7 @@
-precision mediump float;
+#version 210
 uniform vec3 color;
 uniform int enableLight;
 varying float light;
-
 void main() {
 	if(1 == enableLight) {
 		gl_FragColor = light * vec4(color, 1);

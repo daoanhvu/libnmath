@@ -42,15 +42,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPSTR lpCmdLine,
 	windowMain.create();
 
 	ModelGL modelGL;
-	Win::ViewGL viewGL;
+
+	//Register GL window class
+	Win::ViewGL viewGL(hInstance, windowMain.getHandle(), L"MyGLWindow", 800, 500, CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
+		WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, 3, 1);
 	Win::GLController controllerGL(&modelGL, &viewGL);
-	Win::Window glChildWindow(hInstance, L"MyGLWindow", windowMain.getHandle(), &controllerGL);
 	Win::ConsoleView consoleView;
 
-	glChildWindow.setClassStyle(CS_HREDRAW|CS_VREDRAW|CS_OWNDC);
-	glChildWindow.setWindowStyle(WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
-	glChildWindow.setSize(800, 550);
-	glChildWindow.create();
+	//Create GL window and init OpenGL
+	controllerGL.init();
 
 	Win::ConsolePaneController consolePaneCtrl(&modelGL, &consoleView);
 
@@ -64,10 +64,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPSTR lpCmdLine,
         ::SendMessage(statusHandle, SB_SETTEXT, 0, (LPARAM)L"Ready");
 	}
 
-	ctrlMain.setGLHandle(glChildWindow.getHandle());
+	ctrlMain.setGLHandle(viewGL.getHandle());
 	ctrlMain.setConsoleHandle(dlgConsole.getHandle());
 
-	glChildWindow.show();
+	viewGL.show();
 	dlgConsole.show();
 	windowMain.show();
 

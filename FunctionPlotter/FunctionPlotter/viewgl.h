@@ -8,37 +8,72 @@
 #include <GL\glu.h>
 
 namespace Win {
-	class ViewGL
-	{
+	class ViewGL {
 		private:
-			HDC mHdc;		//handle to device context
-			HGLRC mHglrc;	//handle to OpenGL rendering context
+			HWND mHandle;
+			HWND mParentHandle;
+			HINSTANCE mInstance;
+			WNDCLASSEX winClass;
+			DWORD winStyle;
+			DWORD winStyleEx;
+			HDC mHdc;			//handle to device context
+			HGLRC mHglrc;		//handle to OpenGL rendering context
 			GLuint mProgramID;
 			GLuint mPositionID;
 			GLuint mEnableLightID;
+			int x;
+			int y;
 			int windowWidth;
 			int windowHeight;
 			bool windowResized;
+
+			unsigned char mMajorVersion;
+			unsigned char mMinorVersion;
+
+			enum { MAX_STRING = 256 };              // local constants, max length of string
+			wchar_t title[MAX_STRING];
+			wchar_t className[MAX_STRING];
+
+			int init();
 
 			static bool setPixelFormat(HDC hdc, int colorBits, int depthBits, int tencilBits);
 			static int findPixelFormat(HDC hdc, int colorBits, int depthBits, int tencilBits);
 			static GLuint loadShader(const char *vertexShaderFile, const char *fragmentShaderFile);
 
 		public:
-			ViewGL(void);
+			ViewGL(HINSTANCE hInstance, HWND parent, const wchar_t *name, int width, int height,
+				DWORD clsStyle, DWORD wStyle, unsigned char majorv, unsigned char minorv);
 			~ViewGL(void);
 
-			int init();
 			void setViewport(int width, int height);
 			void resizeWindow(int width, int height);
-			bool createContext(HWND handle, int colorBits, int depthBits, int stencilBits);  // create OpenGL rendering context
-			void closeContext(HWND handle);
+			HWND createWindow(void *controller);
+			int createGLContext(int colorBits, int depthBits, int stencilBits);  // create OpenGL rendering context
+			void closeContext();
 			void swapBuffers();
 
 			bool resetViewportIfNeeded();
 
 			HDC getDC() const { return mHdc; };
 			HGLRC getRC() const { return mHglrc; };
+
+			void show(int shw = SW_SHOWDEFAULT);
+			HWND getHandle()						{ return mHandle; }
+
+			void setClassStyle(UINT style)			{ winClass.style = style; }
+			void setBackgroundColor(int color)		{ winClass.hbrBackground = (HBRUSH)::GetStockObject(color); }
+			void setIcon(int id);
+			void setIconSmall(int id);
+			void setCursor(int id);
+			void setMenuName(LPCTSTR name)			{ winClass.lpszMenuName = name; }
+
+			void setWindowStyle(DWORD style)		{ winStyle = style; }
+			void setWindowStyleEx(DWORD style)		{ winStyleEx = style; }
+			void setPosition(int x, int y)			{ this->x = x; this->y = y; }
+			void setWidth(int w)					{ windowWidth = w; }
+			void setHeight(int h)					{ windowHeight = h; }
+			void setSize(int w, int h)				{ windowWidth = w; windowHeight = h; }
+			void setParent(HWND hwnd)				{ mParentHandle = hwnd; }
 	};
 }
 

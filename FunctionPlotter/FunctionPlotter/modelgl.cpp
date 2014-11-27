@@ -8,7 +8,7 @@
 ModelGL::ModelGL() {
 	//bgColor[0] = bgColor[1] = bgColor[2] = bgColor[3] = 0;
 	bgColor[0] = bgColor[1] = bgColor[3] = 0;
-	bgColor[2] = 255;
+	bgColor[2] = 1.0f;
 }
 
 ModelGL::~ModelGL() {

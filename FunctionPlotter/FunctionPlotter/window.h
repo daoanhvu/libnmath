@@ -8,7 +8,6 @@ namespace Win {
 	class Window {
 	private:
 		enum { MAX_STRING = 256 };              // local constants, max length of string
-		
 		wchar_t title[MAX_STRING];
 		wchar_t className[MAX_STRING];
 		

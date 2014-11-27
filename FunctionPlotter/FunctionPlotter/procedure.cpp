@@ -2,6 +2,10 @@
 #include "procedure.h"
 #include "controller.h"
 
+LRESULT CALLBACK Win::fakeWindowProcedure(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam){
+	return ::DefWindowProc(hwnd, msg, wParam, lParam);
+}
+
 LRESULT CALLBACK Win::windowProcedure(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	LRESULT returnVal = 0;
 
