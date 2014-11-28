@@ -1,1 +1,0 @@
-#define GLEW_STATIC

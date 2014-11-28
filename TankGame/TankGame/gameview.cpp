@@ -50,7 +50,8 @@ int GameView::init() {
 	/*	At developing time, I use absolute path
 		mProgramId = loadShaders("tank1.vertexshader", "tank1.fragmentshader");
 	*/
-	mProgramId = loadShaders("tank1.vertexshader", "tank1.fragmentshader");
+	mProgramId = loadShaders("D:\\projects\\libnmath\\TankGame\\TankGame\\shaders\\vertex.glsl",
+		"D:\\projects\\libnmath\\TankGame\\TankGame\\shaders\\fragment.glsl");
 	if (mProgramId <= 0) {
 		glfwTerminate();
 		return 4;
