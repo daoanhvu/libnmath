@@ -6,7 +6,7 @@
 namespace TankGame {
 	class GameModel {
 		private:
-			
+
 
 		public:
 			GameModel();
