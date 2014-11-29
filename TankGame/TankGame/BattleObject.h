@@ -10,7 +10,8 @@
 
 		public:
 			BattleObject();
-			virtual ~BattleObject() {};
+			virtual ~BattleObject() {}
+			virtual void release()	{}
 
 			virtual void setLocation(float x, float y, float z)	{ mX = x; mY = y; mZ = z; }
 			virtual void setHP(int hp) { mHP = hp; }

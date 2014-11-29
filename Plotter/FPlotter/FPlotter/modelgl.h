@@ -1,15 +1,12 @@
 #ifndef _MODELGL_H
 #define _MODELGL_H
 
-#include <GL\GL.h>
-#include <GL\GLU.h>
+#include <glm\glm.hpp>
+
+using namespace glm;
 
 class ModelGL {
 	private:
-		GLuint mProgramID;
-		GLuint mPositionID;
-		GLuint mEnableLightID;
-
 		void initLights();
 		void createObject();
 		unsigned int loadTextureBmp(const char *filename);
@@ -17,6 +14,9 @@ class ModelGL {
 		// members
 		int windowWidth;
 		int windowHeight;
+
+		mat4 mvp;
+
 		bool animateFlag;                               // on/off animation
 		bool changeDrawMode;
 		int drawMode;
@@ -55,11 +55,7 @@ class ModelGL {
 		void rotateCamera(int x, int y);
 		void zoomCamera(int dist);
 
-		void setBackgroundRed(float value);             // change background colour
-		void setBackgroundGreen(float value);
-		void setBackgroundBlue(float value);
-
-		static GLuint loadShader(const char *vertexShader, const char *fragmentShader);
+		void setBackgroundColor(BYTE red, BYTE green, BYTE, BYTE blue);             // change background colour
 };
 
 #endif

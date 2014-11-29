@@ -3,7 +3,7 @@
 
 using namespace Win;
 
-ViewGL::ViewGL(void): mHdc(0), mHglrc(0) {
+ViewGL::ViewGL(void): mHdc(0) {
 }
 
 
@@ -67,35 +67,5 @@ int ViewGL::findPixelFormat(HDC hdc, int colorBits, int depthBits, int stencilBi
 	return bestMode;
 }
 
-// create OpenGL rendering context
-bool ViewGL::createContext(HWND handle, int colorBits, int depthBits, int stencilBits) {
-	//retrieve a handle to the device context
-	mHdc = ::GetDC(handle);
-
-	//Set pixel format
-	if(!setPixelFormat(mHdc, colorBits, depthBits, stencilBits)) {
-		::MessageBox(0, L"Cannot set a suitable pixel format.", L"Error", MB_ICONEXCLAMATION | MB_OK);
-		::ReleaseDC(handle, mHdc);
-		return false;
-	}
-
-	mHglrc = ::wglCreateContext(mHdc);
-	//::wglMakeCurrent(hdc, hglrc);
-
-	::ReleaseDC(handle, mHdc);
-	return true;
-}
-
-void ViewGL::closeContext(HWND handle) {
-	if(!mHdc && !mHglrc) return;
-
-	::wglMakeCurrent(0, 0);
-	::wglDeleteContext(mHglrc);
-	::ReleaseDC(handle, mHdc);
-	mHdc = 0;
-	mHglrc = 0;
-}
-
-void ViewGL::swapBuffers() {
-	::SwapBuffers(mHdc);
+void ViewGL::updateBuffer(int h, int w) {
 }

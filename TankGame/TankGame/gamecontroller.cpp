@@ -11,7 +11,7 @@ GameController::~GameController() {
 }
 
 int GameController::init() {
-	return mView->init();
+	return mView->init(3, 1);
 }
 
 void GameController::start() {

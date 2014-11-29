@@ -7,20 +7,25 @@
 
 class StaticObject: public BattleObject {
 	private:
+		GLsizei mVertexCount;
 		GLenum mPrimitiveType;
-		GLuint mBufferId[2]; //one for index buffer, one for vertex buffer
+		GLuint* mBufferId; //one for index buffer, one for vertex buffer
+		GLsizei mBufferCount;
+		GLsizei mStride;
+
 
 	public:
 		StaticObject();
 		~StaticObject();
+		void release();
 
 		GLenum getPrimityType() { return mPrimitiveType; }
 		void setPrimityType(GLenum ptype) { mPrimitiveType = ptype; }
-		//GLuint getVertexBufferId() { return mVertexBufferId; }
-		//void setVertexBufferId(GLuint bid) { mVertexBufferId = bid; }
+		GLuint getBufferId(int idx) { return mBufferId[idx]; }
 
-		int load(short *indices, int indexSize, float *vertices, int size, int sizePerVertex, int posOffs, int colorOffs, int normalOffs);
-		void render();
+		int load(short *indices, int indexSize, float *vertices, int vCount, 
+						int sizePerVertex, int posOffs, int colorOffs, int normalOffs);
+		void render(GLuint positionLoc, GLuint colorLoc);
 };
 
 #endif

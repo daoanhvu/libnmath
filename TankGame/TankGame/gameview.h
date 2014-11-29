@@ -11,6 +11,8 @@ namespace TankGame {
 			GLFWwindow *mWindow;
 			GLuint mProgramId;
 			GLuint mMVPMatrixId;
+			GLuint mPositionLocation;
+			GLuint mInColorLocation;
 			GameModel *mModel;
 			HANDLE mThreadHandle;
 			unsigned int mThreadID;
@@ -20,7 +22,7 @@ namespace TankGame {
 			GameView(GameModel *model);
 			~GameView();
 
-			int init();
+			int init(int vmajor, int vminor);
 			void start();
 			void setCamera();
 			void close();

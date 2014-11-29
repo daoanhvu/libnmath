@@ -4,11 +4,11 @@
 #include <Windows.h>
 
 namespace Win {
-	class ViewGL
-	{
+	class ViewGL {
 		private:
-			HDC mHdc;		//handle to device context
-			HGLRC mHglrc;	//handle to OpenGL rendering context
+			HDC mHdc;				//handle to device context
+			HBITMAP hBitmapBuffer;
+			HDC hdcBuffer;
 
 			static bool setPixelFormat(HDC hdc, int colorBits, int depthBits, int tencilBits);
 			static int findPixelFormat(HDC hdc, int colorBits, int depthBits, int tencilBits);
@@ -17,12 +17,9 @@ namespace Win {
 			ViewGL(void);
 			~ViewGL(void);
 
-			bool createContext(HWND handle, int colorBits, int depthBits, int stencilBits);  // create OpenGL rendering context
-			void closeContext(HWND handle);
-			void swapBuffers();
-
 			HDC getDC() const { return mHdc; };
-			HGLRC getRC() const { return mHglrc; };
+
+			void updateBuffer(int h, int w);
 	};
 }
 

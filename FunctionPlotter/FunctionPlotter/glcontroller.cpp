@@ -41,6 +41,9 @@ int GLController::create() {
 }
 
 int GLController::paint() {
+	PAINTSTRUCT ps;
+	::BeginPaint(mView->getHandle(), &ps);
+	::EndPaint(mView->getHandle(), &ps);
 	return 0;
 }
 
@@ -84,7 +87,7 @@ void GLController::runThread() {
 	mView->resizeWindow(rect.right, rect.bottom);
 
 	while(mLoopFlag) {
-		Sleep(1);		//yield to other processes or threads
+		Sleep(2);		//yield to other processes or threads
 		
 		mView->resetViewportIfNeeded();
 		mModel->draw();

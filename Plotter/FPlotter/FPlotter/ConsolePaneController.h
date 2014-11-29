@@ -17,6 +17,7 @@ namespace Win {
 
 			int command(int id, int cmd, LPARAM msg);   // for WM_COMMAND
 			int create();                               // for WM_CREATE
+			int close();
 			int hScroll(WPARAM wParam, LPARAM lParam);  // for WM_HSCROLL
 	};
 

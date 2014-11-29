@@ -1,3 +1,5 @@
+#include <Windows.h>
+#include <CommCtrl.h>
 #include "ConsolePaneController.h"
 #include "resource.h"
 #include "modelgl.h"
@@ -10,6 +12,10 @@ ConsolePaneController::ConsolePaneController(ModelGL *model, ConsoleView *view):
 
 
 ConsolePaneController::~ConsolePaneController(void) {
+}
+
+int ConsolePaneController::close(){
+	return 0;
 }
 
 //process WM_COMMAND
@@ -66,21 +72,21 @@ int ConsolePaneController::hScroll(WPARAM wParam, LPARAM lParam) {
     HWND trackbarHandle = (HWND)lParam;
 
     int position = HIWORD(wParam);              // current tick mark position
-    if(trackbarHandle)
-    {
+    if(trackbarHandle) {
         // get control ID
         int trackbarId = ::GetDlgCtrlID(trackbarHandle);
 
-        switch(LOWORD(wParam))
-        {
+        switch(LOWORD(wParam)){
         case TB_THUMBTRACK:     // user dragged the slider
             mView->updateTrackbars(trackbarHandle, position);
+			/*
             if(trackbarId == IDC_RED)
                 mModel->setBackgroundRed(position / 255.0f);
             else if(trackbarId == IDC_GREEN)
                 mModel->setBackgroundGreen(position / 255.0f);
             else if(trackbarId == IDC_BLUE)
                 mModel->setBackgroundBlue(position / 255.0f);
+			*/
             break;
 
         case TB_THUMBPOSITION:  // by WM_LBUTTONUP
@@ -107,12 +113,14 @@ int ConsolePaneController::hScroll(WPARAM wParam, LPARAM lParam) {
         case TB_ENDTRACK:       // by WM_KEYUP (User release a key.)
             position = (int)::SendMessage(trackbarHandle, TBM_GETPOS, 0, 0);
             mView->updateTrackbars(trackbarHandle, position);
+			/*
             if(trackbarId == IDC_RED)
                 mModel->setBackgroundRed(position / 255.0f);
             else if(trackbarId == IDC_GREEN)
                 mModel->setBackgroundGreen(position / 255.0f);
             else if(trackbarId == IDC_BLUE)
                 mModel->setBackgroundBlue(position / 255.0f);
+			*/
             break;
         }
     }

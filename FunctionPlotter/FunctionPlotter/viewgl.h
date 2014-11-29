@@ -35,9 +35,6 @@ namespace Win {
 			wchar_t className[MAX_STRING];
 
 			int init();
-
-			static bool setPixelFormat(HDC hdc, int colorBits, int depthBits, int tencilBits);
-			static int findPixelFormat(HDC hdc, int colorBits, int depthBits, int tencilBits);
 			static GLuint loadShader(const char *vertexShaderFile, const char *fragmentShaderFile);
 
 		public:

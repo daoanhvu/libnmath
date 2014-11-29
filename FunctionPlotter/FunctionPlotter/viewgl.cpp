@@ -104,63 +104,6 @@ int ViewGL::init() {
 	return NFP_OK;
 }
 
-bool ViewGL::setPixelFormat(HDC hdc, int colorBits, int depthBits, int tencilBits) {
-	PIXELFORMATDESCRIPTOR pfd;
-	int pixelFormat = findPixelFormat(hdc, colorBits, depthBits, tencilBits);
-	if(pixelFormat == 0)
-		return false;
-
-	::DescribePixelFormat(hdc, pixelFormat, sizeof(pfd), &pfd);
-
-	if(!::SetPixelFormat(hdc, pixelFormat, &pfd)) {
-		return false;
-	}
-
-	return true;
-}
-
-int ViewGL::findPixelFormat(HDC hdc, int colorBits, int depthBits, int stencilBits) {
-	int currMode = 0;
-	int bestMode = 0;
-	int currScore = 0;
-	int bestScore = 0;
-	PIXELFORMATDESCRIPTOR pfd;
-
-	for(currMode=1; ::DescribePixelFormat(hdc, currMode, sizeof(pfd), &pfd) > 0; currMode++) {
-		//ignore if cannot support opengl or cannot render into a window
-		if(!(pfd.dwFlags & PFD_SUPPORT_OPENGL) || !(pfd.dwFlags & PFD_DRAW_TO_WINDOW))
-			continue;
-
-		// ignore if cannot support rgba mode
-        if((pfd.iPixelType != PFD_TYPE_RGBA) || (pfd.dwFlags & PFD_NEED_PALETTE))
-            continue;
-
-        // ignore if not double buffer
-        if(!(pfd.dwFlags & PFD_DOUBLEBUFFER))
-            continue;
-
-		// colour bits
-        if(pfd.cColorBits >= colorBits) ++currScore;
-
-        // depth bits
-        if(pfd.cDepthBits >= depthBits) ++currScore;
-
-        // stencil bits
-        if(pfd.cStencilBits >= stencilBits) ++currScore;
-
-        // alpha bits
-        if(pfd.cAlphaBits > 0) ++currScore;
-
-        // check if it is best mode so far
-        if(currScore > bestScore) {
-            bestScore = currScore;
-            bestMode = currMode;
-        }
-	}
-
-	return bestMode;
-}
-
 HWND ViewGL::createWindow(void *controller) {
 	//Create actual window for OpenGL here
 	mHandle = CreateWindowEx(winStyleEx, className, title, winStyle, x, y,
@@ -227,16 +170,16 @@ int ViewGL::createGLContext(int colorBits, int depthBits, int stencilBits) {
 			mHglrc = wglCreateContextAttribsARB(mHdc, 0, contextAttribs);
 			if (mHglrc) {
 				wglMakeCurrent(mHdc, mHglrc);
-				mProgramID = loadShader("D:\\Documents\\testapp\\libnmath\\FunctionPlotter\\FunctionPlotter\\shaders\\fplotter.vertextsharder",
-					"D:\\Documents\\testapp\\libnmath\\FunctionPlotter\\FunctionPlotter\\shaders\\fplotter.fragmentshader");
-				//mProgramID = loadShader("D:\\projects\\libnmath\\FunctionPlotter\\FunctionPlotter\\shaders\\fplotter.vertextsharder",
-				//	"D:\\projects\\libnmath\\FunctionPlotter\\FunctionPlotter\\shaders\\fplotter.fragmentsharder");
+				//mProgramID = loadShader("D:\\Documents\\testapp\\libnmath\\FunctionPlotter\\FunctionPlotter\\shaders\\fplotter.vertextsharder",
+				//	"D:\\Documents\\testapp\\libnmath\\FunctionPlotter\\FunctionPlotter\\shaders\\fplotter.fragmentshader");
+				mProgramID = loadShader("D:\\projects\\libnmath\\FunctionPlotter\\FunctionPlotter\\shaders\\fplotter.vertextsharder",
+					"D:\\projects\\libnmath\\FunctionPlotter\\FunctionPlotter\\shaders\\fplotter.fragmentsharder");
 				if (mProgramID <= 0) {
 					return NFP_ERROR_GLSL_PROGRAM_FAIL;
 				}
 
 				mPositionID = glGetAttribLocation(mProgramID, "position");
-				mEnableLightID = glGetUniformLocation(mProgramID, "enableLight");
+				//mEnableLightID = glGetUniformLocation(mProgramID, "enableLight");
 			}
 			
 		}
@@ -280,6 +223,7 @@ void ViewGL::setViewport(int width, int height) {
 	glLoadIdentity();
 	gluPerspective(60.0f, aspectRatio, 0.1f, 20.0f);
 	glMatrixMode(GL_MODELVIEW);
+	windowResized = false;
 }
 
 bool ViewGL::resetViewportIfNeeded() {

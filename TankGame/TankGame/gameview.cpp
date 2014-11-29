@@ -17,22 +17,21 @@ using namespace TankGame;
 	https://gist.github.com/Madsy/6980061
 */
 
-GameView::GameView(GameModel *model):mModel(model), mWindow(NULL) {
-
+GameView::GameView(GameModel *model): mProgramId(0), mModel(model), mWindow(NULL) {
 }
 
 GameView::~GameView(){
 
 }
 
-int GameView::init() {
+int GameView::init(int vmajor, int vminor) {
 	if(!glfwInit()) {
 		return 1;
 	}
 
 	glfwWindowHint(GLFW_SAMPLES, 4); //4x Antialiasing
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2); //I want to use OpenGL 2.1
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, vmajor); //I want to use OpenGL 2.1
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, vminor);
 
 	mWindow = glfwCreateWindow(800, 600, "TankGame", NULL, NULL);
 	if (mWindow == NULL) {
@@ -57,6 +56,13 @@ int GameView::init() {
 		return 4;
 	}
 
+	mPositionLocation = glGetAttribLocation(mProgramId, "position");
+	mInColorLocation = glGetAttribLocation(mProgramId, "inColor");
+
+	if (mModel != NULL){
+		mModel->init();
+	}
+
     return 0;
 }
 
@@ -65,10 +71,11 @@ void GameView::start() {
 	//mThreadHandle = (HANDLE)_beginthreadex(NULL, NULL, (unsigned (__stdcall *)(void *))startThread, this, 0, &mThreadID);
 
 	do {
+		glUseProgram(mProgramId);
 		glClear(GL_COLOR_BUFFER_BIT);
-
 		//Draw stuffs here
 		mModel->render();
+		glUseProgram(0);
 
 		glfwSwapBuffers(mWindow);
 		glfwPollEvents();
@@ -120,14 +127,15 @@ GLuint GameView::loadShaders(const char * vertex_file_path, const char * fragmen
 	GLint result = GL_FALSE;
 	int inforLen;
 	GLuint programID;
+	std::string line = "";
 
 	// Read the Vertex Shader code from the file
 	std::string vertexShaderCode;
 	std::ifstream vertexShaderStream(vertex_file_path, std::ios::in);
 	if (vertexShaderStream.is_open()) {
-		std::string Line = "";
-		while (getline(vertexShaderStream, Line))
-			vertexShaderCode += "\n" + Line;
+		line = "";
+		while (getline(vertexShaderStream, line))
+			vertexShaderCode += line + "\n";
 		vertexShaderStream.close();
 	}
 
@@ -135,9 +143,9 @@ GLuint GameView::loadShaders(const char * vertex_file_path, const char * fragmen
 	std::string FragmentShaderCode;
 	std::ifstream FragmentShaderStream(fragment_file_path, std::ios::in);
 	if (FragmentShaderStream.is_open()) {
-		std::string Line = "";
-		while (getline(FragmentShaderStream, Line))
-			FragmentShaderCode += "\n" + Line;
+		line = "";
+		while (getline(FragmentShaderStream, line))
+			FragmentShaderCode += line + "\n";
 		FragmentShaderStream.close();
 	}
 

@@ -3,6 +3,12 @@
 #include "controller.h"
 
 LRESULT CALLBACK Win::fakeWindowProcedure(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam){
+	PAINTSTRUCT ps;
+	if(msg == WM_PAINT){
+		BeginPaint(hwnd, &ps);
+		EndPaint(hwnd, &ps);
+		return 0;
+	}
 	return ::DefWindowProc(hwnd, msg, wParam, lParam);
 }
 

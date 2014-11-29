@@ -11,7 +11,6 @@ int GLController::close() {
 	mLoopFlag = false;
 	::WaitForSingleObject(mThreadHandle, INFINITE);
 
-	mView->closeContext(mHandle);
 	::DestroyWindow(mHandle);
 	return 0;
 }
@@ -21,8 +20,6 @@ int GLController::command(int id, int cmd, LPARAM msg) {
 }
 
 int GLController::create() {
-	if(!mView->createContext(mHandle, 32, 24, 8))
-		return -1;
 
 	mThreadHandle = (HANDLE)_beginthreadex(0, 0, (unsigned (__stdcall *)(void*))threadFunction, this, 0, &mThreadId);
 	if(mThreadHandle) {
@@ -33,11 +30,16 @@ int GLController::create() {
 }
 
 int GLController::paint() {
+	PAINTSTRUCT ps;
+	BeginPaint(mHandle, &ps);
+
+	EndPaint(mHandle, &ps);
 	return 0;
 }
 
 int GLController::size(int w, int h, WPARAM wParam) {
 	mModel->resizeWindow(w, h);
+	mView->updateBuffer(w, h);
     return 0;
 }
 
@@ -66,23 +68,11 @@ int GLController::mouseMove(WPARAM state, int x, int y) {
 }
 
 void GLController::runThread() {
-	RECT rect;
-	::wglMakeCurrent(mView->getDC(), mView->getRC());
-
-	//IMPORTANT: initialize OpenGL state
-	mModel->init();
-
-	::GetClientRect(mHandle, &rect);
-	mModel->resizeWindow(rect.right, rect.bottom);
-
 	while(mLoopFlag) {
 		Sleep(1);		//yield to other processes or threads
 		mModel->draw();
-		mView->swapBuffers();
 	}
-
-	//terminate rendering thread
-	::wglMakeCurrent(0, 0);
+	
 	::CloseHandle(mThreadHandle);
 }
 
