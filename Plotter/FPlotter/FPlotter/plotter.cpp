@@ -5,6 +5,7 @@
 #include <Windows.h>
 #include <CommCtrl.h>
 #include "resource.h"
+#include "procedure.h"
 #include "controllermain.h"
 #include "glcontroller.h"
 #include "window.h"
@@ -29,7 +30,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPSTR lpCmdLine,
 	::LoadString(hInstance, IDS_APP_NAME, appName, 256);
 
 	Win::ControllerMain ctrlMain;
-	Win::Window windowMain(hInstance, appName, 0, &ctrlMain);
+	Win::Window windowMain(hInstance, appName, 0, Win::windowProcedure, &ctrlMain);
 
 	windowMain.setMenuName(MAKEINTRESOURCE(IDR_MAIN_MENU));
 	windowMain.setSize(800, 650);
@@ -39,7 +40,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPSTR lpCmdLine,
 	ModelGL modelGL;
 	Win::ViewGL viewGL;
 	Win::GLController controllerGL(&modelGL, &viewGL);
-	Win::Window glChildWindow(hInstance, L"MyGLWindow", windowMain.getHandle(), &controllerGL);
+	Win::Window glChildWindow(hInstance, L"MyGLWindow", windowMain.getHandle(), Win::GraphWinproc, &controllerGL);
 	Win::ConsoleView consoleView;
 
 	glChildWindow.setClassStyle(CS_OWNDC);

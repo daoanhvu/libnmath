@@ -30,7 +30,7 @@ namespace Win {
 		HICON loadIcon(int id);
 		HCURSOR loadCursor(int id);
 	public:
-		Window(HINSTANCE hInst, const wchar_t *name, HWND hParent, Controller *ctrl);
+		Window(HINSTANCE hInst, const wchar_t *name, HWND hParent, WNDPROC winProc, Controller *ctrl);
 		~Window();
 
 		HWND create();

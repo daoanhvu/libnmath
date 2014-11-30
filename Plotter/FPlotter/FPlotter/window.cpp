@@ -9,7 +9,7 @@ using std::wstringstream;
 using std::wcout;
 using namespace Win;
 
-Window::Window(HINSTANCE hInst, const wchar_t *name, HWND hParent, Controller *ctrl):handle(0), instance(hInst), controller(ctrl),
+Window::Window(HINSTANCE hInst, const wchar_t *name, HWND hParent, WNDPROC winProc, Controller *ctrl):handle(0), instance(hInst), controller(ctrl),
 	winStyle(WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN), winStyleEx(WS_EX_CLIENTEDGE), x(CW_USEDEFAULT), y(CW_USEDEFAULT),
 	width(CW_USEDEFAULT), height(CW_USEDEFAULT), parentHandle(hParent), menuHandle(0){
 	
@@ -20,7 +20,7 @@ Window::Window(HINSTANCE hInst, const wchar_t *name, HWND hParent, Controller *c
 	//populate window class struct
 	winClass.cbSize 	   = sizeof(WNDCLASSEX);
 	winClass.style         = 0;                                     // class styles: CS_OWNDC, CS_PARENTDC, CS_CLASSDC, CS_GLOBALCLASS, ...
-    winClass.lpfnWndProc   = Win::windowProcedure;                  // pointer to window procedure
+    winClass.lpfnWndProc   = winProc;                  // pointer to window procedure
     winClass.cbClsExtra    = 0;
     winClass.cbWndExtra    = 0;
     winClass.hInstance     = instance;                              // owner of this class

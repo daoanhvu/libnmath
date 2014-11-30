@@ -1,9 +1,10 @@
 #ifndef _MODELGL_H
 #define _MODELGL_H
 
-#include <glm\glm.hpp>
-
-using namespace glm;
+#include <vector>
+#include <nmath.h>
+#include <criteria.h>
+#include "Camera.h"
 
 class ModelGL {
 	private:
@@ -14,8 +15,7 @@ class ModelGL {
 		// members
 		int windowWidth;
 		int windowHeight;
-
-		mat4 mvp;
+		Camera camera;
 
 		bool animateFlag;                               // on/off animation
 		bool changeDrawMode;
@@ -28,11 +28,14 @@ class ModelGL {
 		float cameraAngleX;
 		float cameraAngleY;
 		float cameraDistance;
-		float bgColor[4];
+		BYTE bgColor[4];
 		bool bgFlag;
 		bool windowResized;
 		unsigned char* frameBuffer;                     // framebuffer to store RGBA color
 		int bufferSize;                                 // framebuffer size in bytes
+
+		Function *mFunction;
+		ListFData *data; 
 
 	protected:
 
@@ -41,6 +44,7 @@ class ModelGL {
 		~ModelGL();
 
 		void init();                                    // initialize OpenGL states
+		void release();
 		void setCamera(float posX, float posY, float posZ, float targetX, float targetY, float targetZ);
 		void setViewport(int width, int height);
 		void resizeWindow(int width, int height);

@@ -20,26 +20,23 @@ int GLController::command(int id, int cmd, LPARAM msg) {
 }
 
 int GLController::create() {
-
+	/*
 	mThreadHandle = (HANDLE)_beginthreadex(0, 0, (unsigned (__stdcall *)(void*))threadFunction, this, 0, &mThreadId);
 	if(mThreadHandle) {
 		mLoopFlag = true;
 	}
-
+	*/
 	return 0;
 }
 
 int GLController::paint() {
-	PAINTSTRUCT ps;
-	BeginPaint(mHandle, &ps);
-
-	EndPaint(mHandle, &ps);
+	mView->paint(mHandle);
 	return 0;
 }
 
 int GLController::size(int w, int h, WPARAM wParam) {
 	mModel->resizeWindow(w, h);
-	mView->updateBuffer(w, h);
+	mView->updateBuffer(mHandle, w, h);
     return 0;
 }
 

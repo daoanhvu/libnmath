@@ -33,7 +33,7 @@ void resetFunction(Function *f, const char *str, const char *vars, int varCount,
 void resetFunctUsingPool(Function *f);
 double calc(Function *f, double *values, int numOfValue, int *);
 int reduce(Function *f, int *);
-#ifdef WINDOWS
+#ifdef _WIN32
 unsigned int __stdcall reduce_t(void *param);
 unsigned int __stdcall calc_t(void *param);
 unsigned int __stdcall calcF_t(void *param);

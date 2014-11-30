@@ -9,6 +9,7 @@
 
 namespace Win {
 	LRESULT CALLBACK windowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
+	LRESULT CALLBACK GraphWinproc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	INT_PTR CALLBACK dialogProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 }
 
