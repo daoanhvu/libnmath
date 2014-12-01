@@ -23,7 +23,7 @@ void CombinedCriteria::operator =(CombinedCriteria& dest, const CombinedCriteria
 	}
 }
 
-CombinedCriteria& CombinedCriteria::operator &(const Criteria& c) {
+Criteria* CombinedCriteria::operator &(const Criteria& c) {
 	CombinedCriteria* out;
 	int i = 0, size = v.size();
 	for(i=0; i<size; i++){
@@ -54,7 +54,7 @@ CombinedCriteria& CombinedCriteria::operator &(const Criteria& c) {
 	return out;
 }
 
-CombinedCriteria& CombinedCriteria::operator &(const CombinedCriteria& c) {
+Criteria* CombinedCriteria::and(const CombinedCriteria& c) {
 	int i, size = c->size();
 	CombinedCriteria *out;
 	out = new CombinedInterval();
@@ -66,7 +66,18 @@ CombinedCriteria& CombinedCriteria::operator &(const CombinedCriteria& c) {
 	return out;
 }
 
-CompositeCriteria& CombinedCriteria::operator &(const CompositeCriteria& c) {
+Criteria* CombinedCriteria::and(const CompositeCriteria& c) {
+	Criteria* tmp;
+
+	CompositeCriteria* out = new CompositeCriteria();
+
+	for(i=0; i<c.sise(); i++) {
+		tmp = this->and(c[i]);
+
+		if(tmp != NULL)
+			out->add(tmp);
+	}
+	return out;
 }
 
 /**

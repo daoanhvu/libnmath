@@ -1,11 +1,11 @@
 #ifndef _COMPOSITECRITERIA_H
 #define _COMPOSITECRITERIA_H
 
+#include <vector>
+#include "criteria.h"
 #include "combinedcriteria.h"
 
-using namespace std;
-
-class CompositeCriteria {
+class CompositeCriteria: public Criteria {
 	private:
 		std::vector<CombinedCriteria&>  v;
 		
@@ -17,16 +17,11 @@ class CompositeCriteria {
 		int size();
 		int check(const float* values);
 		
-		CombinedCriteria operator [](int index);
+		CombinedCriteria& operator [](int index);
 		
-		CompositeCriteria& operator |(Criteria &);
-		CompositeCriteria& operator |(CompositeCriteria &);
-		CompositeCriteria& operator |(CombinedCriteria &);
-		
-		CompositeCriteria& operator &(Criteria &);
-		CompositeCriteria& operator &(CompositeCriteria &);
-		CompositeCriteria& operator &(CombinedCriteria &);
-		
+		Criteria& operator |(Criteria &);
+		Criteria& operator &(Criteria &);
+
 		CompositeCriteria& operator |=(CombinedCriteria &);
 		CompositeCriteria& operator &=(Criteria &);
 		CompositeCriteria& operator &=(CombinedCriteria &);
@@ -34,6 +29,6 @@ class CompositeCriteria {
 		static void operator =(CompositeCriteria &, CompositeCriteria &);
 };
 
-inline int CompositeCriteria::getSize() {return v.size();}
+inline int CompositeCriteria::getSize() { return v.size(); }
 
 #endif
