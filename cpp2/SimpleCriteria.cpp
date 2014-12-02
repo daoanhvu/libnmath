@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include "nmath.h"
 #include "SimpleCriteria.h"
 #include "combinedcriteria.h"
 #include "compositecriteria.h"
@@ -16,6 +15,7 @@
 using namespace nmath;
 
 SimpleCriteria::SimpleCriteria() {
+	this->cType = SIMPLE;
 	this->rightInfinity = 1;
 	this->leftInfinity = 1;
 	this->available = 1;
@@ -27,6 +27,7 @@ SimpleCriteria::SimpleCriteria() {
 
 SimpleCriteria::SimpleCriteria(int type, char var, float lval, float rval, 
 										char leftInfinity, char rightInfinity) {
+	this->cType = SIMPLE;
 	this->type = type;
 	this->variable = var;
 	this->leftVal = lval;
@@ -40,6 +41,28 @@ SimpleCriteria* SimpleCriteria::clone() {
 	SimpleCriteria *out;
 	out = new SimpleCriteria(type, variable, leftVal, rightVal, leftInfinity, rightInfinity);
 	return out;
+}
+
+bool SimpleCriteria::isOverlapped(const SimpleCriteria& c) {
+	if (variable == c.variable){
+		if (!(this->leftInfinity) && !(this->rightInfinity)) { /* If this interval is closed*/
+			if (!(c.leftInfinity) && !(c.rightInfinity)) { //c is closed
+				/*
+					this |---|
+					c			|---|
+				
+				*/
+				if ((rightVal < c.leftVal) || (leftVal > c.rightVal))
+					return false;
+				else return true;
+			}
+			else if (!(c.leftInfinity) && c.rightInfinity) {
+
+			}
+		}
+	}
+
+	return false;
 }
 
 int SimpleCriteria::check(float values) {
@@ -113,7 +136,7 @@ int SimpleCriteria::check(float values) {
 	return result;
 }
 
-Criteria* SimpleCriteria::and(const float& values ){
+SimpleCriteria* SimpleCriteria::and(const float *values) {
 	SimpleCriteria *outInterval = new SimpleCriteria();
 	
 	outInterval->available = 1;
@@ -282,7 +305,7 @@ Criteria* SimpleCriteria::and(const float& values ){
 	return outInterval;
 }
 
-Criteria* SimpleCriteria::and(const SimpleCriteria &c) {
+Criteria* SimpleCriteria::and(SimpleCriteria& c) {
 	Criteria* out = NULL;
 	Criteria* outCriteria;
 	float d[2] = {c.leftVal, c.rightVal};
@@ -329,7 +352,7 @@ Criteria* SimpleCriteria::and(const SimpleCriteria &c) {
 						This   |-----------------
 						c    	|-----------|
 					*/
-					out = c.clone();
+					out = (Criteria*)(c.clone());
 				} else if(c.leftVal < this->leftVal) {
 					/*
 						This   |-----------------
@@ -368,7 +391,7 @@ Criteria* SimpleCriteria::and(const SimpleCriteria &c) {
 					out = NULL;
 				}
 			} else { // c is open
-				out = this->clone()
+				out = this->clone();
 			}
 		} if( (this->leftInfinity) && !(this->rightInfinity) ) { /* This interval is close on RIGHT and open on LEFT  */
 			if( !(c.leftInfinity) && !(c.rightInfinity) ) { //c is closed
@@ -431,28 +454,37 @@ Criteria* SimpleCriteria::and(const SimpleCriteria &c) {
 		}
 	} else {
 		out = new CombinedCriteria();
-		out &= this;
-		out &= c;
+		((CombinedCriteria*)out)->add(this->clone());
+		((CombinedCriteria*)out)->add(c.clone());
 	}
 
 	return out;
 }
 
-Criteria* SimpleCriteria::and(const CombinedCriteria& cb) {
+Criteria* SimpleCriteria::and(CombinedCriteria& cb) {
 	int i, j;
 	Criteria* tmp;
 	CombinedCriteria *out;
-	for(i=0; i < cb->size(); i++) {
+	int size = cb.size();
+	for(i=0; i < size; i++) {
 		if( this->variable == cb[i]->variable ){
-			tmp = this->and(cb[i]);
+			tmp = this->and(*cb[i]);
 			if(tmp != NULL) {
 				//TODO: Copy cb to out except element at i
 				out = new CombinedCriteria();
-				for(j=0; j < cb->size(); j++) {
+				for(j=0; j < size; j++) {
 					if(j != i)
-						out->add(cb[j].clone());
+						out->add(cb[j]->clone());
 				}
-				out->add(tmp);
+
+				if (tmp->getCClassType() == SIMPLE)
+					out->add((SimpleCriteria*)tmp);
+				else if (tmp->getCClassType() == COMBINED){
+
+					for (j = 0; j < ((CombinedCriteria*)tmp)->size(); j++) {
+						out->add(cb[j]->clone());
+					}
+				}
 				return out;
 			} else
 				return NULL;
@@ -462,239 +494,173 @@ Criteria* SimpleCriteria::and(const CombinedCriteria& cb) {
 	/*
 		We got here because this criteria has variable that not same as vaiable of any criteria in CombinedCriteria
 	*/
-	out = new CombinedCriteria();
-	out = cb->clone();
-	out &= this;
+	out = cb.clone();
+	out->add(this->clone);
 	return out;
 }
 
-Criteria* SimpleCriteria::and(const CompositeCriteria& inputComp) {
-	CombinedCriteria *cbOut;
+Criteria* SimpleCriteria::and(CompositeCriteria& c) {
+	int i;
+	Criteria *cbOut;
 	CompositeCriteria *comp1;
 	/**
 		c1 and (c2 or  c3) = (c1 and c2) or (c1 and c3)
 	*/
 	comp1 = new CompositeCriteria();
-	for(i=0; i<inputComp->size(); i++) {
-		cb = inputComp[i];
-		if( (cbOut = this->and(cb)) != NULL ) {
-			comp1 += cbOut;
+	for(i=0; i<c.size(); i++) {
+		if( (cbOut = this->and(*c[i])) != NULL ) {
+			if (cbOut->getCClassType() == COMBINED )
+				comp1->add((CombinedCriteria*)cbOut);
 		}
 	}	
 	return comp1;
 }
 
-Criteria* SimpleCriteria::operator &(const Criteria &c) {
-	Criteria *out = and(c);
+Criteria* SimpleCriteria::operator &(Criteria& c) {
+	Criteria *out;
+	switch (c.getCClassType()){
+		case SIMPLE:
+			out = and((SimpleCriteria&)c);
+			break;
+
+		case COMBINED:
+			out = and((CombinedCriteria&)c);
+			break;
+
+		case COMPOSITE:
+			out = and((CompositeCriteria&)c);
+			break;
+	}
 	return out;
 }
 
-
-/**
-	@return 
-		FALSE: if it is contradiction
-		TRUE: 
-*/
-int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out){
-	int objTypeLeft = *((char*)c1);
-	int objTypeRight = *((char*)c2);
-	int i, result = FALSE;
+Criteria* SimpleCriteria::or(SimpleCriteria& c) {
 	float d[2];
-	Criteria *interval, *cr;
-	CombinedCriteria *cb, *comb1, *comb2;
-	CompositeCriteria *inputComp, *outComp, *comp1, *comp2;
-	void *tmp;
-	OutBuiltCriteria outTmp;
-	
-	if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
-		result = andTwoSimpleCriteria((const Criteria*)c1, (const Criteria*)c2, out);
-	} else if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == COMBINED_CRITERIA ) {
-		
-	} else if( objTypeLeft == SIMPLE_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
-		
-	} else if( objTypeLeft == COMBINED_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
-		
-	} else if( objTypeLeft == COMBINED_CRITERIA && objTypeRight == COMBINED_CRITERIA ) {
-		
-	} else if( objTypeLeft == COMBINED_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
-		
-	} else if( objTypeLeft == COMPOSITE_CRITERIA && objTypeRight == SIMPLE_CRITERIA ) {
-		inputComp = (CompositeCriteria*)c1;
-		comp1 = newCompositeInterval();
-		for(i=0; i<inputComp->size; i++) {
-			cb = inputComp->list[i];
-			outTmp.cr = NULL;
-			if( andTwoCriteria((Criteria*)c2, cb, &outTmp) ){
-				if(comp1->size >= comp1->loggedSize){
-					comp1->loggedSize += 5;
-					tmp = realloc(comp1->list, sizeof(CombinedCriteria*) * comp1->loggedSize);
-					comp1->list = (CombinedCriteria**)(tmp==NULL?comp1->list:tmp);
+	Criteria* out;
+	bool usedComposite = false;
+
+	if(this->variable == c.variable) { /* This criteria and c have the same variable */
+		if( !(this->leftInfinity) && !(this->rightInfinity) ) { //If this interval is close
+			if( !(c.leftInfinity) && !(c.rightInfinity) ) { //c is close
+				// process exceptions first
+				if( (this->rightVal < c.leftVal) || (this->leftVal > c.rightVal) ){
+					/*
+						this  |---|
+						c  			 |-----|
+					OR
+						this        |----|
+						c    |----|
+					*/
+					usedComposite = true;
+				} else {
+					if(this->leftVal <= c.leftVal) {
+						out = this->clone();
+						if(this->rightVal < c.rightVal) {
+							/*
+							Default: this  |--------|
+									 c    	|----|
+							OR
+							this  |--------|
+							c    	|-------|
+							*/
+							((SimpleCriteria*)out)->rightVal = c.rightVal;
+						}
+					} else {
+						/*
+							Default: this    |--------|
+									 c    	|----------|
+						*/
+						out = c.clone();
+						if(this->rightVal < c.rightVal) {
+							/*
+							this      |--------|
+							c    	|-------|
+							*/
+							((SimpleCriteria*)out)->rightVal = this->rightVal;
+						}
+					}
 				}
-				comp1->list[comp1->size++] = (CombinedCriteria*)(outTmp.cr);
+				
+			} else if( !(c.leftInfinity) && c.rightInfinity ) { // c is close on LEFT and open on RIGHT
+				//exception first
+				if(this->rightVal < c.leftVal ) {
+					/*
+						this  |---|
+						c  			|-----
+					*/
+					usedComposite = true;
+				} else {
+					/*
+						default	this       |--------|
+								c    	|-------------
+						*/
+					out = c.clone();
+					if(this->leftVal <= c.leftVal) {
+						/*
+							this  |--------|
+							c    	|------------
+						*/
+						
+						((SimpleCriteria*)out)->leftVal = this->leftVal;
+					}
+				}
+			} else if( c.leftInfinity && !(c.rightInfinity) ) { //c is open on LEFT and close on RIGHT
+				//exception first
+				if( this->leftVal > c.rightVal ) {
+					/*
+						this 			|-----|
+						c 		-----|
+					*/
+					usedComposite = true;
+				} else {
+
+				}
+
+			} else { // c is open
+				out = c.clone();
 			}
+		} if( !(this->leftInfinity) && this->rightInfinity ) { /* This interval is close on RIGHT and open on LEFT  */
+
+		} if( this->leftInfinity && !(this->rightInfinity) ) { /* This interval is close on LEFT and open on RIGHT  */
+
+		} else { // this object is open
+			out = this->clone();
 		}
-		result = TRUE;
-		out->cr = comp1;
-	} else if( objTypeLeft == COMPOSITE_CRITERIA && objTypeRight == COMBINED_CRITERIA ) {
-		comb1 = (CombinedCriteria*)c2;
-		comp2 = (CompositeCriteria*)c1;
-		outComp = newCompositeInterval();
-		outComp->loggedSize = comp2->size;
-		outComp->list = (CombinedCriteria**)malloc(sizeof(CombinedCriteria*) * outComp->loggedSize);
-		for(i=0; i<comp2->size; i++) {
-			cb = comp2->list[i];
-			andTwoCriteria(comb1, cb, &outTmp);
+	} else usedComposite = true;
 
-			if(outComp->size >= outComp->loggedSize) {
-				outComp->loggedSize += 5;
-				tmp = realloc(outComp->list, sizeof(CombinedCriteria*) * outComp->loggedSize);
-				outComp->list = (tmp==NULL)?outComp->list:((CombinedCriteria**)tmp);
-			}
 
-			outComp->list[(outComp->size)++] = (CombinedCriteria*)outTmp.cr;
-			outTmp.cr = NULL;
-		}
-		out->cr = outComp;
-		result = TRUE;
-	} else if( objTypeLeft == COMPOSITE_CRITERIA && objTypeRight == COMPOSITE_CRITERIA ) {
-		comp1 = (CompositeCriteria*)c1;
-		comp2 = (CompositeCriteria*)c2;
-		outComp = newCompositeInterval();
-		outComp->loggedSize = comp2->size;
-		outComp->list = (CombinedCriteria**)malloc(sizeof(CombinedCriteria*) * outComp->loggedSize);
-		for(i=0; i<comp2->size; i++) {
-			cb = comp2->list[i];
-			andTwoCriteria(comp1, cb, &outTmp);
+	if(usedComposite) {
+		out = new CompositeCriteria();
 
-			if(outComp->size >= outComp->loggedSize) {
-				outComp->loggedSize += 5;
-				tmp = realloc(outComp->list, sizeof(CombinedCriteria*) * outComp->loggedSize);
-				outComp->list = (tmp==NULL)?outComp->list:((CombinedCriteria**)tmp);
-			}
+		CombinedCriteria* cb1 = new CombinedCriteria();
+		cb1->add(this->clone());
 
-			outComp->list[(outComp->size)++] = (CombinedCriteria*)outTmp.cr;
-			outTmp.cr = NULL;
-		}
-		out->cr = outComp;
-		result = TRUE;
+		CombinedCriteria* cb2 = new CombinedCriteria();
+		cb2->add(c.clone());
+	
+		((CompositeCriteria*)out)->add(cb1);
+		((CompositeCriteria*)out)->add(cb2);
 	}
-	return result;
+	
+	return out;
 }
 
 /**
 	Need to implement
 */
-CompositeCriteria Criteria::operator |(const Criteria *c) {
-	float d[2];
-	Criteria *interval;
-	CombinedCriteria* cb;
-	CompositeCriteria* out = new CompositeCriteria();
-
-	if(this->variable == c->variable) {
-		if( !(this->leftInfinity) && !(this->rightInfinity) ) { //If this interval is close
-			if( !(c->leftInfinity) && !(c->rightInfinity) ) { //c is close
-
-			} else if( !(c->leftInfinity) && c->rightInfinity ) { // c is close on LEFT and open on RIGHT
-
-			} else if( c->leftInfinity && !(c->rightInfinity) ) { //c is open on LEFT and close on RIGHT
-
-			}
-		} if( (this->flag | 0x05) == 0x05 ) { /* This interval is close on RIGHT and open on LEFT  */
-
-		} if( (this->flag | 0x06) == 0x06 ) { /* This interval is close on LEFT and open on RIGHT  */
-
-		}
-
-		if( ((this->flag & 0x05)==0x05) && ((c->flag & 0x06)==0x06) ) {
-			if(this->rightVal >= c->leftVal) {
-				interval = new Criteria(this->variable, -9999, 9999, RIGHT_INF, LEFT_INF);
-				cb = new CombinedCriteria();
-				cb->and(interval);
-				out->or(cb);
-			} else {
-				interval = this->clone();
-				cb = new CombinedCriteria();
-				cb->and(interval);
-				out->or(cb);
-
-				interval = c->clone();
-				cb = new CombinedCriteria();
-				cb->and(interval);
-				out->or(cb);
-			}
-		} else if( ((this->flag & 0x05)==0x05) && ((c->flag & 0x05)==0x05) ) {
-			if(this->rightVal >= c->rightVal) {
-				interval = this->clone();
-			} else {
-				interval = c->clone();
-			}
-			cb = new CombinedCriteria();
-			cb->and(interval);
-			out->or(cb);
-
-		} else if( ((this->flag & 0x05)==0x05) && ((c->flag & 0x05)==0x05) ) {
-
-		}
-
-
-		interval = newCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
-		d[0] = c2->leftVal;
-		d[1] = c2->rightVal;
-		c1->fgetInterval(c1, d, 1, (void*)interval);
-		if( (interval->flag & AVAILABLE) == 0){
-			free(interval);
-			((CompositeCriteria*)(out->cr))->list = (CombinedCriteria**)malloc(sizeof(CombinedCriteria*)*2);
-			((CompositeCriteria*)(out->cr))->loggedSize = 2;
-			((CompositeCriteria*)(out->cr))->size = 2;
-			
-			((CompositeCriteria*)(out->cr))->list[0] = newCombinedInterval();
-			((CompositeCriteria*)(out->cr))->list[0]->list = (Criteria**)malloc(sizeof(Criteria*));
-			((CompositeCriteria*)(out->cr))->list[0]->loggedSize = 1;
-			((CompositeCriteria*)(out->cr))->list[0]->size = 1;
-			((CompositeCriteria*)(out->cr))->list[0]->list[0] = (Criteria*)malloc(sizeof(Criteria));
-			((CompositeCriteria*)(out->cr))->list[0]->list[0]->objectType = SIMPLE_CRITERIA;
-			((CompositeCriteria*)(out->cr))->list[0]->list[0]->type = c1->type;
-			((CompositeCriteria*)(out->cr))->list[0]->list[0]->variable = c1->variable;
-			((CompositeCriteria*)(out->cr))->list[0]->list[0]->leftVal = c1->leftVal;
-			((CompositeCriteria*)(out->cr))->list[0]->list[0]->rightVal = c1->rightVal;
-			((CompositeCriteria*)(out->cr))->list[0]->list[0]->fcheck = isInInterval;
-			((CompositeCriteria*)(out->cr))->list[0]->list[0]->fgetInterval = getInterval;
-			//set available bit, unset left and right infinity
-			((CompositeCriteria*)(out->cr))->list[0]->list[0]->flag = (AVAILABLE) | (c1->flag | 0xfc);
-			
-			((CompositeCriteria*)(out->cr))->list[1] = newCombinedInterval();
-			((CompositeCriteria*)(out->cr))->list[1]->list = (Criteria**)malloc(sizeof(Criteria*));
-			((CompositeCriteria*)(out->cr))->list[1]->loggedSize = 1;
-			((CompositeCriteria*)(out->cr))->list[1]->size = 1;
-			((CompositeCriteria*)(out->cr))->list[1]->list[0] = (Criteria*)malloc(sizeof(Criteria));
-			((CompositeCriteria*)(out->cr))->list[1]->list[0]->objectType = SIMPLE_CRITERIA;
-			((CompositeCriteria*)(out->cr))->list[1]->list[0]->type = c2->type;
-			((CompositeCriteria*)(out->cr))->list[1]->list[0]->variable = c2->variable;
-			((CompositeCriteria*)(out->cr))->list[1]->list[0]->leftVal = c2->leftVal;
-			((CompositeCriteria*)(out->cr))->list[1]->list[0]->rightVal = c2->rightVal;
-			((CompositeCriteria*)(out->cr))->list[1]->list[0]->fcheck = isInInterval;
-			((CompositeCriteria*)(out->cr))->list[1]->list[0]->fgetInterval = getInterval;
-			//set available bit, unset left and right infinity
-			((CompositeCriteria*)(out->cr))->list[1]->list[0]->flag = AVAILABLE | (c2->flag | 0xfc);
-			return TRUE;
-		}
-		
-		interval->leftVal = (c1->leftVal < c2->leftVal)?c1->leftVal:c2->leftVal;
-		interval->rightVal = (c1->rightVal < c2->rightVal)?c2->rightVal:c1->rightVal;
-		
-		out->cr = interval;
-	}else{
-		interval = this->clone();
-		cb = new CombinedCriteria();
-		cb->and(interval);
-		out->or(cb);
-
-		interval = c->clone();
-		cb = new CombinedCriteria();
-		cb->and(interval);
-		out->or(cb);
+Criteria* SimpleCriteria::operator |(Criteria &c) {
+	Criteria* out;
+	switch (c.getCClassType()) {
+	case SIMPLE:
+		out = or((SimpleCriteria&)c);
+		break;
+	case COMBINED:
+		out = or((CombinedCriteria&)c);
+		break;
+	case COMPOSITE:
+		out = or((CompositeCriteria&)c);
+		break;
 	}
-	
 	return out;
 }
 

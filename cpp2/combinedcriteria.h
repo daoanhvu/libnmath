@@ -1,8 +1,8 @@
 #ifndef _COMBINEDCRITERIA_H
 #define _COMBINEDCRITERIA_H
 
-#include <vector>
 #include "criteria.h"
+#include "SimpleCriteria.h"
 
 using namespace std;
 
@@ -13,13 +13,15 @@ using namespace std;
 		and the another is (y>0)
 */
 namespace nmath {
-	class CombinedCriteria {
+	class CombinedCriteria: public Criteria {
 		private:
-			std::vector<Criteria&> v;
+			SimpleCriteria** list;
+			int mLoggedSize;
+			int mSize;
 
-			CombinedCriteria* and(const SimpleCriteria& c);
-			CombinedCriteria* and(const CombinedCriteria& c);
-			CompositeCriteria* and(const CompositeCriteria& c);
+			Criteria* and(SimpleCriteria& c);
+			Criteria* and(CombinedCriteria& c);
+			Criteria* and(CompositeCriteria& c);
 
 			CombinedCriteria* or(const SimpleCriteria& c);
 			CombinedCriteria* or(const CombinedCriteria& c);
@@ -30,24 +32,24 @@ namespace nmath {
 			~CombinedCriteria();
 			void release();
 
-			int size();
+			int size() const { return mSize; }
+			int loggedSize() const { return mLoggedSize; }
 			int check(const float* values);
 			void moveListTo(CombinedCriteria& c);
-			void add(Criteria& c);
+			void add(SimpleCriteria* c);
+			SimpleCriteria* remove(int index);
 
 			/**
 				Combine (AND) this criteria with each pair of value in bounds
 			*/
 			CombinedCriteria& getInterval(const float& bounds, int varCount);
-			
 			Criteria* operator &(const Criteria& c);
 			Criteria* operator |(const Criteria& c);
-			
-			static void operator =(CombinedCriteria &, const CombinedCriteria &);
-			Criteria& operator [](int index);
+			CombinedCriteria& operator =(const CombinedCriteria &);
+			SimpleCriteria* operator [](int index) const;
+			CombinedCriteria* clone();
 			
 	};
-	inline int CombinedCriteria::size() { return v.size(); }
 }
 
 #endif

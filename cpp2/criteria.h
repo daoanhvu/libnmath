@@ -3,6 +3,7 @@
 
 #include "common.h"
 
+
 namespace nmath {
 	enum NMathCClassType {
 		SIMPLE, COMBINED, COMPOSITE
@@ -19,13 +20,13 @@ namespace nmath {
 			Criteria();
 			virtual ~Criteria()		{}
 
-			NMathCClassType getCClassType() { return cType; }
+			NMathCClassType getCClassType() const { return cType; }
 
-			virtual Criteria* operator &(const Criteria &c) { return this; }
-			virtual Criteria* operator |(const Criteria &c)	{ return this; }
+			virtual Criteria* operator &(Criteria& c) { return this; }
+			virtual Criteria* operator |(Criteria& c)	{ return this; }
 
 			/* check if value does belong to this interval */
-			virtual int check(float *value, int count) { return 0; }
+			virtual int check(float *value) { return 0; }
 	};
 }
 
