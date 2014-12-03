@@ -6,7 +6,6 @@
 
 namespace nmath {
 
-	class CombinedCriteria;
 	class CompositeCriteria;
 
 	class SimpleCriteria: public Criteria {
@@ -34,11 +33,9 @@ namespace nmath {
 			bool isOverlapped(const SimpleCriteria& c);
 
 			Criteria* and(SimpleCriteria& c);
-			Criteria* and(CombinedCriteria& c);
 			Criteria* and(CompositeCriteria& c);
 
 			Criteria* or(SimpleCriteria& c);
-			CompositeCriteria* or(CombinedCriteria& c);
 			CompositeCriteria* or(CompositeCriteria& c);
 
 			/* And this criteria with pair of values */
@@ -46,7 +43,7 @@ namespace nmath {
 			Criteria* operator &(Criteria& c);
 			Criteria* operator |(Criteria& c);
 
-			SimpleCriteria* clone();
+			Criteria* clone();
 			SimpleCriteria& operator =(SimpleCriteria& c2);
 
 			/* check if value does belong to this interval */

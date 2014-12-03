@@ -37,7 +37,7 @@ SimpleCriteria::SimpleCriteria(int type, char var, double lval, double rval,
 	this->available = 1;
 }
 
-SimpleCriteria* SimpleCriteria::clone() {
+Criteria* SimpleCriteria::clone() {
 	SimpleCriteria *out;
 	out = new SimpleCriteria(type, variable, leftVal, rightVal, leftInfinity, rightInfinity);
 	return out;
@@ -481,49 +481,12 @@ Criteria* SimpleCriteria::and(SimpleCriteria& c) {
 			out = c.clone();
 		}
 	} else {
-		out = new CombinedCriteria();
-		((CombinedCriteria*)out)->add(this->clone());
-		((CombinedCriteria*)out)->add(c.clone());
+		out = new CompositeCriteria();
+		((CompositeCriteria*)out)->setOperator(AND);
+		((CompositeCriteria*)out)->add(this->clone());
+		((CompositeCriteria*)out)->add(c.clone());
 	}
 
-	return out;
-}
-
-Criteria* SimpleCriteria::and(CombinedCriteria& cb) {
-	int i, j;
-	Criteria* tmp;
-	CombinedCriteria *out;
-	int size = cb.size();
-	for(i=0; i < size; i++) {
-		if( this->variable == cb[i]->variable ){
-			tmp = this->and(*cb[i]);
-			if(tmp != NULL) {
-				//TODO: Copy cb to out except element at i
-				out = new CombinedCriteria();
-				for(j=0; j < size; j++) {
-					if(j != i)
-						out->add(cb[j]->clone());
-				}
-
-				if (tmp->getCClassType() == SIMPLE)
-					out->add((SimpleCriteria*)tmp);
-				else if (tmp->getCClassType() == COMBINED){
-
-					for (j = 0; j < ((CombinedCriteria*)tmp)->size(); j++) {
-						out->add(cb[j]->clone());
-					}
-				}
-				return out;
-			} else
-				return NULL;
-		}
-	}
-
-	/*
-		We got here because this criteria has variable that not same as vaiable of any criteria in CombinedCriteria
-	*/
-	out = cb.clone();
-	out->add(this->clone());
 	return out;
 }
 
@@ -549,10 +512,6 @@ Criteria* SimpleCriteria::operator &(Criteria& c) {
 	switch (c.getCClassType()){
 		case SIMPLE:
 			out = and((SimpleCriteria&)c);
-			break;
-
-		case COMBINED:
-			out = and((CombinedCriteria&)c);
 			break;
 
 		case COMPOSITE:
@@ -658,15 +617,10 @@ Criteria* SimpleCriteria::or(SimpleCriteria& c) {
 
 	if(usedComposite) {
 		out = new CompositeCriteria();
-
-		CombinedCriteria* cb1 = new CombinedCriteria();
-		cb1->add(this->clone());
-
-		CombinedCriteria* cb2 = new CombinedCriteria();
-		cb2->add(c.clone());
+		((CompositeCriteria*)out)->setOperator(OR);
+		((CompositeCriteria*)out)->add(this->clone());
+		((CompositeCriteria*)out)->add(c.clone());
 	
-		((CompositeCriteria*)out)->add(cb1);
-		((CompositeCriteria*)out)->add(cb2);
 	}
 	
 	return out;
@@ -702,9 +656,6 @@ Criteria* SimpleCriteria::operator |(Criteria &c) {
 	switch (c.getCClassType()) {
 	case SIMPLE:
 		out = or((SimpleCriteria&)c);
-		break;
-	case COMBINED:
-		out = or((CombinedCriteria&)c);
 		break;
 	case COMPOSITE:
 		out = or((CompositeCriteria&)c);

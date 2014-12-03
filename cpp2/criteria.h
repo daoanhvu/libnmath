@@ -6,7 +6,7 @@
 
 namespace nmath {
 	enum NMathCClassType {
-		SIMPLE, COMBINED, COMPOSITE
+		SIMPLE, COMPOSITE
 	};
 
 	class Criteria {
@@ -27,6 +27,8 @@ namespace nmath {
 
 			/* check if value does belong to this interval */
 			virtual bool check(const double *value) { return false; }
+			virtual Criteria* clone() { return 0; }
+			virtual Criteria* getInterval(const float *values, int varCount) { return 0; }
 	};
 }
 

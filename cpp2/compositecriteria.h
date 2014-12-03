@@ -7,39 +7,41 @@
 namespace nmath {
 	class CompositeCriteria: public Criteria {
 		private:
-			CombinedCriteria** list;
+			Criteria** list;
 			int mLoggedSize;
 			int mSize;
 
+			int logicOp; // AND OR
+
 			CompositeCriteria* and(SimpleCriteria& c);
-			CompositeCriteria* and(CombinedCriteria& c);
 			CompositeCriteria* and(CompositeCriteria& c);
 
 			CompositeCriteria* or(SimpleCriteria& c);
-			CompositeCriteria* or(CombinedCriteria& c);
 			CompositeCriteria* or(CompositeCriteria& c);
 			
 		public:
 			CompositeCriteria();
 			~CompositeCriteria();
 			void release();
-			CompositeCriteria* clone();
+			Criteria* clone();
+
+			int logicOperator() const { return logicOp; }
+			void setOperator(int op)	{ logicOp = op; }
 
 			int size() const { return mSize; }
 			int loggedSize() const { return mLoggedSize; }
 			bool check(const double* values);
 			CompositeCriteria* getInterval(const float *values, int varCount);
 
-			void add(CombinedCriteria* c);
+			void add(Criteria* c);
 			
-			CombinedCriteria* operator [](int index) const;
+			Criteria* operator [](int index) const;
 			
 			Criteria* operator |(Criteria &);
 			Criteria* operator &(Criteria &);
 
-			CompositeCriteria& operator |=(CombinedCriteria &);
+			CompositeCriteria& operator |=(Criteria &);
 			CompositeCriteria& operator &=(Criteria &);
-			CompositeCriteria& operator &=(CombinedCriteria &);
 
 			CompositeCriteria& operator =(CompositeCriteria &);
 	};
