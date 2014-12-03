@@ -1,16 +1,20 @@
+#include <stdlib.h>
 #include "combinedcriteria.h"
 #include "compositecriteria.h"
 
 using namespace nmath;
 
-CombinedCriteria::CombinedCriteria() {
-	list = 0;
-	mLoggedSize = 0;
-	mSize = 0;
+CombinedCriteria::CombinedCriteria(): list(0), mLoggedSize(0), mSize(0) {
 }
 
 CombinedCriteria::~CombinedCriteria() {
-	
+	int i;
+	if (mSize <= 0) return;
+
+	for (i = 0; i < mSize; i++)
+		delete list[i];
+
+	free(list);
 }
 
 void CombinedCriteria::release() {
@@ -20,11 +24,23 @@ void CombinedCriteria::release() {
 	for (i = 0; i < mSize; i++)
 		delete list[i];
 
-	delete[] list;
-
+	free(list);
 	list = 0;
 	mSize = 0;
 	mLoggedSize = 0;
+}
+
+void CombinedCriteria::add(SimpleCriteria* c) {
+	SimpleCriteria **buffer;
+	int newLogSize;
+	if ( (mLoggedSize<=0) || (mLoggedSize <= mSize)){
+		newLogSize = mLoggedSize + 10;
+		buffer = (SimpleCriteria**)realloc(list, sizeof(SimpleCriteria*) * newLogSize);
+		if (buffer != NULL) {
+			mLoggedSize = newLogSize;
+		}
+	}
+	list[mSize++] = c;
 }
 
 SimpleCriteria* CombinedCriteria::operator [](int index) const {
@@ -49,7 +65,10 @@ SimpleCriteria* CombinedCriteria::remove(int index) {
 
 CombinedCriteria& CombinedCriteria::operator =(const CombinedCriteria& src) {
 	int i;
-	list = new (SimpleCriteria**)[src.loggedSize()];
+
+	this->release();
+
+	list = (SimpleCriteria**)malloc(sizeof(SimpleCriteria*) * src.loggedSize());
 	mSize = src.size();
 	mLoggedSize = src.loggedSize();
 	for(i=0; i<mSize; i++) {
@@ -68,7 +87,7 @@ CombinedCriteria* CombinedCriteria::clone() {
 
 	CombinedCriteria* out = new CombinedCriteria();
 
-	out->list = new (SimpleCriteria**)[mLoggedSize];
+	out->list = (SimpleCriteria**)malloc(sizeof(SimpleCriteria*) * mLoggedSize);
 	out->mSize = mSize;
 	out->mLoggedSize = mLoggedSize;
 
@@ -106,7 +125,7 @@ Criteria* CombinedCriteria::and(SimpleCriteria& c) {
 		We got here because c has variable that not same as vaiable of any criteria in CombinedCriteria
 	*/
 	out = this->clone();
-	((CombinedCriteria*)out)->add(c.clone);
+	((CombinedCriteria*)out)->add(c.clone());
 	return out;
 }
 
@@ -137,29 +156,96 @@ Criteria* CombinedCriteria::and(CompositeCriteria& c) {
 	return out;
 }
 
+Criteria* CombinedCriteria::operator &(Criteria& c) {
+	Criteria* out = 0;
+	switch (c.getCClassType()) {
+		case SIMPLE:
+			out = and((SimpleCriteria&)c);
+			break;
+
+		case COMBINED:
+			out = and((CombinedCriteria&)c);
+			break;
+
+		case COMPOSITE:
+			out = and((CompositeCriteria&)c);
+			break;
+	}
+
+	return out;
+}
+
+
+Criteria* CombinedCriteria::or(SimpleCriteria& c) {
+	CompositeCriteria* out = new CompositeCriteria();
+	out->add(clone());
+
+	CombinedCriteria * temp = new CombinedCriteria();
+	temp->add(c.clone());
+
+	out->add(temp);
+
+	return out;
+}
+
+Criteria* CombinedCriteria::or(CombinedCriteria& c) {
+	CompositeCriteria* out = new CompositeCriteria();
+	out->add(clone());
+	out->add(c.clone());
+	return out;
+}
+
+CompositeCriteria* CombinedCriteria::or(CompositeCriteria& c) {
+	CompositeCriteria* out = c.clone();
+	out->add(clone());
+
+	return out;
+}
+
+Criteria* CombinedCriteria::operator |(Criteria& c) {
+	Criteria* out = 0;
+	switch (c.getCClassType()) {
+	case SIMPLE:
+		out = or((SimpleCriteria&)c);
+		break;
+
+	case COMBINED:
+		out = or((CombinedCriteria&)c);
+		break;
+
+	case COMPOSITE:
+		out = or((CompositeCriteria&)c);
+		break;
+	}
+
+	return out;
+}
+
 /**
 	Combine (AND) this criteria with each pair of value in bounds
 */
 CombinedCriteria* CombinedCriteria::getInterval(const float *bounds, int varCount) {	
 	SimpleCriteria *interval;
 	CombinedCriteria* outListInterval = new CombinedCriteria();
-	int i, k;
+	int i;
 	
-	for(k=0; k<varCount; k++){
+	for(i = 0; i < varCount; i++){
 		interval = new SimpleCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
-		interval = list[k]->and(bounds + k*2);
+		interval = list[i]->and(bounds + i*2);
 		if( interval == NULL) {
 			delete outListInterval;
-			return;
+			return 0;
 		}
 		outListInterval->add(interval);
 	}
+
+	return outListInterval;
 }
 
-bool CombinedCriteria::check(const float *values) {
+bool CombinedCriteria::check(const double *values) {
 	int i;
 	
-	for(i=0; i<this->size; i++) {
+	for(i=0; i<mSize; i++) {
 		if( list[i]->check(values+i) )
 			return false;
 	}

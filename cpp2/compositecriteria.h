@@ -15,18 +15,20 @@ namespace nmath {
 			CompositeCriteria* and(CombinedCriteria& c);
 			CompositeCriteria* and(CompositeCriteria& c);
 
-			CompositeCriteria* or(const SimpleCriteria& c);
-			CompositeCriteria* or(const CombinedCriteria& c);
-			CompositeCriteria* or(const CompositeCriteria& c);
+			CompositeCriteria* or(SimpleCriteria& c);
+			CompositeCriteria* or(CombinedCriteria& c);
+			CompositeCriteria* or(CompositeCriteria& c);
 			
 		public:
 			CompositeCriteria();
 			~CompositeCriteria();
 			void release();
+			CompositeCriteria* clone();
 
 			int size() const { return mSize; }
 			int loggedSize() const { return mLoggedSize; }
-			bool check(const float* values);
+			bool check(const double* values);
+			CompositeCriteria* getInterval(const float *values, int varCount);
 
 			void add(CombinedCriteria* c);
 			

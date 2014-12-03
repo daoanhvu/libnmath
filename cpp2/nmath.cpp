@@ -298,7 +298,7 @@ void toString(const NMAST *t, char *str, int *curpos, int len) {
 	}
 }
 
-int isInArray(char *vars, char c){
+int isInArray(char *vars, char c) {
 	if(c == vars[0])
 		return 0;
 
@@ -1179,7 +1179,7 @@ void* reduce_t(void *param){
 #endif
 }
 
-int reduce(Function *f, int *error){
+int reduce(Function *f, int *error) {
 	DParam dp;
 	dp.t = *(f->prefix->list);
 	dp.error = 0;
@@ -1395,7 +1395,7 @@ void* calc_t(void *param){
 #endif
 }
 
-double calc(Function *f, double *values, int numOfValue, int *error){
+double calc(Function *f, double *values, int numOfValue, int *error) {
 	DParam rp;
 	rp.error = 0;
 	rp.t = *(f->prefix->list);

@@ -4,8 +4,8 @@
 	#include <stdio.h>
 #endif
 
+#include "StackUtil.h"
 #include "nlablexer.h"
-#include "common.h"
 #include "nlabparser.h"
 
 
@@ -18,9 +18,7 @@
 	#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
 #endif
 
-
-extern int gErrorColumn;
-extern int gErrorCode;
+using namespace nmath;
 
 //internal variables
 NMAST *returnedAst = NULL;
@@ -57,32 +55,6 @@ int clearStackWithoutFreeItem(Token **ls, int len){
 		ls[i] = NULL;
 	}
 	return i;
-}
-
-void pushItem2Stack(Token ***st, int *top, int *allocLen, Token *item){
-	Token** tmp;
-	if( (*top) >= ( (*allocLen)-1)){
-		(*allocLen) += INCLEN;
-		tmp = (Token**)realloc(*st, sizeof(Token*) * (*allocLen) );
-		if(tmp == NULL){
-			gErrorCode = E_NOT_ENOUGH_MEMORY;
-			return;
-		}
-		(*st) = tmp;
-	}
-	(*top)++;
-	(*st)[(*top)] = item;
-}
-
-Token* popFromStack(Token **st, int *top){
-	Token *p;
-	if(st == NULL || ( (*top) < 0))
-		return NULL;
-	p = st[(*top)];
-	st[(*top)] = NULL;
-	(*top)--;
-	return p;
-
 }
 
 void addFunction2Tree(NMASTList *t, Token * stItm){
@@ -191,39 +163,27 @@ void addFunction2Tree(NMASTList *t, Token * stItm){
 }
 
 /**
-	access right: private
-	@param outF a NOT-NULL Function pointer
 	@return errorCode
 */	
-int parseFunctionExpression(TokenList *tokens, Function *outF) {
+int NLabParser::parseFunctionExpression(NLabLexer& lexer) {
 	int k, l, i, idx = 0;
-	char variables[4];
-	int variableCount = 0;
-	NMAST *dm;
-	
-	gErrorCode = ERROR_NOT_A_FUNCTION;
-	gErrorColumn = tokens->list[idx].column;
+	errorCode = ERROR_NOT_A_FUNCTION;
+	errorColumn = lexer[idx]->column;
 	
 	// LOGI(3, "[NativeParser] GOT HERE - token size: %d", tokens->size);
-	/** This array will hold the variables of the function */	
-	if( (k=functionNotation(tokens, idx, variables, &variableCount)) > idx ){
-		if(tokens->list[k].type == EQ){
+	/** This array will hold the variables of the function */
+	mVarCount = 0;
+	if ((k = functionNotation(lexer, idx)) > idx){
+		if(lexer[k]->type == EQ){
 
-			outF->prefix = NULL;
-			outF->domain = NULL;
-			outF->str = NULL;
-			outF->len = 0;
-			outF->variableNode = NULL;
-			outF->numVarNode = 0;
-			outF->valLen = variableCount;
-			for(i=0;i<variableCount; i++) //Should use memcpy here
-				outF->variable[i] = variables[i];
+			mPrefix = NULL;
+			mDomain = NULL;
 
-			for(i=0; i<tokens->size; i++) {
-				if(tokens->list[i].type == NAME) {
-					for(l=0; l<variableCount; l++) {
-						if(tokens->list[i].text[0]==variables[l] && tokens->list[i].textLength==1)
-							tokens->list[i].type = VARIABLE;
+			for(i=0; i<lexer.size(); i++) {
+				if(lexer[i]->type == NAME) {
+					for(l=0; l<mVarCount; l++) {
+						if(lexer[i]->text[0]==mVariables[l] && lexer[i]->textLength==1)
+							lexer[i]->type = VARIABLE;
 					}
 				}
 			}
@@ -233,36 +193,20 @@ int parseFunctionExpression(TokenList *tokens, Function *outF) {
 				/*
 					Parse expression
 				*/
-				parseExpression(tokens, &k, outF);
+				parseExpression(lexer, &k);
 				/** after parseExpression, we may get error, so MUST check if it's OK here */
-				if( (gErrorCode!=NMATH_NO_ERROR) || (k >= tokens->size) ) break;
+				if( (errorCode!=NMATH_NO_ERROR) || (k >= lexer.size()) ) break;
 				
-				if(tokens->list[k].type == DOMAIN_NOTATION) {
-					gErrorCode = ERROR_MISSING_DOMAIN;
-					gErrorColumn = tokens->list[k].column;
-					if(k+1 < tokens->size) {
+				if(lexer[k]->type == DOMAIN_NOTATION) {
+					errorCode = ERROR_MISSING_DOMAIN;
+					errorColumn = lexer[k]->column;
+					if(k+1 < lexer.size()) {
 						l = k + 1;
-						dm = domain(&l, tokens);
-
-						if(outF->domain == NULL) {
-							outF->domain = (NMASTList*)malloc(sizeof(NMASTList));
-							outF->domain->list = NULL;
-							outF->domain->loggedSize = 0;
-							outF->domain->size = 0;
-					#ifdef DEBUG
-							incNumberOfDynamicObject();
-					#endif
-						}
-
-						/*
-							Add the domain tree into the ouput function object
-						*/
-						pushASTStack(outF->domain, dm);
-
+						parseDomain(lexer, &l);
 						k = l;
 					}
 				}
-			} while ( gErrorCode==NMATH_NO_ERROR && k < tokens->size );
+			} while ( errorCode==NMATH_NO_ERROR && k < lexer.size() );
 		}
 	} else {
 		/*
@@ -270,41 +214,30 @@ int parseFunctionExpression(TokenList *tokens, Function *outF) {
 			we try to parse expression here.
 		*/
 		//reset errorCode
-		gErrorCode = NMATH_NO_ERROR;
+		errorCode = NMATH_NO_ERROR;
 
-		outF->prefix = NULL;
-		outF->domain = NULL;
-		outF->str = NULL;
-		outF->len = 0;
-		outF->variableNode = NULL;
-		outF->numVarNode = 0;
-		outF->valLen = 0;
+		mPrefix = NULL;
+		mDomain = NULL;
 		k = 0;
-		parseExpression(tokens, &k, outF);
+		parseExpression(lexer, &k);
 
 	}
 	
-	if(gErrorCode != NMATH_NO_ERROR){
-		if(outF->prefix != NULL) {
-			for(k=0; k<outF->prefix->size; k++){
-				clearTree(&(outF->prefix->list[k]));
+	if(errorCode != NMATH_NO_ERROR){
+		if(mPrefix != NULL) {
+			for(k=0; k<mPrefix->size; k++){
+				clearTree(&(mPrefix->list[k]));
 			}
-			outF->prefix->size = 0;
-			free(outF->prefix);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
+			mPrefix->size = 0;
+			free(mPrefix);
 		}
 			
-		if(outF->domain != NULL) {
-			for(k=0; k<outF->domain->size; k++){
-				clearTree(&(outF->domain->list[k]));
+		if(mDomain != NULL) {
+			for(k=0; k<mDomain->size; k++){
+				clearTree(&(mDomain->list[k]));
 			}
-			outF->domain->size = 0;
-			free(outF->domain);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
+			mDomain->size = 0;
+			free(mDomain);
 		}
 		
 		if(returnedAst != NULL){
@@ -312,41 +245,41 @@ int parseFunctionExpression(TokenList *tokens, Function *outF) {
 			returnedAst = NULL;
 		}	
 	}
-	return gErrorCode;
+	return errorCode;
 }
 
 /**
 	functionNotation: NAME LPAREN NAME (COMA NAME)* PRARENT;
 	@return if
 */
-int functionNotation(const TokenList *tokens, int index, char *variables, int *variableCount) {
+int NLabParser::functionNotation(NLabLexer& lexer, int index) {
 	int oldIndex = index;
 
-	if( (index < 0) || index >= tokens->size)
+	if( (index < 0) || index >= lexer.size())
 		return index;
 		
-	*variableCount = 0;
-	gErrorCode = ERROR_NOT_A_FUNCTION;
-	gErrorColumn = tokens->list[index].column;
-	if(tokens->list[index].type == NAME ) {
-		gErrorCode = ERROR_PARENTHESE_MISSING;
-		if(tokens->list[index+1].type == LPAREN) {
-			gErrorCode = ERROR_MISSING_VARIABLE;
-			gErrorColumn = tokens->list[index+1].column;
+	mVarCount = 0;
+	errorCode = ERROR_NOT_A_FUNCTION;
+	errorColumn = lexer[index]->column;
+	if(lexer[index]->type == NAME ) {
+		errorCode = ERROR_PARENTHESE_MISSING;
+		if(lexer[index+1]->type == LPAREN) {
+			errorCode = ERROR_MISSING_VARIABLE;
+			errorColumn = lexer[index+1]->column;
 			
-			if(tokens->list[index+2].type == NAME){
-				variables[(*variableCount)++] = (tokens->list[index+2]).text[0];
+			if(lexer[index+2]->type == NAME){
+				mVariables[mVarCount++] = lexer[index+2]->text[0];
 				index += 3;
-				while( (index+1<tokens->size) && (tokens->list[index].type == COMMA)
-							&& (tokens->list[index+1].type == NAME ) ){
-					variables[(*variableCount)++] = (tokens->list[index+1]).text[0];
+				while( (index+1<lexer.size()) && (lexer[index]->type == COMMA)
+							&& (lexer[index+1]->type == NAME ) ){
+					mVariables[mVarCount++] = lexer[index+1]->text[0];
 					index += 2;
 				}
-				gErrorCode = ERROR_PARENTHESE_MISSING;
-				gErrorColumn = tokens->list[index].column;
-				if( (index<tokens->size) && (tokens->list[index].type == RPAREN)){
-					gErrorCode = NMATH_NO_ERROR;
-					gErrorColumn = -1;
+				errorCode = ERROR_PARENTHESE_MISSING;
+				errorColumn = lexer[index]->column;
+				if( (index < lexer.size()) && (lexer[index]->type == RPAREN)){
+					errorCode = NMATH_NO_ERROR;
+					errorColumn = -1;
 					return (index + 1);
 				}
 			}
@@ -359,39 +292,28 @@ int functionNotation(const TokenList *tokens, int index, char *variables, int *v
 /**
 	Parse the input string in object f to NMAST tree
 */
-void parseExpression(TokenList *tokens, int *start, Function *f) {
+void NLabParser::parseExpression(NLabLexer& lexer, int *start) {
 	int i, top=-1, allocLen=0, isEndExp = FALSE;
 	int error;
 	double val;
+	int size = lexer.size();
 	Token *tk = NULL;
 	Token **stack = NULL;
-	NMASTList *prefix;
 	Token *stItm = NULL;
 	NMAST *ast = NULL;
 	//NMAST* varNodes[50];
-	if(tokens == NULL) {
-		gErrorColumn = 0;
-		gErrorCode = ERROR_BAD_TOKEN;
-		return ;
-	}
-	prefix = (NMASTList*)malloc(sizeof(NMASTList));
-	
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
+	mPrefix = (NMASTList*)malloc(sizeof(NMASTList));
+	mPrefix->size = 0;
+	mPrefix->loggedSize = 0;
+	mPrefix->list = NULL;
 
-	prefix->size = 0;
-	prefix->loggedSize = 0;
-	prefix->list = NULL;
-
-	gErrorColumn = -1;
-	gErrorCode = NMATH_NO_ERROR;
+	errorColumn = -1;
+	errorCode = NMATH_NO_ERROR;
 	
-	f->numVarNode = 0;
 	i = (*start);
 	// LOGI(2, "[parseExpression] Before while loop i=%d", i);
-	while( (i < tokens->size) && !isEndExp) {
-		tk = &(tokens->list[i]);
+	while( (i < size) && !isEndExp) {
+		tk = lexer[i];
 		// LOGI(2, "token %d type:%d", i, tk->type);
 		switch(tk->type) {
 			case NUMBER:
@@ -399,26 +321,19 @@ void parseExpression(TokenList *tokens, int *start, Function *f) {
 				if(val == 0 && error < 0) {
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-					for(i=0;i<prefix->size;i++)
-						clearTree(&(prefix->list[i]));
-					free(prefix->list);
-					free(prefix);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-	descNumberOfDynamicObject();
-#endif
-					gErrorColumn = tk->column;
-					gErrorCode = ERROR_PARSING_NUMBER;
+					for (i = 0; i<mPrefix->size; i++)
+						clearTree(&(mPrefix->list[i]));
+					free(mPrefix->list);
+					free(mPrefix);
+					errorColumn = tk->column;
+					errorCode = ERROR_PARSING_NUMBER;
 					return;
 				}
 
 				ast = getFromPool();
 				ast->value = val;
 				ast->type = tk->type;
-				pushASTStack(prefix, ast); //add this item to prefix
+				pushASTStack(mPrefix, ast); //add this item to prefix
 				i++;
 				break;
 
@@ -426,7 +341,7 @@ void parseExpression(TokenList *tokens, int *start, Function *f) {
 				ast = getFromPool();
 				ast->value = E;
 				ast->type = E_TYPE;
-				pushASTStack(prefix, ast); //add this item to prefix
+				pushASTStack(mPrefix, ast); //add this item to prefix
 				i++;
 				break;
 
@@ -434,7 +349,7 @@ void parseExpression(TokenList *tokens, int *start, Function *f) {
 				ast = getFromPool();
 				ast->value = PI;
 				ast->type = PI_TYPE;
-				pushASTStack(prefix, ast); //add this item to prefix
+				pushASTStack(mPrefix, ast); //add this item to prefix
 				i++;
 				break;
 				
@@ -448,27 +363,27 @@ void parseExpression(TokenList *tokens, int *start, Function *f) {
 					stItm = stack[top];
 					// LOGI(2, "Token: type = %d, text=%s", tk->type, tk->text);
 					while((isAnOperatorType(stItm->type)==TRUE) && (stItm->priority) >= tk->priority){
-						stItm = popFromStack(stack, &top);
+						stItm = StackUtil::popFromStack(stack, &top);
 
 						//LOGI(2, "Token just popped from Stack: type = %d, text=%s, PREFIX SIZE= %d", stItm->type, stItm->text, prefix->size);
 
-						if(prefix->size == 1) {
-							prefix->list[0]->sign = -1;
+						if (mPrefix->size == 1) {
+							mPrefix->list[0]->sign = -1;
 						} else {
 							ast = getFromPool();
 							ast->type = stItm->type;
 							ast->priority = stItm->priority;
-							ast->left = prefix->list[prefix->size-2];
-							ast->right = prefix->list[prefix->size-1];
+							ast->left = mPrefix->list[mPrefix->size - 2];
+							ast->right = mPrefix->list[mPrefix->size - 1];
 							
 							if((ast->left)!=NULL)
 								(ast->left)->parent = ast;
 							if((ast->right)!=NULL)
 								(ast->right)->parent = ast;
 
-							prefix->list[prefix->size-2] = ast;
-							prefix->list[prefix->size-1] = NULL;
-							prefix->size--;
+							mPrefix->list[mPrefix->size - 2] = ast;
+							mPrefix->list[mPrefix->size - 1] = NULL;
+							mPrefix->size--;
 						}
 
 						if(top < 0)
@@ -478,99 +393,73 @@ void parseExpression(TokenList *tokens, int *start, Function *f) {
 					}
 				}
 				//push operation o1 (tk) into stack
-				pushItem2Stack(&stack, &top, &allocLen, tk);
-				if(gErrorCode == E_NOT_ENOUGH_MEMORY) {
+				StackUtil::pushItem2Stack(&stack, &top, &allocLen, tk);
+				if(errorCode == E_NOT_ENOUGH_MEMORY) {
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-					for(i=0;i<prefix->size;i++)
-						clearTree(&(prefix->list[i]));
-					free(prefix->list);
-					free(prefix);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
-					gErrorColumn = tk->column;
+					for (i = 0; i<mPrefix->size; i++)
+						clearTree(&(mPrefix->list[i]));
+					free(mPrefix->list);
+					free(mPrefix);
+					errorColumn = tk->column;
 					return;
 				}
 				i++;
 				break;
 
 			case LPAREN:/*If it an open parentheses then put it to stack*/
-				pushItem2Stack(&stack, &top, &allocLen, tk);
-				if(gErrorCode == E_NOT_ENOUGH_MEMORY){
+				StackUtil::pushItem2Stack(&stack, &top, &allocLen, tk);
+				if(errorCode == E_NOT_ENOUGH_MEMORY){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-					for(i=0;i<prefix->size;i++)
-						clearTree(&(prefix->list[i]));
-					free(prefix->list);
-					free(prefix);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
-					gErrorColumn = tk->column;
+					for (i = 0; i<mPrefix->size; i++)
+						clearTree(&(mPrefix->list[i]));
+					free(mPrefix->list);
+					free(mPrefix);
+					errorColumn = tk->column;
 					return;
 				}
 				i++;
 				break;
 
 			case RPAREN:
-				stItm = popFromStack(stack, &top);
+				stItm = StackUtil::popFromStack(stack, &top);
 
 				/* got an opening-parenthese but can not find a closing-parenthese */
 				if(stItm == NULL){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-					for(i=0;i<prefix->size;i++)
-						clearTree(&(prefix->list[i]));
-					free(prefix->list);
-					free(prefix);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-	descNumberOfDynamicObject();
-#endif
-					gErrorColumn = tk->column;
-					gErrorCode = ERROR_PARENTHESE_MISSING;
+					for (i = 0; i<mPrefix->size; i++)
+						clearTree(&(mPrefix->list[i]));
+					free(mPrefix->list);
+					free(mPrefix);
+					errorColumn = tk->column;
+					errorCode = ERROR_PARENTHESE_MISSING;
 					return ;
 				}
 
 				/*  */
 				while(stItm!=NULL && (stItm->type != LPAREN) && isAFunctionType(stItm->type)  != TRUE){
-					addFunction2Tree(prefix, stItm);
+					addFunction2Tree(mPrefix, stItm);
 					//free(stItm);
-					stItm = popFromStack(stack, &top);
+					stItm = StackUtil::popFromStack(stack, &top);
 				}
 
 				/* got an opening-parenthese but can not find a closing-parenthese */
 				if(stItm==NULL){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-					for(i=0;i<prefix->size;i++)
-						clearTree(&(prefix->list[i]));
-					free(prefix->list);
-					free(prefix);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-	descNumberOfDynamicObject();
-#endif
-					gErrorColumn = tk->column;
-					gErrorCode = ERROR_PARENTHESE_MISSING;
+					for (i = 0; i<mPrefix->size; i++)
+						clearTree(&(mPrefix->list[i]));
+					free(mPrefix->list);
+					free(mPrefix);
+					errorColumn = tk->column;
+					errorCode = ERROR_PARENTHESE_MISSING;
 					return;
 				}
 
 				if(isAFunctionType(stItm->type)  == TRUE){
-					addFunction2Tree(prefix, stItm);
+					addFunction2Tree(mPrefix, stItm);
 				}
 				i++;
 				break;
@@ -602,27 +491,21 @@ void parseExpression(TokenList *tokens, int *start, Function *f) {
 	descNumberOfDynamicObject();
 	descNumberOfDynamicObject();
 #endif
-					gErrorColumn = tk->column;
-					gErrorCode = ERROR_PARENTHESE_MISSING;
+					errorColumn = tk->column;
+					errorCode = ERROR_PARENTHESE_MISSING;
 					return;
 				}
 			*/
 				
-				pushItem2Stack(&stack, &top, &allocLen, tk);
-				if(gErrorCode == E_NOT_ENOUGH_MEMORY){
+				StackUtil::pushItem2Stack(&stack, &top, &allocLen, tk);
+				if(errorCode == E_NOT_ENOUGH_MEMORY){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-					for(i=0;i<prefix->size;i++)
-						clearTree(&(prefix->list[i]));
-					free(prefix->list);
-					free(prefix);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
-					gErrorColumn = tk->column;
+					for (i = 0; i<mPrefix->size; i++)
+						clearTree(&(mPrefix->list[i]));
+					free(mPrefix->list);
+					free(mPrefix);
+					errorColumn = tk->column;
 					return;
 				}
 
@@ -641,7 +524,7 @@ void parseExpression(TokenList *tokens, int *start, Function *f) {
 				ast = getFromPool();
 				ast->type = tk->type;
 				ast->variable = tk->text[0];
-				pushASTStack(prefix, ast); //add this item to prefix
+				pushASTStack(mPrefix, ast); //add this item to prefix
 
 				//I save variable node to speed up the process of calculating value of the function later
 				//varNodes[f->numVarNode] = ast;
@@ -661,66 +544,35 @@ void parseExpression(TokenList *tokens, int *start, Function *f) {
 			default:
 				clearStackWithoutFreeItem(stack, top+1);
 				free(stack);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-				for(i=0;i<prefix->size;i++)
-					clearTree(&(prefix->list[i]));
-				free(prefix->list);
-				free(prefix);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
-				gErrorColumn = tk->column;
-				gErrorCode = ERROR_BAD_TOKEN;
-				//LOGI(2, "[parseExpression] Error at Token_index=%d; Token_type=%d; ErrorCode=%d; ErrorColumn=%d", i, tk->type, gErrorCode, gErrorColumn);
+				for (i = 0; i<mPrefix->size; i++)
+					clearTree(&(mPrefix->list[i]));
+				free(mPrefix->list);
+				free(mPrefix);
+				errorColumn = tk->column;
+				errorCode = ERROR_BAD_TOKEN;
+				//LOGI(2, "[parseExpression] Error at Token_index=%d; Token_type=%d; ErrorCode=%d; ErrorColumn=%d", i, tk->type, errorCode, errorColumn);
 				return;
 		}//end switch
 	}//end while
 
 	while(top >= 0){
-		stItm = popFromStack(stack, &top);
+		stItm = StackUtil::popFromStack(stack, &top);
 		
 		if(stItm->type == LPAREN || isAFunctionType(stItm->type)==TRUE){
 			clearStackWithoutFreeItem(stack, top+1);
 			free(stack);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-			for(i=0;i<prefix->size;i++)
-				clearTree(&(prefix->list[i]));
-			free(prefix->list);
-			free(prefix);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
-			gErrorColumn = tk->column;
-			gErrorCode = ERROR_PARENTHESE_MISSING;
+			for (i = 0; i<mPrefix->size; i++)
+				clearTree(&(mPrefix->list[i]));
+			free(mPrefix->list);
+			free(mPrefix);
+			errorColumn = tk->column;
+			errorCode = ERROR_PARENTHESE_MISSING;
 			return; 
 		}
-		addFunction2Tree(prefix, stItm);
+		addFunction2Tree(mPrefix, stItm);
 	}
-	/**
-		If we make sure that the function f is initialized 
-		ok we do not need to check here. Actually, we SHOULD initialize it completely
-	*/
-	if(f->prefix == NULL){
-		f->prefix = (NMASTList*)malloc(sizeof(NMASTList));
-		f->prefix->list = NULL;
-		f->prefix->loggedSize = 0;
-		f->prefix->size = 0;
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-	}
-		
-	pushASTStack(f->prefix, prefix->list[0]);
 	
 	free(stack);
-	free(prefix);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
 	*start = i;
 	
 	//if(f->numVarNode > 0) {
@@ -731,75 +583,34 @@ void parseExpression(TokenList *tokens, int *start, Function *f) {
 	//}
 }
 
-/*
-	Parse the input string in object f to NMAST tree
-*/
-int parseFunction(const char *str, int len, Function *outF){
-	TokenList lst;
-	int result;
-	
-	lst.loggedSize = len;
-	lst.list = (Token*)malloc(sizeof(Token) * lst.loggedSize);
-	lst.size = 0;
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-
-	/* build the tokens list from the input string */
-	
-	lexicalAnalysisUTF8(str, len, &lst, FALSE);
-
-#ifdef DEBUG
-	printf("\n[NLabParser] Number of dynamic objects after parsing tokens: %d \n", numberOfDynamicObject() );
-#endif
-	
-	if( gErrorCode == NMATH_NO_ERROR ){
-		result = parseFunctionExpression(&lst, outF);
-	}
-	free(lst.list);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-	return result;
-}
-
-NMAST* domain(int *start, TokenList *tokens) {
+int NLabParser::parseDomain(NLabLexer& lexer, int *start) {
 	int isEndExp = FALSE;
 	int i, index, top = -1, allocLen=0;
 	Token* tk;
 	double val, val2;
 	Token **stack = NULL;
-	NMASTList *d;
 	Token *tokenItm = NULL;
 	NMAST *ast;
 
-	if(tokens == NULL){
-		gErrorColumn = 0;
-		gErrorCode = ERROR_BAD_TOKEN;
-		return NULL;
-	}
-	d = (NMASTList*)malloc(sizeof(NMASTList));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-	d->size = 0;
-	d->loggedSize = 0;
-	d->list = NULL;
+	mDomain = (NMASTList*)malloc(sizeof(NMASTList));
+	mDomain->size = 0;
+	mDomain->loggedSize = 0;
+	mDomain->list = NULL;
 	
-	gErrorColumn = -1;
-	gErrorCode = NMATH_NO_ERROR;
+	errorColumn = -1;
+	errorCode = NMATH_NO_ERROR;
 	
 	index = *start;
-	while(index < tokens->size && !isEndExp){
-		tk = &(tokens->list[index]);
+	while(index < lexer.size() && !isEndExp){
+		tk = lexer[index];
 		switch(tk->type) {
 			case NUMBER:
 			case PI_TYPE:
 			case E_TYPE:
-				if( (index+4)<tokens->size && isComparationOperator(tokens->list[index+1].type) 
-									&& tokens->list[index+2].type==VARIABLE 
-									&& isComparationOperator(tokens->list[index+3].type)
-									&& (tokens->list[index+4].type==NUMBER || tokens->list[index+4].type==PI_TYPE || tokens->list[index+4].type==E_TYPE )) {
+				if( (index+4)<lexer.size() && isComparationOperator(lexer[index+1]->type) 
+									&& lexer[index+2]->type==VARIABLE 
+									&& isComparationOperator(lexer[index+3]->type)
+									&& (lexer[index+4]->type==NUMBER || lexer[index+4]->type==PI_TYPE || lexer[index+4]->type==E_TYPE )) {
 					/**
 						HERE, I missed the case that NUMBER < VARIABLE < NUMBER or
 						NUMBER <= VARIABLE < NUMBER or NUMBER < VARIABLE <= NUMBER or 
@@ -807,52 +618,31 @@ NMAST* domain(int *start, TokenList *tokens) {
 						
 						Build an AND tree to hold the case
 					*/
-					ast = buildIntervalTree(tk, &(tokens->list[index+1]), &(tokens->list[index+2]), &(tokens->list[index+3]), &(tokens->list[index+4]));
-					if(tokenItm == NULL){
+					ast = buildIntervalTree(tk, lexer[index+1], lexer[index+2], lexer[index+3], lexer[index+4]);
+					if (ast == NULL) {
 						clearStackWithoutFreeItem(stack, top+1);
 						free(stack);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-						for(i=0;i<d->size;i++)
-							clearTree(&(d->list[i]));
-						free(d->list);
-						free(d);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
+						for (i = 0; i<mDomain->size; i++)
+							clearTree(&(mDomain->list[i]));
+						free(mDomain->list);
+						free(mDomain);
 						return NULL;
 					}
-					pushASTStack(d, ast);
+					pushASTStack(mDomain, ast);
 					index += 5;
 				}// end if
 				
-/*
-				Line 824 below is also have a malloc, why?
-				ast = (NMAST*)malloc(sizeof(NMAST));
-				
-
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-*/
 				switch(tk->type){
 					case NUMBER:
-						val = parseDouble(tk->text, 0, tk->textLength, &gErrorCode);
-						if(val == 0 && gErrorCode != NMATH_NO_ERROR){
+						val = parseDouble(tk->text, 0, tk->textLength, &errorCode);
+						if(val == 0 && errorCode != NMATH_NO_ERROR){
 							clearStackWithoutFreeItem(stack, top+1);
 							free(stack);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-							for(i=0;i<d->size;i++)
-								clearTree(&(d->list[i]));
-							free(d->list);
-							free(d);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
-							gErrorColumn = tk->column;
+							for (i = 0; i<mDomain->size; i++)
+								clearTree(&(mDomain->list[i]));
+							free(mDomain->list);
+							free(mDomain);
+							errorColumn = tk->column;
 							return NULL;
 						}
 						break;
@@ -867,7 +657,7 @@ NMAST* domain(int *start, TokenList *tokens) {
 				ast = getFromPool();
 				ast->value = val;
 				ast->type = tk->type;
-				pushASTStack(d, ast);
+				pushASTStack(mDomain, ast);
 				index++;
 			break;
 			
@@ -881,17 +671,17 @@ NMAST* domain(int *start, TokenList *tokens) {
 					tokenItm = stack[top];
 					while((isAnOperatorType(tokenItm->type)==TRUE || isComparationOperator(tokenItm->type)==TRUE || tokenItm->type==AND || tokenItm->type==OR)
 								&& (tokenItm->priority) >= tk->priority){
-						tokenItm = popFromStack(stack, &top);
+						tokenItm = StackUtil::popFromStack(stack, &top);
 
 						ast = getFromPool();
 						ast->type = tokenItm->type;
 						ast->priority = tokenItm->priority;
-						ast->left = d->list[d->size-2];
-						ast->right = d->list[d->size-1];
+						ast->left = mDomain->list[mDomain->size - 2];
+						ast->right = mDomain->list[mDomain->size - 1];
 						if((ast->type == LT || ast->type == LTE || ast->type == GT || ast->type == GTE )
-									&& (d->list[d->size-1]->type==VARIABLE) ){
-							ast->left = d->list[d->size-1];
-							ast->right = d->list[d->size-2];
+							&& (mDomain->list[mDomain->size - 1]->type == VARIABLE)){
+							ast->left = mDomain->list[mDomain->size - 1];
+							ast->right = mDomain->list[mDomain->size - 2];
 							
 							switch(ast->type){
 								case LT:
@@ -919,9 +709,9 @@ NMAST* domain(int *start, TokenList *tokens) {
 						if((ast->right)!=NULL)
 							(ast->right)->parent = ast;
 						
-						d->list[d->size-2] = ast;
-						d->list[d->size-1] = NULL;
-						d->size--;
+						mDomain->list[mDomain->size - 2] = ast;
+						mDomain->list[mDomain->size - 1] = NULL;
+						mDomain->size--;
 						
 						if(top < 0)
 							break;
@@ -930,103 +720,79 @@ NMAST* domain(int *start, TokenList *tokens) {
 					}
 				}
 				//push operation o1 (tk) into stack
-				pushItem2Stack(&stack, &top, &allocLen, tk);
-				if(gErrorCode == E_NOT_ENOUGH_MEMORY){
+				StackUtil::pushItem2Stack(&stack, &top, &allocLen, tk);
+				if(errorCode == E_NOT_ENOUGH_MEMORY){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-					for(i=0;i<d->size;i++)
-						clearTree(&(d->list[i]));
-					free(d->list);
-					free(d);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
-					gErrorColumn = tk->column;
+					for (i = 0; i<mDomain->size; i++)
+						clearTree(&(mDomain->list[i]));
+					free(mDomain->list);
+					free(mDomain);
+					errorColumn = tk->column;
 					return NULL;
 				}
 				index++;
 			break;
 
 			case RPAREN:
-				tokenItm = popFromStack(stack, &top);
+				tokenItm = StackUtil::popFromStack(stack, &top);
 
 				/* got an opening-parenthese but can not find a closing-parenthese */
 				if(tokenItm == NULL){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-					for(i=0;i<d->size;i++)
-						clearTree(&(d->list[i]));
-					free(d->list);
-					free(d);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
-					gErrorColumn = tk->column;
-					gErrorCode = ERROR_PARENTHESE_MISSING;
+					for (i = 0; i<mDomain->size; i++)
+						clearTree(&(mDomain->list[i]));
+					free(mDomain->list);
+					free(mDomain);
+					errorColumn = tk->column;
+					errorCode = ERROR_PARENTHESE_MISSING;
 					return NULL;
 				}
 
 				/*  */
 				while(tokenItm!=NULL && (tokenItm->type != LPAREN) && isAFunctionType(tokenItm->type)  != TRUE){
-					addFunction2Tree(d, tokenItm);
-					tokenItm = popFromStack(stack, &top);
+					addFunction2Tree(mDomain, tokenItm);
+					tokenItm = StackUtil::popFromStack(stack, &top);
 				}
 
 				if(tokenItm==NULL){
 					/** ERROR: got an opening-parenthese but can not find a closing-parenthese */
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-					for(i=0;i<d->size;i++)
-						clearTree(&(d->list[i]));
-					free(d->list);
-					free(d);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
-					gErrorColumn = tk->column;
-					gErrorCode = ERROR_PARENTHESE_MISSING;
+					for (i = 0; i<mDomain->size; i++)
+						clearTree(&(mDomain->list[i]));
+					free(mDomain->list);
+					free(mDomain);
+					errorColumn = tk->column;
+					errorCode = ERROR_PARENTHESE_MISSING;
 					return NULL;
 				}
 
 				if(isAFunctionType(tokenItm->type)  == TRUE){
-					addFunction2Tree(d, tokenItm);
+					addFunction2Tree(mDomain, tokenItm);
 				}
 				
 				index++;
 			break;
 				
 			case LPAREN:
-				pushItem2Stack(&stack, &top, &allocLen, tk);
-				if(gErrorCode == E_NOT_ENOUGH_MEMORY){
+				StackUtil::pushItem2Stack(&stack, &top, &allocLen, tk);
+				if(errorCode == E_NOT_ENOUGH_MEMORY){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-					for(i=0;i<d->size;i++)
-						clearTree(&(d->list[i]));
-					free(d->list);
-					free(d);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
-					gErrorColumn = tokens->list[index].column;
+					for (i = 0; i<mDomain->size; i++)
+						clearTree(&(mDomain->list[i]));
+					free(mDomain->list);
+					free(mDomain);
+					errorColumn = lexer[index]->column;
 					return NULL;
 				}
 				index++;
 			break;
 			
 			case VARIABLE:
-				if(( (index+1) < tokens->size) && tokens->list[index+1].type == ELEMENT_OF){
+				if(( (index+1) < lexer.size()) && lexer[index+1]->type == ELEMENT_OF){
 					/*
 						
 						VARIABLE ELEMENT_OF [NUMBER,NUMBER]
@@ -1034,31 +800,25 @@ NMAST* domain(int *start, TokenList *tokens) {
 						VARIABLE ELEMENT_OF [NUMBER,NUMBER)
 						VARIABLE ELEMENT_OF (NUMBER,NUMBER)
 					*/
-					if( ( index+6 < tokens->size) && (tokens->list[index+2].type == LPRACKET || tokens->list[index+2].type == LPAREN)
-								&& (tokens->list[index+3].type == NUMBER || tokens->list[index+3].type == PI_TYPE || tokens->list[index+3].type == E_TYPE)
-								&& tokens->list[index+4].type == COMMA 
-								&& (tokens->list[index+5].type == NUMBER || tokens->list[index+5].type == PI_TYPE || tokens->list[index+5].type == E_TYPE) 
-								&& (tokens->list[index+6].type == RPRACKET || tokens->list[index+6].type == RPAREN )) {
+					if( ( index+6 < lexer.size()) && (lexer[index+2]->type == LPRACKET || lexer[index+2]->type == LPAREN)
+								&& (lexer[index+3]->type == NUMBER || lexer[index+3]->type == PI_TYPE || lexer[index+3]->type == E_TYPE)
+								&& lexer[index+4]->type == COMMA 
+								&& (lexer[index + 5]->type == NUMBER || lexer[index + 5]->type == PI_TYPE || lexer[index + 5]->type == E_TYPE)
+								&& (lexer[index + 6]->type == RPRACKET || lexer[index + 6]->type == RPAREN)) {
 								
 						
 						/** ========START Parse floating point values======= */
-						switch(tokens->list[index+3].type) {
+						switch(lexer[index+3]->type) {
 							case NUMBER:
-								val = parseDouble(tokens->list[index+3].text, 0, tokens->list[index+3].textLength, &gErrorCode);
-								if(val == 0 && gErrorCode != NMATH_NO_ERROR){
+								val = parseDouble(lexer[index+3]->text, 0, lexer[index+3]->textLength, &errorCode);
+								if(val == 0 && errorCode != NMATH_NO_ERROR){
 									clearStackWithoutFreeItem(stack, top+1);
 									free(stack);
-	#ifdef DEBUG
-		descNumberOfDynamicObject();
-	#endif
-									for(i=0;i<d->size;i++)
-										clearTree(&(d->list[i]));
-									free(d->list);
-									free(d);
-	#ifdef DEBUG
-		descNumberOfDynamicObjectBy(2);
-	#endif
-									gErrorColumn = tk->column;
+									for(i=0;i<mDomain->size;i++)
+										clearTree(&(mDomain->list[i]));
+									free(mDomain->list);
+									free(mDomain);
+									errorColumn = tk->column;
 									return NULL;
 								}
 							break;
@@ -1071,23 +831,17 @@ NMAST* domain(int *start, TokenList *tokens) {
 							break;
 						}
 						
-						switch(tokens->list[index+5].type){
+						switch(lexer[index+5]->type){
 							case NUMBER:
-								val2 = parseDouble(tokens->list[index+5].text, 0, tokens->list[index+5].textLength, &gErrorCode);
-								if(val2 == 0 && gErrorCode != NMATH_NO_ERROR){
+								val2 = parseDouble(lexer[index + 5]->text, 0, lexer[index + 5]->textLength, &errorCode);
+								if(val2 == 0 && errorCode != NMATH_NO_ERROR){
 									clearStackWithoutFreeItem(stack, top+1);
 									free(stack);
-	#ifdef DEBUG
-		descNumberOfDynamicObject();
-	#endif
-									for(i=0;i<d->size;i++)
-										clearTree(&(d->list[i]));
-									free(d->list);
-									free(d);
-	#ifdef DEBUG
-		descNumberOfDynamicObjectBy(2);
-	#endif
-									gErrorColumn = tokens->list[index+4].column;
+									for (i = 0; i<mDomain->size; i++)
+										clearTree(&(mDomain->list[i]));
+									free(mDomain->list);
+									free(mDomain);
+									errorColumn = lexer[index + 4]->column;
 									return NULL;
 								}
 							break;
@@ -1109,35 +863,26 @@ NMAST* domain(int *start, TokenList *tokens) {
 						*/
 						ast = getFromPool();
 						ast->variable = tk->text[0];
-						if((tokens->list[index+2].type == LPAREN ) && (tokens->list[index+6].type == RPAREN))
+						if ((lexer[index + 2]->type == LPAREN) && (lexer[index + 6]->type == RPAREN))
 							ast->type = GT_LT;
-						else if((tokens->list[index+2].type == LPRACKET ) && (tokens->list[index+6].type == RPAREN))
+						else if ((lexer[index + 2]->type == LPRACKET) && (lexer[index + 6]->type == RPAREN))
 							ast->type = GTE_LT;
-						else if((tokens->list[index+2].type == LPAREN ) && (tokens->list[index+6].type == RPRACKET))
+						else if ((lexer[index + 2]->type == LPAREN) && (lexer[index + 6]->type == RPRACKET))
 							ast->type = GT_LTE;
-						else if((tokens->list[index+2].type == LPRACKET ) && (tokens->list[index+6].type == RPRACKET))
+						else if ((lexer[index + 2]->type == LPRACKET) && (lexer[index + 6]->type == RPRACKET))
 							ast->type = GTE_LTE;
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
 						
 						//ast->Left number 1
 						ast->left = getFromPool();
 						ast->left->parent = ast;
 						ast->left->value = val;
-						ast->left->type = tokens->list[index+3].type;
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
+						ast->left->type = lexer[index + 3]->type;
 						//Left->Right NUMBER or PI_TYPE or E_TYPE
 						ast->right = getFromPool();
 						ast->right->parent = ast;
 						ast->right->value = val2;
-						ast->right->type = tokens->list[index+5].type;
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-						pushASTStack(d, ast);
+						ast->right->type = lexer[index + 5]->type;
+						pushASTStack(mDomain, ast);
 						index += 7;		
 					}else{
 						/**
@@ -1145,29 +890,20 @@ NMAST* domain(int *start, TokenList *tokens) {
 						*/
 						clearStackWithoutFreeItem(stack, top+1);
 						free(stack);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-						for(i=0;i<d->size;i++)
-							clearTree(&(d->list[i]));
-						free(d->list);
-						free(d);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
-						gErrorColumn = tk->column;
-						gErrorCode = ERROR_SYNTAX;
-						return NULL;
+						for (i = 0; i<mDomain->size; i++)
+							clearTree(&(mDomain->list[i]));
+						free(mDomain->list);
+						free(mDomain);
+						errorColumn = tk->column;
+						errorCode = ERROR_SYNTAX;
+						return ERROR_SYNTAX;
 					}
 				}else {
 					ast = getFromPool();
 					ast->variable = tk->text[0];
 					ast->value = val;
 					ast->type = tk->type;
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif					
-					pushASTStack(d, ast);
+					pushASTStack(mDomain, ast);
 					index++;
 				}
 			break;
@@ -1178,39 +914,28 @@ NMAST* domain(int *start, TokenList *tokens) {
 		}
 	}
 	while(top >= 0){
-		tokenItm = popFromStack(stack, &top);
+		tokenItm = StackUtil::popFromStack(stack, &top);
 		
 		if(tokenItm->type == LPAREN || isAFunctionType(tokenItm->type)==TRUE){
 			clearStackWithoutFreeItem(stack, top+1);
 			free(stack);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-			for(i=0;i<d->size;i++)
-				clearTree(&(d->list[i]));
-			free(d->list);
-			free(d);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
-			gErrorColumn = tk->column;
-			gErrorCode = ERROR_PARENTHESE_MISSING;
-			return NULL;
+			for (i = 0; i<mDomain->size; i++)
+				clearTree(&(mDomain->list[i]));
+			free(mDomain->list);
+			free(mDomain);
+			errorColumn = tk->column;
+			errorCode = ERROR_PARENTHESE_MISSING;
+			return ERROR_PARENTHESE_MISSING;
 		}
-		addFunction2Tree(d, tokenItm);
+		addFunction2Tree(mDomain, tokenItm);
 	}
 	*start = index;
-	ast = d->list[0];
-
 	free(stack);
-	free(d);
-#ifdef DEBUG
-	descNumberOfDynamicObjectBy(2);
-#endif
-	return ast;
+
+	return NMATH_NO_ERROR;
 }
 
-NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, Token* valtk2){
+NMAST* NLabParser::buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, Token* valtk2) {
 	NMAST* ast = NULL;
 	NMAST *valNode1, *valNode2;
 	double val1, val2;
@@ -1219,17 +944,17 @@ NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, T
 	/** ERROR cases: -3 < x > 3 or -3 > x < 3  */
 	if( ((o1->type == LT || o1->type == LTE) && (o2->type == GT || o2->type == GTE))
 				|| ((o1->type == GT || o1->type == GTE) && (o2->type == LT || o2->type == LTE)) ) {
-		gErrorCode = ERROR_SYNTAX;
-		gErrorColumn = o2->column;
+		errorCode = ERROR_SYNTAX;
+		errorColumn = o2->column;
 		return NULL;
 	}
 	
 	/** ======================================================================== */
 	switch(valtk1->type){
 		case NUMBER:
-			val1 = parseDouble(valtk1->text, 0, valtk1->textLength, &gErrorCode);
-			if(val1 == 0 && gErrorCode != NMATH_NO_ERROR){
-				gErrorColumn = valtk1->column;
+			val1 = parseDouble(valtk1->text, 0, valtk1->textLength, &errorCode);
+			if(val1 == 0 && errorCode != NMATH_NO_ERROR){
+				errorColumn = valtk1->column;
 				return NULL;
 			}
 		break;
@@ -1244,9 +969,9 @@ NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, T
 					
 	switch(valtk2->type){
 		case NUMBER:
-			val2 = parseDouble(valtk2->text, 0, valtk2->textLength, &gErrorCode);
-			if(val2 == 0 && gErrorCode != NMATH_NO_ERROR){
-				gErrorColumn = valtk2->column;
+			val2 = parseDouble(valtk2->text, 0, valtk2->textLength, &errorCode);
+			if(val2 == 0 && errorCode != NMATH_NO_ERROR){
+				errorColumn = valtk2->column;
 				return NULL;
 			}
 		break;
@@ -1265,18 +990,12 @@ NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, T
 	valNode1->value = val1;
 	valNode1->valueType = TYPE_FLOATING_POINT;
 	valNode1->left = valNode1->right = NULL;
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif	
 	valNode2 = (NMAST*)malloc(sizeof(NMAST));
 	valNode2->variable = 0;
 	valNode2->type = valtk2->type;
 	valNode2->value = val2;
 	valNode2->valueType = TYPE_FLOATING_POINT;
 	valNode2->left = valNode2->right = NULL;
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
 	
 	/** ================================================================ */
 	if((o1->type == LT ) && (o2->type == LT))
@@ -1305,10 +1024,6 @@ NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, T
 	ast->priority = 0;
 	ast->variable = variable->text[0];
 	ast->parent = NULL;
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
-
 	if(isSwap){
 		ast->left = valNode2;
 		valNode2->parent = ast;

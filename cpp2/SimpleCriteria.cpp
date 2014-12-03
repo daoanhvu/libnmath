@@ -25,8 +25,8 @@ SimpleCriteria::SimpleCriteria() {
 	this->rightVal = 0;
 }
 
-SimpleCriteria::SimpleCriteria(int type, char var, float lval, float rval, 
-										char leftInfinity, char rightInfinity) {
+SimpleCriteria::SimpleCriteria(int type, char var, double lval, double rval,
+										bool leftInfinity, bool rightInfinity) {
 	this->cType = SIMPLE;
 	this->type = type;
 	this->variable = var;
@@ -65,11 +65,11 @@ bool SimpleCriteria::isOverlapped(const SimpleCriteria& c) {
 	return false;
 }
 
-bool SimpleCriteria::check(const float* values) {
-	int result = FALSE;
+bool SimpleCriteria::check(const double* values) {
+	bool result = false;
 	
 	if( (this->leftInfinity) && (this->rightInfinity) )
-		return TRUE;
+		return true;
 		
 	if( this->leftInfinity ) {
 		/** HERE we don't need to take care of leftVal */
@@ -78,14 +78,14 @@ bool SimpleCriteria::check(const float* values) {
 			case GTE_LT:
 				// x < rightVal
 				if((*values) < this->rightVal)
-					result = TRUE;
+					result = true;
 			break;
 			
 			case GT_LTE:
 			case GTE_LTE:
 				// x <= rightVal
 				if ((*values) <= this->rightVal)
-					result = TRUE;
+					result = true;
 			break;
 		}
 	}else if ( this->rightInfinity ) {
@@ -95,14 +95,14 @@ bool SimpleCriteria::check(const float* values) {
 			case GT_LTE:
 				// leftVal < x
 				if (this->leftVal < (*values))
-					result = TRUE;
+					result = true;
 			break;
 			
 			case GTE_LT:
 			case GTE_LTE:
 				// leftVal <= x
 				if (this->leftVal <= (*values))
-					result = TRUE;
+					result = true;
 			break;
 		}
 	}else{
@@ -110,25 +110,25 @@ bool SimpleCriteria::check(const float* values) {
 			case GT_LT:
 				// leftVal < x < rightVal
 				if ((this->leftVal < (*values)) && ((*values) < this->rightVal))
-					result = TRUE;
+					result = true;
 			break;
 			
 			case GT_LTE:
 				// leftVal < x <= rightVal
 				if ((this->leftVal < (*values)) && ((*values) <= this->rightVal))
-					result = TRUE;
+					result = true;
 			break;
 			
 			case GTE_LT:
 				// leftVal <= x < rightVal
 				if ((this->leftVal <= (*values)) && ((*values) < this->rightVal))
-					result = TRUE;
+					result = true;
 			break;
 			
 			case GTE_LTE:
 				// leftVal <= x <= rightVal
 				if ((this->leftVal <= (*values)) && ((*values) <= this->rightVal))
-					result = TRUE;
+					result = true;
 			break;
 		}
 	}
@@ -136,7 +136,7 @@ bool SimpleCriteria::check(const float* values) {
 	return result;
 }
 
-SimpleCriteria* SimpleCriteria::and(const float *values) {
+SimpleCriteria* SimpleCriteria::and(const double *values) {
 	SimpleCriteria *outInterval = 0;
 	
 	
@@ -336,8 +336,7 @@ SimpleCriteria* SimpleCriteria::and(const float *values) {
 
 Criteria* SimpleCriteria::and(SimpleCriteria& c) {
 	Criteria* out = NULL;
-	Criteria* outCriteria;
-	float d[2] = {c.leftVal, c.rightVal};
+	double d[2] = {c.leftVal, c.rightVal};
 
 	if(this->variable == c.variable) {	
 		if( !(this->leftInfinity) && !(this->rightInfinity)) { /* If this interval is closed*/
@@ -564,7 +563,6 @@ Criteria* SimpleCriteria::operator &(Criteria& c) {
 }
 
 Criteria* SimpleCriteria::or(SimpleCriteria& c) {
-	float d[2];
 	Criteria* out;
 	bool usedComposite = false;
 
@@ -671,6 +669,28 @@ Criteria* SimpleCriteria::or(SimpleCriteria& c) {
 		((CompositeCriteria*)out)->add(cb2);
 	}
 	
+	return out;
+}
+
+CompositeCriteria* SimpleCriteria::or(CombinedCriteria& c) {
+	CompositeCriteria* out = new CompositeCriteria();
+	out->add(c.clone());
+
+	CombinedCriteria * temp = new CombinedCriteria();
+	temp->add(clone());
+
+	out->add(temp);
+
+	return out;
+}
+
+CompositeCriteria* SimpleCriteria::or(CompositeCriteria& c) {
+	CombinedCriteria *tmp = new CombinedCriteria();
+	tmp->add(clone());
+
+	CompositeCriteria* out = c.clone();
+	out->add(tmp);
+
 	return out;
 }
 

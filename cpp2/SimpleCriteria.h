@@ -21,8 +21,8 @@ namespace nmath {
 
 		public:
 			SimpleCriteria();
-			SimpleCriteria(int type, char var, float lval, float rval, 
-											char leftInfinity, char rightInfinity);
+			SimpleCriteria(int type, char var, double lval, double rval, 
+											bool leftInfinity, bool rightInfinity);
 
 			int getType()	{ return type; }
 			char getVariable()	{ return variable; }
@@ -38,11 +38,11 @@ namespace nmath {
 			Criteria* and(CompositeCriteria& c);
 
 			Criteria* or(SimpleCriteria& c);
-			CombinedCriteria* or(CombinedCriteria& c);
+			CompositeCriteria* or(CombinedCriteria& c);
 			CompositeCriteria* or(CompositeCriteria& c);
 
 			/* And this criteria with pair of values */
-			SimpleCriteria* and(const float *values);
+			SimpleCriteria* and(const double *values);
 			Criteria* operator &(Criteria& c);
 			Criteria* operator |(Criteria& c);
 
@@ -50,7 +50,7 @@ namespace nmath {
 			SimpleCriteria& operator =(SimpleCriteria& c2);
 
 			/* check if value does belong to this interval */
-			bool check(const float *value);
+			bool check(const double* value);
 	};
 }
 

@@ -2,14 +2,30 @@
 #define _NLABPARSER_H
 
 #include "common.h"
+#include "nlablexer.h"
 
-/**
-	access right: private
-	@param outF a NOT-NULL Function pointer
-	@return errorCode
-*/	
-int parseFunction(const char *str, int len, Function *outF);
-void parseExpression(TokenList *tokens, int *start, Function *f);
-int parseFunctionExpression(TokenList *tokens, Function *outF);
+namespace nmath {
+	class NLabParser {
+		private:
+			int errorCode;
+			int errorColumn;
+
+			//output
+			NMASTList *mPrefix;
+			NMASTList *mDomain;
+			char* mVariables;
+			int mVarCount;
+			int functionNotation(NLabLexer& lexer, int index);
+			NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, Token* valtk2);
+
+		public:
+			NLabParser();
+			~NLabParser();
+
+			void parseExpression(NLabLexer& lexer, int *start);
+			int parseFunctionExpression(NLabLexer& lexer);
+			int parseDomain(NLabLexer& lexer, int *start);
+	};
+}
 
 #endif

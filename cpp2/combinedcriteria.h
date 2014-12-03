@@ -26,7 +26,7 @@ namespace nmath {
 
 			int size() const { return mSize; }
 			int loggedSize() const { return mLoggedSize; }
-			bool check(const float* values);
+			bool check(const double* values);
 			void moveListTo(CombinedCriteria& c);
 			void add(SimpleCriteria* c);
 			SimpleCriteria* remove(int index);
@@ -35,16 +35,16 @@ namespace nmath {
 			Criteria* and(CombinedCriteria& c);
 			Criteria* and(CompositeCriteria& c);
 
-			CombinedCriteria* or(const SimpleCriteria& c);
-			CombinedCriteria* or(const CombinedCriteria& c);
-			CompositeCriteria* or(const CompositeCriteria& c);
+			Criteria* or(SimpleCriteria& c);
+			Criteria* or(CombinedCriteria& c);
+			CompositeCriteria* or(CompositeCriteria& c);
 
 			/**
 				Combine (AND) this criteria with each pair of value in bounds
 			*/
 			CombinedCriteria* getInterval(const float* bounds, int varCount);
-			Criteria* operator &(const Criteria& c);
-			Criteria* operator |(const Criteria& c);
+			Criteria* operator &(Criteria& c);
+			Criteria* operator |(Criteria& c);
 			CombinedCriteria& operator =(const CombinedCriteria &);
 			SimpleCriteria* operator [](int index) const;
 			CombinedCriteria* clone();

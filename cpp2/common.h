@@ -119,22 +119,6 @@ struct tagFraction {
 	int denomerator;
 };
 
-
-typedef struct tagFunct {
-	char *str;
-	unsigned int len;
-
-	char variable[4];
-	char valLen;
-
-	NMASTList *prefix;
-	NMASTList *domain;
-	ListCriteria *criterias;
-
-	NMAST **variableNode;
-	int numVarNode;
-} Function;
-
 struct tagToken {
 	int type;
 	char text[MAXTEXTLEN];
@@ -143,12 +127,6 @@ struct tagToken {
 	
 	/* This is used for operators & functions */
 	char priority;
-};
-
-struct tagTokenList {
-	unsigned int loggedSize;
-	unsigned int size;
-	struct tagToken *list;
 };
 
 struct tagNMAST {
@@ -184,56 +162,6 @@ struct tagNMASTList {
 };
 
 /** ================================================================================================ */
-
-/**
-	This is a single continuous interval for one variable
-	Example:
-		variable = 'x' and type=GT_LT we read it out like this:
-		x is greater than leftVal and x is less than rightValue
-*/
-struct tagCriteria {
-	char objectType;
-	FPCheck fcheck;
-	FPGetIntervalF fgetInterval;
-	
-	/** GT_LT, GTE_LT, GT_LTE, GTE_LTE */
-	int type;
-	char variable;
-	double leftVal;
-	double rightVal;
-	
-	/*
-		bit 0: right infinity
-		bit 1: left infinity
-		bit 2: available
-	*/
-	char flag;
-};
-
-//AND
-/**
-	In case our expression has multiple variables
-	this type of interval express for a continuous space for the expression
-	
-	For example: 0<x<=5 AND y>3
- */
-struct tagCombinedCriteria {
-	char objectType;
-	FPCheck fcheck;
-	FPGetIntervalF fgetInterval;
-	Criteria **list;
-	unsigned int loggedSize;
-	unsigned int size;
-};
-
-//OR
-struct tagCompositeCriteria {
-	char objectType;
-	CombinedCriteria **list;
-	unsigned int loggedSize;
-	unsigned int size;
-};
-
 struct tagListCriteria {
 	void **list;
 	unsigned int loggedSize;
