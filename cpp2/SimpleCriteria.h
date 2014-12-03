@@ -19,14 +19,6 @@ namespace nmath {
 			bool rightInfinity;
 			bool leftInfinity;
 
-			Criteria* and(SimpleCriteria& c);
-			Criteria* and(CombinedCriteria& c);
-			Criteria* and(CompositeCriteria& c);
-
-			Criteria* or(SimpleCriteria& c);
-			CombinedCriteria* or(CombinedCriteria& c);
-			CompositeCriteria* or(CompositeCriteria& c);
-
 		public:
 			SimpleCriteria();
 			SimpleCriteria(int type, char var, float lval, float rval, 
@@ -41,6 +33,14 @@ namespace nmath {
 
 			bool isOverlapped(const SimpleCriteria& c);
 
+			Criteria* and(SimpleCriteria& c);
+			Criteria* and(CombinedCriteria& c);
+			Criteria* and(CompositeCriteria& c);
+
+			Criteria* or(SimpleCriteria& c);
+			CombinedCriteria* or(CombinedCriteria& c);
+			CompositeCriteria* or(CompositeCriteria& c);
+
 			/* And this criteria with pair of values */
 			SimpleCriteria* and(const float *values);
 			Criteria* operator &(Criteria& c);
@@ -50,7 +50,7 @@ namespace nmath {
 			SimpleCriteria& operator =(SimpleCriteria& c2);
 
 			/* check if value does belong to this interval */
-			int check(float value);
+			bool check(const float *value);
 	};
 }
 

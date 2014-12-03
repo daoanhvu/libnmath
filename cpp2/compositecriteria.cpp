@@ -26,46 +26,47 @@ void CompositeCriteria::release() {
 	mLoggedSize = 0;
 }
 
-CombinedCriteria* CompositeCriteria::operator [](int index) {
+CombinedCriteria* CompositeCriteria::operator [](int index) const {
 	if(list == NULL || index >= mSize) return 0;
 
 	return list[index];
 }
 
-int CompositeCriteria::isInInterval(const float* values) {
+bool CompositeCriteria::check(const float* values) {
 	int i;
 	
 	for(i=0; i<this->size; i++){
-		if( list[i]->isInInterval(values) == TRUE)
+		if( list[i]->check(values) == TRUE)
 			return TRUE;
 	}
 	
 	return FALSE;
 }
 
-CompositeCriteria* CompositeCriteria::and(const SimpleCriteria& c) {
+CompositeCriteria* CompositeCriteria::and(SimpleCriteria& c) {
 	CombinedCriteria *cb;
-	CombinedCriteria *tmp;
+	Criteria *tmp;
 	CompositeCriteria* out = new CompositeCriteria();
+	int i;
 
 	for(i=0; i<size(); i++) {
-		cb = v[i];
-		tmp = (*cb) & c;
-		if( tmp != NULL ){
-			out->add(tmp);
+		tmp = list[i]->and(c);
+		if( tmp != NULL ) {
+			out->add((CombinedCriteria*)tmp);
 		}
 	}
 	return out;
 }
 
-CompositeCriteria* CompositeCriteria::and(const CombinedCriteria& c) {
-	comb1 = (CombinedCriteria*)c2;
+CompositeCriteria* CompositeCriteria::and(CombinedCriteria& c) {
+	CombinedCriteria* cb;
 	comp2 = (CompositeCriteria*)c1;
-	outComp = newCompositeInterval();
+	CompositeCriteria* out;
+	int i;
 	outComp->loggedSize = comp2->size;
 	outComp->list = (CombinedCriteria**)malloc(sizeof(CombinedCriteria*) * outComp->loggedSize);
-	for(i=0; i<comp2->size; i++) {
-		cb = comp2->list[i];
+	for(i=0; i<mSize; i++) {
+		cb = list[i];
 		andTwoCriteria(comb1, cb, &outTmp);
 		if(outComp->size >= outComp->loggedSize) {
 			outComp->loggedSize += 5;

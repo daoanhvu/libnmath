@@ -11,9 +11,9 @@ namespace nmath {
 			int mLoggedSize;
 			int mSize;
 
-			CompositeCriteria* and(const SimpleCriteria& c);
-			CompositeCriteria* and(const CombinedCriteria& c);
-			CompositeCriteria* and(const CompositeCriteria& c);
+			CompositeCriteria* and(SimpleCriteria& c);
+			CompositeCriteria* and(CombinedCriteria& c);
+			CompositeCriteria* and(CompositeCriteria& c);
 
 			CompositeCriteria* or(const SimpleCriteria& c);
 			CompositeCriteria* or(const CombinedCriteria& c);
@@ -26,14 +26,14 @@ namespace nmath {
 
 			int size() const { return mSize; }
 			int loggedSize() const { return mLoggedSize; }
-			int check(const float* values);
+			bool check(const float* values);
 
 			void add(CombinedCriteria* c);
 			
-			CombinedCriteria* operator [](int index);
+			CombinedCriteria* operator [](int index) const;
 			
-			Criteria& operator |(Criteria &);
-			Criteria& operator &(Criteria &);
+			Criteria* operator |(Criteria &);
+			Criteria* operator &(Criteria &);
 
 			CompositeCriteria& operator |=(CombinedCriteria &);
 			CompositeCriteria& operator &=(Criteria &);

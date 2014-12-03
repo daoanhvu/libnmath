@@ -65,7 +65,7 @@ bool SimpleCriteria::isOverlapped(const SimpleCriteria& c) {
 	return false;
 }
 
-int SimpleCriteria::check(float values) {
+bool SimpleCriteria::check(const float* values) {
 	int result = FALSE;
 	
 	if( (this->leftInfinity) && (this->rightInfinity) )
@@ -77,14 +77,14 @@ int SimpleCriteria::check(float values) {
 			case GT_LT:
 			case GTE_LT:
 				// x < rightVal
-				if(values < this->rightVal)
+				if((*values) < this->rightVal)
 					result = TRUE;
 			break;
 			
 			case GT_LTE:
 			case GTE_LTE:
 				// x <= rightVal
-				if(values <= this->rightVal)
+				if ((*values) <= this->rightVal)
 					result = TRUE;
 			break;
 		}
@@ -94,14 +94,14 @@ int SimpleCriteria::check(float values) {
 			case GT_LT:
 			case GT_LTE:
 				// leftVal < x
-				if(this->leftVal < values)
+				if (this->leftVal < (*values))
 					result = TRUE;
 			break;
 			
 			case GTE_LT:
 			case GTE_LTE:
 				// leftVal <= x
-				if(this->leftVal <= values)
+				if (this->leftVal <= (*values))
 					result = TRUE;
 			break;
 		}
@@ -109,25 +109,25 @@ int SimpleCriteria::check(float values) {
 		switch(this->type){
 			case GT_LT:
 				// leftVal < x < rightVal
-				if( (this->leftVal < values) && (values < this->rightVal))
+				if ((this->leftVal < (*values)) && ((*values) < this->rightVal))
 					result = TRUE;
 			break;
 			
 			case GT_LTE:
 				// leftVal < x <= rightVal
-				if( (this->leftVal < values) && (values <= this->rightVal))
+				if ((this->leftVal < (*values)) && ((*values) <= this->rightVal))
 					result = TRUE;
 			break;
 			
 			case GTE_LT:
 				// leftVal <= x < rightVal
-				if( (this->leftVal <= values) && (values < this->rightVal))
+				if ((this->leftVal <= (*values)) && ((*values) < this->rightVal))
 					result = TRUE;
 			break;
 			
 			case GTE_LTE:
 				// leftVal <= x <= rightVal
-				if( (this->leftVal <= values) && (values <= this->rightVal))
+				if ((this->leftVal <= (*values)) && ((*values) <= this->rightVal))
 					result = TRUE;
 			break;
 		}
@@ -137,13 +137,14 @@ int SimpleCriteria::check(float values) {
 }
 
 SimpleCriteria* SimpleCriteria::and(const float *values) {
-	SimpleCriteria *outInterval = new SimpleCriteria();
+	SimpleCriteria *outInterval = 0;
 	
-	outInterval->available = 1;
-	outInterval->leftInfinity = 0;
-	outInterval->rightInfinity = 0;
-
+	
 	if( this->leftInfinity && this->rightInfinity ) {
+		outInterval = new SimpleCriteria();
+		outInterval->available = 1;
+		outInterval->leftInfinity = 0;
+		outInterval->rightInfinity = 0;
 		outInterval->leftVal = values[0];
 		outInterval->rightVal = values[1];
 		outInterval->type = GTE_LTE;
@@ -152,16 +153,20 @@ SimpleCriteria* SimpleCriteria::and(const float *values) {
 		
 	if( this->leftInfinity ) {
 		/** HERE we don't need to take care of leftVal */
-		outInterval->leftVal = values[0];
 		switch(this->type){
 			case GT_LT:
 			case GTE_LT:
 				// x < rightVal
 				if(this->rightVal <= values[0]){
 					//return empty set, available bit set to FALSE
-					outInterval->available = 0;
-					return;
+					return 0;
 				}
+
+				outInterval = new SimpleCriteria();
+				outInterval->available = 1;
+				outInterval->leftInfinity = 0;
+				outInterval->rightInfinity = 0;
+				outInterval->leftVal = values[0];
 				outInterval->type = GTE_LT; //TODO: need to test here
 				if(values[1] < this->rightVal)
 					outInterval->rightVal = values[1];
@@ -175,10 +180,14 @@ SimpleCriteria* SimpleCriteria::and(const float *values) {
 				// x <= rightVal
 				if(this->rightVal < values[0]){
 					//return empty set, available bit set to FALSE
-					outInterval->available = 0;
-					return;
+					return 0;
 				}
-				
+
+				outInterval = new SimpleCriteria();
+				outInterval->available = 1;
+				outInterval->leftInfinity = 0;
+				outInterval->rightInfinity = 0;
+				outInterval->leftVal = values[0];
 				outInterval->type = GTE_LTE; //TODO: need to test here
 				if(values[1] <= this->rightVal)
 					outInterval->rightVal = values[1];
@@ -188,16 +197,19 @@ SimpleCriteria* SimpleCriteria::and(const float *values) {
 		}
 	}else if ( this->rightInfinity ) {
 		/** HERE we don't need to take care of rightVal */
-		outInterval->rightVal = values[1];
 		switch(this->type){
 			case GT_LT:
 			case GT_LTE:
 				// leftVal < x
 				if(this->leftVal >= values[1]){
 					//return empty set, available bit set to FALSE
-					outInterval->available = 0;
-					return;
+					return 0;
 				}
+				outInterval = new SimpleCriteria();
+				outInterval->available = 1;
+				outInterval->leftInfinity = 0;
+				outInterval->rightInfinity = 0;
+				outInterval->rightVal = values[1];
 				outInterval->type = GT_LTE; //TODO: need to test here
 				if(this->leftVal < values[0])
 					outInterval->leftVal = values[0];
@@ -210,10 +222,13 @@ SimpleCriteria* SimpleCriteria::and(const float *values) {
 				// leftVal <= x
 				if(this->leftVal > values[1]){
 					//return empty set, available bit set to FALSE
-					outInterval->available = 0;
-					return;
+					return 0;
 				}
-				
+				outInterval = new SimpleCriteria();
+				outInterval->available = 1;
+				outInterval->leftInfinity = 0;
+				outInterval->rightInfinity = 0;
+				outInterval->rightVal = values[1];
 				outInterval->type = GTE_LTE; //TODO: need to test here
 				if(this->leftVal <= values[0])
 					outInterval->leftVal = values[0];
@@ -227,9 +242,14 @@ SimpleCriteria* SimpleCriteria::and(const float *values) {
 				// leftVal < x < rightVal
 				if(this->leftVal >= values[1] || this->rightVal <= values[0]){
 					//return empty set, available bit set to FALSE
-					outInterval->available = 0;
-					return;
+					return 0;
 				}
+
+				outInterval = new SimpleCriteria();
+				outInterval->available = 1;
+				outInterval->leftInfinity = 0;
+				outInterval->rightInfinity = 0;
+				outInterval->type = GTE_LTE;
 				
 				if(this->leftVal < values[0])
 					outInterval->leftVal = values[0];
@@ -246,10 +266,13 @@ SimpleCriteria* SimpleCriteria::and(const float *values) {
 			case GT_LTE:
 				if(this->leftVal >= values[1] || this->rightVal < values[0]){
 					//return empty set, available bit set to FALSE
-					outInterval->available = 0;
-					return;
+					return 0;
 				}
-				
+				outInterval = new SimpleCriteria();
+				outInterval->available = 1;
+				outInterval->leftInfinity = 0;
+				outInterval->rightInfinity = 0;
+				outInterval->type = GTE_LTE;
 				if(this->leftVal < values[0])
 					outInterval->leftVal = values[0];
 				else 
@@ -266,10 +289,13 @@ SimpleCriteria* SimpleCriteria::and(const float *values) {
 				// leftVal <= x < rightVal
 				if(this->leftVal > values[1] || this->rightVal <= values[0]){
 					//return empty set, available bit set to FALSE
-					outInterval->available = 0;
-					return;
+					return 0;
 				}
-				
+				outInterval = new SimpleCriteria();
+				outInterval->available = 1;
+				outInterval->leftInfinity = 0;
+				outInterval->rightInfinity = 0;
+				outInterval->type = GTE_LTE;
 				if(this->leftVal <= values[0])
 					outInterval->leftVal = values[0];
 				else 
@@ -285,10 +311,13 @@ SimpleCriteria* SimpleCriteria::and(const float *values) {
 				// leftVal <= x <= rightVal
 				if(this->leftVal > values[1] || this->rightVal < values[0]){
 					//return empty set, available bit set to FALSE
-					outInterval->available = 0;
-					return;
+					return 0;
 				}
-				
+				outInterval = new SimpleCriteria();
+				outInterval->available = 1;
+				outInterval->leftInfinity = 0;
+				outInterval->rightInfinity = 0;
+				outInterval->type = GTE_LTE;
 				if(this->leftVal <= values[0])
 					outInterval->leftVal = values[0];
 				else 
@@ -495,7 +524,7 @@ Criteria* SimpleCriteria::and(CombinedCriteria& cb) {
 		We got here because this criteria has variable that not same as vaiable of any criteria in CombinedCriteria
 	*/
 	out = cb.clone();
-	out->add(this->clone);
+	out->add(this->clone());
 	return out;
 }
 

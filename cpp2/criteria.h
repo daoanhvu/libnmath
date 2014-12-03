@@ -26,7 +26,7 @@ namespace nmath {
 			virtual Criteria* operator |(Criteria& c)	{ return this; }
 
 			/* check if value does belong to this interval */
-			virtual int check(float *value) { return 0; }
+			virtual bool check(const float *value) { return false; }
 	};
 }
 

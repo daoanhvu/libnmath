@@ -229,8 +229,6 @@ struct tagCombinedCriteria {
 //OR
 struct tagCompositeCriteria {
 	char objectType;
-	FPCheck fcheck;
-	FPGetIntervalF fgetInterval;
 	CombinedCriteria **list;
 	unsigned int loggedSize;
 	unsigned int size;

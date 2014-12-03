@@ -1,4 +1,5 @@
 #include "combinedcriteria.h"
+#include "compositecriteria.h"
 
 using namespace nmath;
 
@@ -89,7 +90,7 @@ Criteria* CombinedCriteria::and(SimpleCriteria& c) {
 	int i = 0;
 	for(i=0; i<mSize; i++){
 		if( c.getVariable() == list[i]->getVariable() ){
-			tmp = c & *(list[i]);
+			tmp = c.and(*(list[i]));
 			if (tmp != NULL) {
 				return tmp;
 			}else{
@@ -122,16 +123,16 @@ Criteria* CombinedCriteria::and(CombinedCriteria& c) {
 	return out;
 }
 
-Criteria* CombinedCriteria::and(const CompositeCriteria& c) {
+Criteria* CombinedCriteria::and(CompositeCriteria& c) {
 	Criteria* tmp;
-
 	CompositeCriteria* out = new CompositeCriteria();
+	int i;
 
-	for(i=0; i<c.sise(); i++) {
-		tmp = this->and(c[i]);
-
-		if(tmp != NULL)
-			out->add(tmp);
+	for(i=0; i<c.size(); i++) {
+		tmp = this->and(*c[i]);
+		if (tmp != NULL){
+			out->add((CombinedCriteria*)tmp);
+		}
 	}
 	return out;
 }
@@ -140,39 +141,28 @@ Criteria* CombinedCriteria::and(const CompositeCriteria& c) {
 	Combine (AND) this criteria with each pair of value in bounds
 */
 CombinedCriteria* CombinedCriteria::getInterval(const float *bounds, int varCount) {	
-	Criteria *interval;
+	SimpleCriteria *interval;
 	CombinedCriteria* outListInterval = new CombinedCriteria();
 	int i, k;
 	
 	for(k=0; k<varCount; k++){
-		interval = new Criteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
-		
-		interval = list[k]->and(bounds + k*2, varCount);
-		if( (interval == NULL) || (interval->flag & AVAILABLE) != AVAILABLE ) {
-			for(i=0; i<outListInterval->size; i++)
-				delete (outListInterval->list[i]);
-			free(outListInterval->list);
-			outListInterval->list = NULL;
-			outListInterval->size = 0;
-			outListInterval->loggedSize = 0;
+		interval = new SimpleCriteria(GT_LT, 'x', 0, 0, FALSE, FALSE);
+		interval = list[k]->and(bounds + k*2);
+		if( interval == NULL) {
+			delete outListInterval;
 			return;
 		}
-		
-		if(outListInterval->size >= outListInterval->loggedSize){
-			outListInterval->loggedSize += INCLEN;
-			outListInterval->list = (Criteria**)realloc(outListInterval->list, sizeof(Criteria*) * outListInterval->loggedSize);
-		}
-		outListInterval->list[outListInterval->size++] = interval;
+		outListInterval->add(interval);
 	}
 }
 
-int CombinedCriteria::isInInterval(const float *values) {
+bool CombinedCriteria::check(const float *values) {
 	int i;
 	
 	for(i=0; i<this->size; i++) {
-		if( list[i]->isInInterval(*(values+i)) == FALSE)
-			return FALSE;
+		if( list[i]->check(values+i) )
+			return false;
 	}
 	
-	return TRUE;
+	return true;
 }
