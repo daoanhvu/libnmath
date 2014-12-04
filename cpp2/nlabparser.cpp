@@ -23,9 +23,19 @@ using namespace nmath;
 //internal variables
 NMAST *returnedAst = NULL;
 
-int functionNotation(const TokenList *tokens, int index, char *variables, int *variableCount);
-NMAST* domain(int *start, TokenList *tokens);
-NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, Token* valtk2);
+NLabParser::NLabParser(){
+}
+
+NLabParser::~NLabParser() {
+}
+
+void NLabParser::reset() {
+	errorCode = 0;
+	errorColumn = -1;
+	mPrefix = 0;
+	mDomain = 0;
+	mVarCount = 0;
+}
 
 /******************************************************************************************/
 /**
@@ -646,10 +656,10 @@ int NLabParser::parseDomain(NLabLexer& lexer, int *start) {
 							return NULL;
 						}
 						break;
-						case PI_TYPE:
+					case PI_TYPE:
 							val = PI;
 						break;
-						case E_TYPE:
+					case E_TYPE:
 							val = E;
 						break;
 				}
@@ -667,7 +677,7 @@ int NLabParser::parseDomain(NLabLexer& lexer, int *start) {
 			case GTE:
 			case AND:
 			case OR:
-			if(top >= 0){
+				if(top >= 0){
 					tokenItm = stack[top];
 					while((isAnOperatorType(tokenItm->type)==TRUE || isComparationOperator(tokenItm->type)==TRUE || tokenItm->type==AND || tokenItm->type==OR)
 								&& (tokenItm->priority) >= tk->priority){
@@ -791,6 +801,7 @@ int NLabParser::parseDomain(NLabLexer& lexer, int *start) {
 				index++;
 			break;
 			
+			case NAME:
 			case VARIABLE:
 				if(( (index+1) < lexer.size()) && lexer[index+1]->type == ELEMENT_OF){
 					/*
@@ -899,12 +910,43 @@ int NLabParser::parseDomain(NLabLexer& lexer, int *start) {
 						return ERROR_SYNTAX;
 					}
 				}else {
-					ast = getFromPool();
-					ast->variable = tk->text[0];
-					ast->value = val;
-					ast->type = tk->type;
-					pushASTStack(mDomain, ast);
-					index++;
+					// VARIABLE OPERATOR VALUE
+					if(isComparationOperator(lexer[index+1]->type)) {
+						if( isConstant(lexer[index+2]->type) ) {
+						
+							//OPERATOR
+							NMAST* o = getFromPool();
+							o->type = lexer[index + 1]->type;
+							
+							//Vaiable or NAME
+							ast = getFromPool();
+							ast->variable = tk->text[0];
+							ast->value = 0;
+							ast->type = tk->type;
+							
+							o->left = ast;
+							ast->parent = o;
+							
+							//Value
+							ast = getFromPool();
+							ast->variable = 0;
+							ast->value = parseDouble(lexer[index+2]->text, 0, lexer[index+2]->textLength, &errorCode);
+							ast->type = lexer[index+2]->type;
+							
+							o->right = ast;
+							ast->parent = o;
+							
+							pushASTStack(mDomain, o);
+							index += 3;
+						}
+					} else {
+						ast = getFromPool();
+						ast->variable = tk->text[0];
+						ast->value = 0;
+						ast->type = tk->type;
+						pushASTStack(mDomain, ast);
+						index++;
+					}
 				}
 			break;
 			
@@ -1019,7 +1061,7 @@ NMAST* NLabParser::buildIntervalTree(Token* valtk1, Token* o1, Token* variable, 
 	}
 
 	//ast: GTE_LT | GT_TL
-	ast = (NMAST*)malloc(sizeof(NMAST));
+	ast = getFromPool();
 	ast->type = type;
 	ast->priority = 0;
 	ast->variable = variable->text[0];

@@ -47,17 +47,28 @@ bool SimpleCriteria::isOverlapped(const SimpleCriteria& c) {
 	if (variable == c.variable){
 		if (!(this->leftInfinity) && !(this->rightInfinity)) { /* If this interval is closed*/
 			if (!(c.leftInfinity) && !(c.rightInfinity)) { //c is closed
-				/*
+				if ((rightVal < c.leftVal) || (leftVal > c.rightVal)){
+					/*
 					this |---|
 					c			|---|
+					OR
+					this 		|---|
+					c	  |---|
 				
-				*/
-				if ((rightVal < c.leftVal) || (leftVal > c.rightVal))
+					*/
 					return false;
-				else return true;
+				} else {
+					return true;
+				}
 			}
-			else if (!(c.leftInfinity) && c.rightInfinity) {
-
+			else if (!(c.leftInfinity) && c.rightInfinity) { // c close on LEFT, open on RIGHT
+				if(rightVal < c.leftVal){
+					/*
+					this |--|
+					c		 |---
+					*/
+					return false;
+				} else return true;
 			}
 		}
 	}
@@ -138,7 +149,6 @@ bool SimpleCriteria::check(const double* values) {
 
 SimpleCriteria* SimpleCriteria::and(const double *values) {
 	SimpleCriteria *outInterval = 0;
-	
 	
 	if( this->leftInfinity && this->rightInfinity ) {
 		outInterval = new SimpleCriteria();
@@ -492,19 +502,35 @@ Criteria* SimpleCriteria::and(SimpleCriteria& c) {
 
 Criteria* SimpleCriteria::and(CompositeCriteria& c) {
 	int i;
-	Criteria *cbOut;
-	CompositeCriteria *comp1;
-	/**
-		c1 and (c2 or  c3) = (c1 and c2) or (c1 and c3)
-	*/
-	comp1 = new CompositeCriteria();
-	for(i=0; i<c.size(); i++) {
-		if( (cbOut = this->and(*c[i])) != NULL ) {
-			if (cbOut->getCClassType() == COMBINED )
-				comp1->add((CombinedCriteria*)cbOut);
+	Criteria *out, *outItem;
+	Criteria *itm;
+
+	if(c.logicOperator() == AND) {
+		// SIMPLE & AND  = out(clone c), add clone SIMPLE to out
+		out = c.clone();
+		((CompositeCriteria*)out)->add(this->clone());
+	} else {
+		// SIMPLE & OR = SIMPLE & every sub OR
+		out = new CompositeCriteria();
+		((CompositeCriteria*)out)->setOperator(OR);
+		
+		for(i=0; i<c.size(); i++) {
+			itm = c[i];
+			outItem = 0;
+			switch(itm->getCClassType()) {
+				case SIMPLE:
+					outItem = this->and((SimpleCriteria&)*itm);
+				break;
+				
+				case COMPOSITE:
+					outItem = this->and((CompositeCriteria&)*itm);
+				break;
+			}
+			if(outItem != 0)
+				((CompositeCriteria*)out)->add(outItem);
 		}
-	}	
-	return comp1;
+	}
+	return out;
 }
 
 Criteria* SimpleCriteria::operator &(Criteria& c) {
@@ -620,30 +646,14 @@ Criteria* SimpleCriteria::or(SimpleCriteria& c) {
 		((CompositeCriteria*)out)->setOperator(OR);
 		((CompositeCriteria*)out)->add(this->clone());
 		((CompositeCriteria*)out)->add(c.clone());
-	
 	}
 	
 	return out;
 }
 
-CompositeCriteria* SimpleCriteria::or(CombinedCriteria& c) {
-	CompositeCriteria* out = new CompositeCriteria();
-	out->add(c.clone());
-
-	CombinedCriteria * temp = new CombinedCriteria();
-	temp->add(clone());
-
-	out->add(temp);
-
-	return out;
-}
-
 CompositeCriteria* SimpleCriteria::or(CompositeCriteria& c) {
-	CombinedCriteria *tmp = new CombinedCriteria();
-	tmp->add(clone());
-
-	CompositeCriteria* out = c.clone();
-	out->add(tmp);
+	CompositeCriteria* out = (CompositeCriteria*)c.clone();
+	out->add(clone());
 
 	return out;
 }
@@ -654,12 +664,12 @@ CompositeCriteria* SimpleCriteria::or(CompositeCriteria& c) {
 Criteria* SimpleCriteria::operator |(Criteria &c) {
 	Criteria* out;
 	switch (c.getCClassType()) {
-	case SIMPLE:
-		out = or((SimpleCriteria&)c);
-		break;
-	case COMPOSITE:
-		out = or((CompositeCriteria&)c);
-		break;
+		case SIMPLE:
+			out = or((SimpleCriteria&)c);
+			break;
+		case COMPOSITE:
+			out = or((CompositeCriteria&)c);
+			break;
 	}
 	return out;
 }

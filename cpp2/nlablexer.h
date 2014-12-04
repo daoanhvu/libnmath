@@ -34,6 +34,7 @@ namespace nmath{
 			~NLabLexer();
 
 			void reset(int logSize);
+			int getErrorColumn()	{ return errorColumn; }
 
 			int lexicalAnalysis(char *inStr, int len, int appended);
 			int size() { return mSize; }

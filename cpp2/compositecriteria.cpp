@@ -97,7 +97,7 @@ CompositeCriteria* CompositeCriteria::and(SimpleCriteria& c) {
 CompositeCriteria* CompositeCriteria::and(CompositeCriteria& c) {
 	CompositeCriteria* out;
 	Criteria *tmp;
-	int i, j, size;
+	int i, size;
 
 	if (c.logicOperator() == AND) {
 		if (logicOp == AND) {
@@ -209,7 +209,17 @@ CompositeCriteria* CompositeCriteria::or(CompositeCriteria& c) {
 }
 
 Criteria* CompositeCriteria::operator |(Criteria& c) {
-	return NULL;
+	Criteria* out;
+	switch(c.getCClassType()){
+		case SIMPLE:
+			out = and((SimpleCriteria&)c);
+		break;
+		
+		case COMPOSITE:
+			out = and((CompositeCriteria&)c);
+		break;
+	}
+	return out;
 }
 
 /**
@@ -222,7 +232,7 @@ Criteria* CompositeCriteria::operator |(Criteria& c) {
 */
 CompositeCriteria* CompositeCriteria::getInterval(const float *values, int varCount) {
 	CompositeCriteria *out = new CompositeCriteria();
-	CombinedCriteria *listIn;
+	Criteria *listIn;
 	int i;
 	
 	for(i=0; i<mSize; i++) {

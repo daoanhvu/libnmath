@@ -42,8 +42,20 @@ int NFunction::parse(const char *str, int len) {
 	if (errorCode != NMATH_NO_ERROR) {
 		return errorCode;
 	}
+	else
+		errorColumn = mLexer->getErrorColumn();
 
 	errorCode = mParser->parseFunctionExpression(*mLexer);
+	if (errorCode == NMATH_NO_ERROR) {
+		this->prefix = mParser->prefix();
+		this->domain = mParser->domain();
+		valLen = mParser->variableCount();
+		if (valLen > 0)
+			memcpy(variables, mParser->variables(), valLen);
+
+		mParser->reset();
+	} else
+		errorColumn = mParser->getErrorColumn();
 
 	return errorCode;
 }
