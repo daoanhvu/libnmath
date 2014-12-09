@@ -24,8 +24,13 @@ namespace nmath {
 											bool leftInfinity, bool rightInfinity);
 
 			int getType()	{ return type; }
+			void setType(int t) { type = t; }
+
 			char getVariable()	{ return variable; }
+			void setVariable(char var) { variable = var; }
+
 			double getLeftValue() { return leftVal; }
+
 			double getRightValue() { return rightVal; }
 			bool isRightInfinity() { return rightInfinity; }
 			bool isLeftInfinity() { return leftInfinity; }

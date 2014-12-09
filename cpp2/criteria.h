@@ -29,6 +29,8 @@ namespace nmath {
 			virtual bool check(const double *value) { return false; }
 			virtual Criteria* clone() { return 0; }
 			virtual Criteria* getInterval(const float *values, int varCount) { return 0; }
+
+			friend Criteria* buildTree(const NMAST *ast);
 	};
 }
 
