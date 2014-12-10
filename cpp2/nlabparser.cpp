@@ -915,28 +915,12 @@ int NLabParser::parseDomain(NLabLexer& lexer, int *start) {
 						if( isConstant(lexer[index+2]->type) ) {
 						
 							//OPERATOR
-							NMAST* o = getFromPool();
-							o->type = lexer[index + 1]->type;
-							
-							//Vaiable or NAME
 							ast = getFromPool();
-							ast->variable = tk->text[0];
-							ast->value = 0;
-							ast->type = tk->type;
-							
-							o->left = ast;
-							ast->parent = o;
-							
-							//Value
-							ast = getFromPool();
-							ast->variable = 0;
+							ast->type = lexer[index + 1]->type;
+							ast->variable = tk->text[0]; //Variable or NAME is stored at operator node
 							ast->value = parseDouble(lexer[index+2]->text, 0, lexer[index+2]->textLength, &errorCode);
-							ast->type = lexer[index+2]->type;
 							
-							o->right = ast;
-							ast->parent = o;
-							
-							pushASTStack(mDomain, o);
+							pushASTStack(mDomain, ast);
 							index += 3;
 						}
 					} else {

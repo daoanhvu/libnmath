@@ -13,13 +13,14 @@ namespace nmath {
 		private:
 
 		protected:
-			char available;
+			bool available;
 			NMathCClassType cType;
 
 		public:
 			Criteria();
 			virtual ~Criteria()		{}
 
+			bool isAvailable() { return available; }
 			NMathCClassType getCClassType() const { return cType; }
 
 			virtual Criteria* operator &(Criteria& c) { return this; }
@@ -28,9 +29,9 @@ namespace nmath {
 			/* check if value does belong to this interval */
 			virtual bool check(const double *value) { return false; }
 			virtual Criteria* clone() { return 0; }
-			virtual Criteria* getInterval(const float *values, int varCount) { return 0; }
+			virtual Criteria* getInterval(const double *values, const char* var, int varCount) { return 0; }
 
-			friend Criteria* buildTree(const NMAST *ast);
+			friend Criteria* buildCriteria(const NMAST *ast);
 	};
 }
 

@@ -46,10 +46,12 @@ Criteria* CompositeCriteria::clone() {
 void CompositeCriteria::add(Criteria* c) {
 	Criteria **buffer;
 	int newLogSize;
+	
 	if ((mLoggedSize <= 0) || (mLoggedSize <= mSize)){
 		newLogSize = mLoggedSize + 10;
 		buffer = (Criteria**)realloc(list, sizeof(Criteria*) * newLogSize);
 		if (buffer != NULL) {
+			list = buffer;
 			mLoggedSize = newLogSize;
 		}
 	}
@@ -230,13 +232,13 @@ Criteria* CompositeCriteria::operator |(Criteria& c) {
 		This output parameter, it's a matrix N row and M columns which each row is for each continuous space for the expression
 		It means that each row will hold a combined-interval for n-tule variables and M equal varCount * 2
 */
-CompositeCriteria* CompositeCriteria::getInterval(const float *values, int varCount) {
+Criteria* CompositeCriteria::getInterval(const double *values, const char* var, int varCount) {
 	CompositeCriteria *out = new CompositeCriteria();
 	Criteria *listIn;
 	int i;
 	
 	for(i=0; i<mSize; i++) {
-		listIn = list[i]->getInterval(values, varCount);
+		listIn = list[i]->getInterval(values, var, varCount);
 		if( listIn != NULL ) {
 			out->add(listIn);
 		}

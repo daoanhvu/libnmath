@@ -30,12 +30,17 @@ namespace nmath {
 			void setVariable(char var) { variable = var; }
 
 			double getLeftValue() { return leftVal; }
-
+			void setLeftValue(double v) { leftVal = v; }
 			double getRightValue() { return rightVal; }
+			void setRightValue(double v) { rightVal = v; }
 			bool isRightInfinity() { return rightInfinity; }
+			void setRightInfinity(bool rInf) { rightInfinity = rInf; }
 			bool isLeftInfinity() { return leftInfinity; }
+			void setLeftInfinity(bool lInf) { leftInfinity = lInf; }
 
 			bool isOverlapped(const SimpleCriteria& c);
+			
+			Criteria* getInterval(const double *values, const char* var, int varCount);
 
 			Criteria* and(SimpleCriteria& c);
 			Criteria* and(CompositeCriteria& c);

@@ -43,6 +43,19 @@ Criteria* SimpleCriteria::clone() {
 	return out;
 }
 
+Criteria* SimpleCriteria::getInterval(const double *values, const char* var, int varCount) {
+	Criteria* out;
+	int i;
+	for(i=0; i<varCount; i++){
+		if(variable == var[i]) {
+			out = and(values + (i*2));
+			return out;
+		}
+	}
+	
+	return NULL;
+}
+
 bool SimpleCriteria::isOverlapped(const SimpleCriteria& c) {
 	if (variable == c.variable){
 		if (!(this->leftInfinity) && !(this->rightInfinity)) { /* If this interval is closed*/
@@ -60,8 +73,7 @@ bool SimpleCriteria::isOverlapped(const SimpleCriteria& c) {
 				} else {
 					return true;
 				}
-			}
-			else if (!(c.leftInfinity) && c.rightInfinity) { // c close on LEFT, open on RIGHT
+			} else if (!(c.leftInfinity) && c.rightInfinity) { // c close on LEFT, open on RIGHT
 				if(rightVal < c.leftVal){
 					/*
 					this |--|
@@ -69,6 +81,15 @@ bool SimpleCriteria::isOverlapped(const SimpleCriteria& c) {
 					*/
 					return false;
 				} else return true;
+			} else if (c.leftInfinity && !c.rightInfinity) { // c OPEN on LEFT, CLOSE on RIGHT
+				if(this->leftVal > c.rightVal) {
+					/*
+						this      |-----|
+						c     ---|
+					*/
+					return false;
+				} else
+					return true;
 			}
 		}
 	}

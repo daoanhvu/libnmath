@@ -48,12 +48,11 @@ namespace nmath {
 	public:
 		NFunction();
 		~NFunction();
-
 		int parse(const char *str, int len);
 		void release();
-
 		int reduce();
 		double dcalc(double *values, int numOfValue);
+		ListFData* getSpace(float *values, int numOfValue);
 	};
 
 	NMAST* cloneTree(NMAST *t, NMAST *cloneParent);

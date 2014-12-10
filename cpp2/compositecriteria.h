@@ -31,7 +31,7 @@ namespace nmath {
 			int size() const { return mSize; }
 			int loggedSize() const { return mLoggedSize; }
 			bool check(const double* values);
-			CompositeCriteria* getInterval(const float *values, int varCount);
+			Criteria* getInterval(const double *values, const char* var, int varCount);
 
 			void add(Criteria* c);
 			

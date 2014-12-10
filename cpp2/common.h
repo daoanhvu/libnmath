@@ -173,7 +173,6 @@ struct tagFData {
 	unsigned int dataSize;
 	unsigned int loggedSize;
 	char dimension;
-	
 	int *rowInfo;
 	unsigned int rowCount;
 	unsigned int loggedRowCount;
@@ -183,10 +182,6 @@ struct tagListFData {
 	FData **list;
 	unsigned int loggedSize;
 	unsigned int size;
-};
-
-struct tagOutBuiltCriteria {
-	void *cr;
 };
 
 /* ====================================================================================================== */
