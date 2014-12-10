@@ -15,7 +15,9 @@ namespace nmath {
 		public:
 			Complex(double r, double img);
 			~Complex();
-			
+
+			Complex& operator =(const Complex& c);
+
 			friend Complex& operator +(double r, const Complex& c);
 	};
 }

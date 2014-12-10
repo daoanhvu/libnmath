@@ -2,9 +2,10 @@
 #define _COMPOSITECRITERIA_H
 
 #include "criteria.h"
-#include "combinedcriteria.h"
 
 namespace nmath {
+	class SimpleCriteria;
+
 	class CompositeCriteria: public Criteria {
 		private:
 			Criteria** list;

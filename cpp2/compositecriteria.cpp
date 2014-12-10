@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include "SimpleCriteria.h"
 #include "compositecriteria.h"
 
 using namespace nmath;
@@ -89,7 +90,7 @@ CompositeCriteria* CompositeCriteria::and(SimpleCriteria& c) {
 		for (i = 0; i<size(); i++) {
 			tmp = (*list[i]) & (Criteria&)c;
 			if (tmp != NULL) {
-				out->add((CombinedCriteria*)tmp);
+				out->add(tmp);
 			}
 		}
 	}

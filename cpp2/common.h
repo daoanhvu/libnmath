@@ -114,11 +114,6 @@ typedef struct tagTokenList TokenList;
 typedef struct tagNMAST NMAST;
 typedef struct tagNMASTList NMASTList;
 
-struct tagFraction {
-	int numerator;
-	int denomerator;
-};
-
 struct tagToken {
 	int type;
 	char text[MAXTEXTLEN];
@@ -140,7 +135,7 @@ struct tagNMAST {
 	 * */
 	char valueType;
 	double value;
-	Fraction frValue;
+	//Fraction frValue;
 
 	//if this ast is a VARIABLE and NAME
 	char variable;
