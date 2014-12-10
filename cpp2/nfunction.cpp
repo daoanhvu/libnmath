@@ -87,6 +87,42 @@ int NFunction::reduce() {
 	return 0;
 }
 
+/*
+Check if a tree contains variable x
+@param t the tree
+@param x variable to check if existed
+*/
+bool nmath::isContainVar(NMAST *t, char x){
+
+	if ((t == NULL) || (t->type == NUMBER) || (t->type == PI_TYPE) || (t->type == E_TYPE))
+		return false;
+
+	if (t->type == VARIABLE) {
+		if (t->variable == x)
+			return (t->sign>0);
+		return false;
+	}
+
+	return (isContainVar(t->left, x) || isContainVar(t->right, x));
+}
+
+
+NMAST * nmath::cloneTree(NMAST *t, NMAST *cloneParent){
+	NMAST *c;
+
+	if(t==NULL) {
+		return 0;
+	}
+
+	c = (NMAST*)malloc(sizeof(NMAST));
+	memcpy(c, t, sizeof(NMAST));
+	c->parent = cloneParent;
+	c->left = cloneTree(t->left, c);
+	c->right = cloneTree(t->right, c);
+	return c;
+}
+
+
 #ifdef _WIN32
 unsigned int __stdcall nmath::reduce_t(void *param){
 	HANDLE thread_1 = 0, thread_2 = 0;
@@ -800,4 +836,909 @@ void* nmath::calc_t(void *param){
 #else
 	return &(dp->error);
 #endif
+}
+
+#ifdef _WIN32
+unsigned int __stdcall nmath::calcF_t(void *param){
+	HANDLE thread_1 = 0, thread_2 = 0;
+#else
+void* nmath::calcF_t(void *param){
+	pthread_t thrLeft, thrRight;
+	int idThrLeft = -1, idThrRight = -1;
+#endif
+	DParamF *dp = (DParamF *)param;
+	NMAST *t = dp->t;
+	DParamF this_param_left;
+	DParamF this_param_right;
+	int var_index = -1;
+
+	this_param_left.error = this_param_right.error = 0;
+	this_param_left.variables[0] = this_param_right.variables[0] = dp->variables[0];
+	this_param_left.variables[1] = this_param_right.variables[1] = dp->variables[1];
+	this_param_left.variables[2] = this_param_right.variables[2] = dp->variables[2];
+	this_param_left.variables[3] = this_param_right.variables[3] = dp->variables[3];
+	//memcpy(this_param_left.variables, dp->variables, 4);
+	//memcpy(this_param_right.variables, dp->variables, 4);
+	this_param_left.values = this_param_right.values = dp->values;
+
+	/* If the input tree is NULL, we do nothing */
+	if (t == NULL) return 0;
+
+
+	if (t->type == VARIABLE){
+		var_index = isInArray(dp->variables, t->variable);
+		dp->retv = (t->sign>0) ? (dp->values[var_index]) : (-dp->values[var_index]);
+#ifdef _WIN32
+		return dp->error;
+#else
+		return &(dp->error);
+#endif
+	}
+
+	if ((t->type == NUMBER) || (t->type == PI_TYPE) || (t->type == E_TYPE)){
+		dp->retv = t->value;
+#ifdef _WIN32
+		return dp->error;
+#else
+		return &(dp->error);
+#endif
+	}
+
+	this_param_left.t = t->left;
+	this_param_right.t = t->right;
+#ifdef _WIN32
+	thread_1 = (HANDLE)_beginthreadex(NULL, 0, &calcF_t, (void*)&this_param_left, 0, NULL);
+	thread_2 = (HANDLE)_beginthreadex(NULL, 0, &calcF_t, (void*)&this_param_right, 0, NULL);
+	if (thread_1 != 0){
+		WaitForSingleObject(thread_1, INFINITE);
+		CloseHandle(thread_1);
+	}
+	if (thread_2 != 0){
+		WaitForSingleObject(thread_2, INFINITE);
+		CloseHandle(thread_2);
+	}
+#else
+	idThrLeft = pthread_create(&thrLeft, NULL, calcF_t, (void*)&this_param_left);
+	idThrRight = pthread_create(&thrRight, NULL, calcF_t, (void*)&this_param_right);
+	if (idThrLeft == NMATH_NO_ERROR){
+		pthread_join(thrLeft, NULL);
+	}
+	if (idThrRight == NMATH_NO_ERROR){
+		pthread_join(thrRight, NULL);
+	}
+#endif
+	/*******************************************************************************/
+
+	/* Actually, we don't need to check error here b'cause the reduce phase does that
+	if(this_param_left.error != 0){
+	dp->error = this_param_left.error;
+	return dp->error;
+	}
+
+	if(this_param_right.error != 0){
+	dp->error = this_param_right.error;
+	return dp->error;
+	}*/
+	//LOGI(2, "sign: %d, operand1= %f, operand2=%f, operator: %d", t->sign, this_param_left.retv, this_param_right.retv, t->type);	
+	dp->retv = t->sign * doCalculateF(this_param_left.retv, this_param_right.retv, t->type, &(dp->error));
+#ifdef _WIN32
+	return dp->error;
+#else
+	return &(dp->error);
+#endif
+}
+
+#ifdef _WIN32
+unsigned int __stdcall nmath::derivative(void *p){
+	HANDLE tdu = 0, tdv = 0;
+#else
+void* nmath::derivative(void *p){
+	pthread_t tdu, tdv;
+	int id_du = -1, id_dv = -1;
+#endif
+	DParam *dp = (DParam*)p;
+	NMAST *t = dp->t;
+	char x = dp->variables[0];
+	NMAST *u, *du, *v, *dv;
+	DParam pdu, pdv;
+
+	dp->returnValue = NULL;
+	if (t == NULL){
+		return 0;
+	}
+
+	if (t->type == NUMBER || t->type == PI_TYPE || t->type == E_TYPE){
+		u = (NMAST*)malloc(sizeof(NMAST));
+		u->type = NUMBER;
+		u->value = 0.0;
+		u->parent = NULL;
+		u->left = u->right = NULL;
+		u->variable = 0;
+		dp->returnValue = u;
+#ifdef _WIN32
+		return 0;
+#else
+		return u;
+#endif
+	}
+
+	/*
+	IMPORTANT:
+	In case of multi-variable function, we need to tell which variable that we are
+	getting derivative of
+	*/
+	if (t->type == VARIABLE){
+		u = (NMAST*)malloc(sizeof(NMAST));
+		u->type = NUMBER;
+		u->value = 1.0;
+		u->parent = NULL;
+		u->left = u->right = NULL;
+		u->variable = 0;
+		if (dp->variables[0] == t->variable){
+			u->value = 1.0;
+			dp->returnValue = u;
+#ifdef _WIN32
+		}
+		return 0;
+#else
+			return u;
+		}
+		u->value = 0.0;
+		return u;
+#endif
+}
+
+	dv = du = NULL;
+
+	u = t->left;
+	v = t->right;
+#ifdef _WIN32
+	if (u != NULL){
+		pdu.t = t->left;
+		pdu.variables[0] = x;
+		tdu = (HANDLE)_beginthreadex(NULL, 0, &derivative, (void*)&pdu, 0, NULL);
+	}
+
+	if (v != NULL){
+		pdv.t = t->right;
+		pdv.variables[0] = x;
+		tdv = (HANDLE)_beginthreadex(NULL, 0, &derivative, (void*)&pdv, 0, NULL);
+	}
+
+	if (tdu != 0){
+		WaitForSingleObject(tdu, INFINITE);
+		du = pdu.returnValue;
+		CloseHandle(tdu);
+	}
+	if (tdv != 0){
+		WaitForSingleObject(tdv, INFINITE);
+		dv = pdv.returnValue;
+		CloseHandle(tdv);
+	}
+
+	switch (t->type){
+	case SIN:
+		dp->returnValue = d_sin(t, u, du, v, dv, x);
+		return 0;
+
+	case COS:
+		dp->returnValue = d_cos(t, u, du, v, dv, x);
+		return 0;
+
+	case TAN:
+		dp->returnValue = d_tan(t, u, du, v, dv, x);
+		return 0;
+
+	case COTAN:
+		dp->returnValue = d_cotan(t, u, du, v, dv, x);
+		return 0;
+
+	case ASIN:
+		dp->returnValue = d_asin(t, u, du, v, dv, x);
+		return 0;
+
+	case ACOS:
+		dp->returnValue = d_acos(t, u, du, v, dv, x);
+		return 0;
+
+	case ATAN:
+		dp->returnValue = d_atan(t, u, du, v, dv, x);
+		return 0;
+
+	case SQRT:
+		dp->returnValue = d_sqrt(t, u, du, v, dv, x);
+		return 0;
+
+	case PLUS:
+	case MINUS:
+		dp->returnValue = d_sum_subtract(t, t->type, u, du, v, dv, x);
+		return 0;
+
+	case MULTIPLY:
+		dp->returnValue = d_product(t, u, du, v, dv, x);
+		return 0;
+
+	case DIVIDE:
+		dp->returnValue = d_quotient(t, u, du, v, dv, x);
+		return 0;
+
+	case POWER:
+		dp->returnValue = d_pow_exp(t, u, du, v, dv, x);
+		return 0;
+	}
+	dp->returnValue = NULL;
+	return 0;
+#else
+	if (u != NULL) {
+		pdu.t = t->left;
+		pdu.variables[0] = x;
+		id_du = pthread_create(&tdu, NULL, derivative, (void*)(&pdu));
+	}
+
+	if (v != NULL){
+		pdv.t = t->right;
+		pdv.variables[0] = x;
+		id_dv = pthread_create(&tdv, NULL, derivative, (void*)(&pdv));
+	}
+	if (id_du == 0)
+		pthread_join(tdu, (void**)&du);
+	if (id_dv == 0)
+		pthread_join(tdv, (void**)&dv);
+
+	/****************************************************************/
+	// 2.0 get done here	
+	switch (t->type){
+	case SIN:
+		dp->returnValue = d_sin(t, u, du, v, dv, x);
+		return dp->returnValue;
+
+	case COS:
+		dp->returnValue = d_cos(t, u, du, v, dv, x);
+		return dp->returnValue;
+
+	case TAN:
+		dp->returnValue = d_tan(t, u, du, v, dv, dp->variables[0]);
+		return dp->returnValue;
+
+	case COTAN:
+		dp->returnValue = d_cotan(t, u, du, v, dv, dp->variables[0]);
+		return dp->returnValue;
+
+	case ASIN:
+		dp->returnValue = d_asin(t, u, du, v, dv, dp->variables[0]);
+		return dp->returnValue;
+
+	case ACOS:
+		dp->returnValue = d_acos(t, u, du, v, dv, dp->variables[0]);
+		return dp->returnValue;
+
+	case ATAN:
+		dp->returnValue = d_atan(t, u, du, v, dv, dp->variables[0]);
+		return dp->returnValue;
+
+	case SQRT:
+		dp->returnValue = d_sqrt(t, u, du, v, dv, x);
+		return dp->returnValue;
+
+	case PLUS:
+	case MINUS:
+		dp->returnValue = d_sum_subtract(t, t->type, u, du, v, dv, x);
+		return dp->returnValue;
+
+	case MULTIPLY:
+		dp->returnValue = d_product(t, u, du, v, dv, x);
+		return dp->returnValue;
+
+	case DIVIDE:
+		dp->returnValue = d_quotient(t, u, du, v, dv, x);
+		return dp->returnValue;
+
+	case POWER:
+		dp->returnValue = d_pow_exp(t, u, du, v, dv, x);
+		return dp->returnValue;
+	}
+	/* WHERE du AND dv GO IF WE NOT TO USE THEM ????? */
+	return NULL;
+#endif
+}
+
+/* (u.v) = u'v + uv' */
+NMAST* nmath::d_product(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r = NULL;
+
+	r = (NMAST *)malloc(sizeof(NMAST));
+	r->variable = 0;
+	r->type = PLUS;
+	r->parent = NULL;
+
+	r->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->variable = 0;
+	r->left->type = MULTIPLY;
+	r->left->parent = r;
+	r->left->left = cloneTree(u, r->left);
+	r->left->right = dv;
+	if (dv != NULL)
+		dv->parent = r->left;
+
+	r->right = (NMAST *)malloc(sizeof(NMAST));
+	r->right->variable = 0;
+	r->right->type = MULTIPLY;
+	r->right->parent = r;
+	r->right->left = du;
+	if (du != NULL)
+		du->parent = r->right;
+	r->right->right = cloneTree(v, r->right);
+
+	return r;
+}
+
+/* (sin(v))' = cos(v)*dv */
+NMAST* nmath::d_sin(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
+	/* (cos(v))' = -sin(v)*dv */
+	r = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+	r->type = MULTIPLY;
+	r->sign = 1;
+	r->parent = NULL;
+
+	r->left = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+	r->left->type = COS;
+	r->left->sign = 1;
+	r->left->parent = r;
+	r->left->left = NULL;
+	r->left->right = cloneTree(v, r);
+
+	r->right = dv;
+	if (dv != NULL)
+		dv->parent = r;
+
+	return r;
+}
+
+/* (cos(v))' = -sin(v)dv */
+NMAST* nmath::d_cos(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
+	/* (cos(v))' = -sin(v)*dv */
+	r = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+	r->type = MULTIPLY;
+	r->sign = 1;
+	r->parent = NULL;
+
+	r->left = (NMAST *)malloc(sizeof(NMAST));
+#ifdef DEBUG
+	incNumberOfDynamicObject();
+#endif
+	r->left->type = SIN; /* <== negative here */
+	r->left->sign = -1;
+	r->left->parent = r;
+	r->left->left = NULL;
+	r->left->right = cloneTree(v, r);
+
+	r->right = dv;
+	if (dv != NULL)
+		dv->parent = r;
+
+	return r;
+}
+
+/* tan(v)' =  (sec(v)^2)*dv  */
+NMAST* nmath::d_tan(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
+
+	r = (NMAST *)malloc(sizeof(NMAST));
+	r->type = MULTIPLY;
+	r->sign = 1;
+	r->parent = NULL;
+
+	r->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->type = POWER;
+	r->left->sign = 1;
+	r->left->parent = r;
+
+	r->left->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->left->parent = r->left;
+	r->left->left->type = SEC;
+
+	r->left->left->left = NULL;
+	r->left->left->right = cloneTree(v, r->left->left);
+
+	r->left->right = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->parent = r->left;
+	r->left->right->type = NUMBER;
+	r->left->right->value = 2;
+	r->left->right->sign = 1;
+
+	r->right = dv;
+	if (dv != NULL)
+		dv->parent = r;
+
+	return r;
+}
+
+/* cotan(v)' = -(1 -sqrt(cotan(v))) * dv  */
+NMAST* nmath::d_cotan(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
+
+	r = (NMAST *)malloc(sizeof(NMAST));
+	r->type = MULTIPLY;
+	r->sign = 1;
+	r->parent = NULL;
+
+	r->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->type = PLUS;
+	r->left->value = 1.0;
+	r->left->valueType = TYPE_FLOATING_POINT;
+	r->left->frValue.numerator = 1;
+	r->left->frValue.denomerator = 1;
+	r->left->sign = -1;
+	r->left->parent = r;
+
+	r->left->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->left->type = NUMBER;
+	r->left->left->value = 1.0;
+	r->left->left->valueType = TYPE_FLOATING_POINT;
+	r->left->left->frValue.numerator = 1;
+	r->left->left->frValue.denomerator = 1;
+	r->left->left->sign = 1;
+	r->left->left->parent = r->left;
+
+	r->left->right = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->type = SQRT;
+	r->left->right->value = 1.0;
+	r->left->right->valueType = TYPE_FLOATING_POINT;
+	r->left->right->frValue.numerator = 1;
+	r->left->right->frValue.denomerator = 1;
+	r->left->right->sign = 1;
+	r->left->right->parent = r->left;
+
+	r->left->right->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->left->type = COTAN;
+	r->left->right->left->value = 1.0;
+	r->left->right->left->valueType = TYPE_FLOATING_POINT;
+	r->left->right->left->frValue.numerator = 1;
+	r->left->right->left->frValue.denomerator = 1;
+	r->left->right->left->sign = 1;
+	r->left->right->left->parent = r->left->right;
+
+	r->left->right->left->left = cloneTree(v, r->left->right->left);
+
+	r->right = dv;
+	if (dv != NULL)
+		dv->parent = r;
+
+	return r;
+}
+
+/* arcsin(v)' = (1/sqrt(1-v^2))*dv */
+NMAST* nmath::d_asin(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
+	r = (NMAST *)malloc(sizeof(NMAST));
+	r->type = MULTIPLY;
+	r->sign = 1;
+	r->parent = NULL;
+
+	r->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->type = DIVIDE;
+	r->left->sign = 1;
+	r->left->parent = r;
+
+	r->left->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->left->type = NUMBER;
+	r->left->left->value = 1;
+	r->left->left->sign = 1;
+	r->left->left->parent = r->left;
+	r->left->left->left = r->left->left->right = NULL;
+
+	/* sqrt(...) */
+	r->left->right = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->type = SQRT;
+	r->left->right->parent = r->left;
+	r->left->right->left = NULL;
+
+	r->left->right->right = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->right->type = MINUS;
+	r->left->right->right->parent = r->left->right;
+
+	r->left->right->right->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->right->left->type = NUMBER;
+	r->left->right->right->left->value = 1;
+	r->left->right->right->left->sign = 1;
+	r->left->right->right->left->parent = r->left->right->right;
+	r->left->right->right->left->left = r->left->right->right->left->right = NULL;
+
+	r->left->right->right->right = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->right->right->type = POWER;
+	r->left->right->right->right->value = 0;
+	r->left->right->right->right->sign = 1;
+	r->left->right->right->right->parent = r->left->right->right;
+
+	r->left->right->right->right->left = cloneTree(v, r->left->right->right->right);
+
+	r->left->right->right->right->right = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->right->right->right->type = NUMBER;
+	r->left->right->right->right->right->value = 2;
+	r->left->right->right->right->right->sign = 1;
+	r->left->right->right->right->right->parent = r->left->right->right->right;
+	r->left->right->right->right->right->left = r->left->right->right->right->right->right = NULL;
+
+	r->right = dv;
+	if (dv != NULL)
+		dv->parent = r;
+	return r;
+}
+
+/* arccos(v)' = (-1/sqrt(1-v^2))*dv */
+NMAST* nmath::d_acos(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
+	r = (NMAST *)malloc(sizeof(NMAST));
+	r->type = MULTIPLY;
+	r->sign = 1;
+	r->parent = NULL;
+
+	r->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->type = DIVIDE;
+	r->left->sign = 1;
+	r->left->parent = r;
+
+	r->left->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->left->type = NUMBER;
+	r->left->left->value = -1;
+	r->left->left->sign = 1;
+	r->left->left->parent = r->left;
+	r->left->left->left = r->left->left->right = NULL;
+
+	/* sqrt(...) */
+	r->left->right = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->type = SQRT;
+	r->left->right->parent = r->left;
+	r->left->right->left = NULL;
+
+	r->left->right->right = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->right->type = MINUS;
+	r->left->right->right->parent = r->left->right;
+
+	r->left->right->right->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->right->left->type = NUMBER;
+	r->left->right->right->left->value = 1;
+	r->left->right->right->left->sign = 1;
+	r->left->right->right->left->parent = r->left->right->right;
+	r->left->right->right->left->left = r->left->right->right->left->right = NULL;
+
+	r->left->right->right->right = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->right->right->type = POWER;
+	r->left->right->right->right->value = 0;
+	r->left->right->right->right->sign = 1;
+	r->left->right->right->right->parent = r->left->right->right;
+
+	r->left->right->right->right->left = cloneTree(v, r->left->right->right->right);
+
+	r->left->right->right->right->right = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->right->right->right->type = NUMBER;
+	r->left->right->right->right->right->value = 2;
+	r->left->right->right->right->right->sign = 1;
+	r->left->right->right->right->right->parent = r->left->right->right->right;
+	r->left->right->right->right->right->left = r->left->right->right->right->right->right = NULL;
+
+	r->right = dv;
+	if (dv != NULL)
+		dv->parent = r;
+	return r;
+}
+
+/* arctan(v)' = (1/(v^2+1))*dv */
+NMAST* nmath::d_atan(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
+	r = (NMAST *)malloc(sizeof(NMAST));
+	r->type = MULTIPLY;
+	r->sign = 1;
+	r->parent = NULL;
+
+	r->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->type = DIVIDE;
+	r->left->sign = 1;
+	r->left->parent = r;
+
+	r->left->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->left->type = NUMBER;
+	r->left->left->value = 1;
+	r->left->left->sign = 1;
+	r->left->left->parent = r->left;
+	r->left->left->left = r->left->left->right = NULL;
+
+	/* (v^2+1) */
+	r->left->right = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->type = PLUS;
+	r->left->right->parent = r->left;
+
+	r->left->right->left = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->left->type = POWER;
+	r->left->right->left->value = 0;
+	r->left->right->left->sign = 1;
+	r->left->right->left->parent = r->left->right;
+	r->left->right->left->left = cloneTree(v, r->left->right->left);
+
+	r->left->right->left->right = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->left->right->type = NUMBER;
+	r->left->right->left->right->value = 2;
+	r->left->right->left->right->sign = 1;
+	r->left->right->left->right->parent = r->left->right->left;
+	r->left->right->left->right->left = r->left->right->left->right->right = NULL;
+
+	r->left->right->right = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->right->type = NUMBER;
+	r->left->right->right->value = 1;
+	r->left->right->right->sign = 1;
+	r->left->right->right->parent = r->left->right;
+	r->left->right->right->left = r->left->right->right->right = NULL;
+
+	r->right = dv;
+	if (dv != NULL)
+		dv->parent = r;
+	return r;
+}
+
+/*
+* (u/v)' = (u'v - uv')/v^2
+* */
+NMAST* nmath::d_quotient(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
+
+	r = (NMAST*)malloc(sizeof(NMAST));
+	r->variable = 0;
+	r->type = DIVIDE;
+	r->value = 0;
+	r->sign = 1;
+	r->parent = NULL;
+
+	r->left = (NMAST*)malloc(sizeof(NMAST));
+	r->left->variable = 0;
+	(r->left)->parent = r;
+	(r->left)->type = MINUS;
+	(r->left)->value = 0;
+	(r->left)->sign = 1;
+
+	/* ========================================== */
+	(r->left)->left = (NMAST*)malloc(sizeof(NMAST));
+	r->left->left->variable = 0;
+	(r->left)->left->type = MULTIPLY;
+	(r->left)->left->sign = 1;
+	(r->left)->left->parent = r->right;
+	((r->left)->left)->left = du;
+	if (du != NULL)
+		du->parent = (r->left)->left;
+	((r->left)->left)->right = cloneTree(v, (r->left)->left);
+
+	/* =================================================== */
+
+	(r->left)->right = (NMAST*)malloc(sizeof(NMAST));
+	(r->left)->right->type = MULTIPLY;
+	(r->left)->right->sign = 1;
+	(r->left)->right->parent = r->right;
+	((r->left)->right)->left = cloneTree(u, (r->left)->right);
+	((r->left)->right)->right = dv;
+	if (dv != NULL)
+		dv->parent = (r->left)->right;
+
+	/* ==================================================== */
+
+	r->right = (NMAST*)malloc(sizeof(NMAST));
+	(r->right)->parent = r;
+	(r->right)->type = POWER;
+	r->value = 0;
+	r->sign = 1;
+
+	(r->right)->left = cloneTree(v, r->right);
+
+	(r->right)->right = (NMAST*)malloc(sizeof(NMAST));
+	(r->right)->right->type = NUMBER;
+	(r->right)->right->value = 2;
+	(r->right)->right->sign = 1;
+	(r->right)->right->parent = r->right;
+	((r->right)->right)->left = ((r->right)->right)->right = NULL;
+	return r;
+} //2.0 got here
+
+/*
+* (u +- v) = u' +- v'
+* */
+NMAST* nmath::d_sum_subtract(NMAST *t, int type, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
+
+	r = (NMAST *)malloc(sizeof(NMAST));
+	r->type = type;
+	r->value = 0.0;
+	r->parent = NULL;
+
+	r->left = du;
+	if (du != NULL)
+		du->parent = r;
+
+	r->right = dv;
+	if (dv != NULL)
+		dv->parent = r;
+
+	return r;
+}
+
+
+NMAST* nmath::d_pow_exp(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
+	int isXLeft = isContainVar(u, x);
+	int isXRight = isContainVar(v, x);
+
+	/* power: (u^a)' = au^(a-1)*u' */
+	if (isXLeft != 0 && isXRight == 0){
+		r = (NMAST *)malloc(sizeof(NMAST));
+		r->type = MULTIPLY;
+		r->value = 0.0;
+		r->parent = NULL;
+
+		/* ===================================================== */
+		r->left = (NMAST *)malloc(sizeof(NMAST));
+		(r->left)->parent = r;
+		(r->left)->type = MULTIPLY;
+
+		(r->left)->left = (NMAST *)malloc(sizeof(NMAST));
+		((r->left)->left)->type = NUMBER;
+		((r->left)->left)->value = v->value;
+		((r->left)->left)->sign = v->sign;
+		((r->left)->left)->parent = (r->left);
+		((r->left)->left)->left = ((r->left)->left)->right = NULL;
+
+		/*printf(" Add Left Value 1/(v-1) \n");*/
+
+		(r->left)->right = (NMAST *)malloc(sizeof(NMAST));
+		((r->left)->right)->type = POWER;
+		((r->left)->right)->value = 0.0;
+		((r->left)->right)->sign = 1;
+		((r->left)->right)->parent = (r->left);
+
+		/*printf(" Add Right POWER \n");*/
+
+		((r->left)->right)->left = cloneTree(u, ((r->left)->right));
+
+		/*printf(" Add LEFT Copy U \n");*/
+
+		((r->left)->right)->right = cloneTree(v, ((r->left)->right));
+
+		(((r->left)->right)->right)->value = v->value - 1;
+		/*printf(" Add Right v-1 \n");*/
+
+		r->right = du;
+		if (du != NULL) /* <-- is in need? */
+			du->parent = r;
+		/*printf(" Add Right du \n");*/
+
+		return r;
+	}
+
+	/* power: (a^v)' = ln(a)*a^v*v' */
+	if (isXLeft == 0 && isXRight != 0){
+		r = (NMAST *)malloc(sizeof(NMAST));
+		r->type = MULTIPLY;
+		r->value = 0.0;
+		r->parent = NULL;
+
+		/* ===================================================== */
+		r->left = (NMAST *)malloc(sizeof(NMAST));
+		(r->left)->parent = r;
+		(r->left)->type = MULTIPLY;
+
+		(r->left)->left = (NMAST *)malloc(sizeof(NMAST));
+		((r->left)->left)->type = LN;
+		((r->left)->left)->value = 0;
+		((r->left)->left)->sign = 1;
+		((r->left)->left)->parent = r->left;
+		((r->left)->left)->left = NULL;
+		((r->left)->left)->right = cloneTree(u, (r->left)->left);
+
+		(r->left)->right = (NMAST *)malloc(sizeof(NMAST));
+		((r->left)->right)->type = POWER;
+		((r->left)->right)->value = 0;
+		((r->left)->right)->sign = 1;
+		((r->left)->right)->parent = r->left;
+		((r->left)->right)->left = cloneTree(u, (r->left)->right);
+		((r->left)->right)->right = cloneTree(v, (r->left)->right);
+
+		/* ===================================================== */
+		r->right = dv;
+		if (dv != NULL)
+			dv->parent = r;
+
+		return r;
+	}
+
+	/* power: (u^v)' = (dv*ln(u) + v(du/u))*u^v */
+	if (isXLeft != 0 && isXRight != 0){
+		r = (NMAST *)malloc(sizeof(NMAST));
+		r->type = MULTIPLY;
+		r->value = 0.0;
+		r->parent = NULL;
+
+		/* ===================================================== */
+		r->left = (NMAST *)malloc(sizeof(NMAST));
+		(r->left)->parent = r;
+		(r->left)->type = PLUS;
+
+		(r->left)->left = (NMAST *)malloc(sizeof(NMAST));
+		((r->left)->left)->type = MULTIPLY;
+		((r->left)->left)->value = 0;
+		((r->left)->left)->sign = 1;
+		((r->left)->left)->parent = r->left;
+
+		((r->left)->left)->left = dv;
+		if (dv != NULL)
+			dv->parent = (r->left)->left;
+
+		((r->left)->left)->right = (NMAST *)malloc(sizeof(NMAST));
+		((r->left)->left)->right->type = LN;
+		((r->left)->left)->right->left = NULL;
+		((r->left)->left)->right->right = cloneTree(u, ((r->left)->left)->right);
+
+		(r->left)->right = (NMAST *)malloc(sizeof(NMAST));
+		((r->left)->right)->type = MULTIPLY;
+		((r->left)->right)->value = 0;
+		((r->left)->right)->sign = 1;
+		((r->left)->right)->parent = r->left;
+		(r->left)->right->left = cloneTree(v, (r->left)->right);
+		(r->left)->right->right = (NMAST *)malloc(sizeof(NMAST));
+		(r->left)->right->right->type = DIVIDE;
+		(r->left)->right->right->value = 0;
+		(r->left)->right->right->left = du;
+		if (du != NULL)
+			du->parent = (r->left)->right->right;
+		(r->left)->right->right->right = cloneTree(u, (r->left)->right->right);
+
+		/* ===================================================== */
+		r->right = (NMAST *)malloc(sizeof(NMAST));
+		r->right->type = POWER;
+		r->right->left = cloneTree(u, r->right);
+		r->right->right = cloneTree(v, r->right);
+
+		return r;
+	}
+
+	return NULL;
+}
+
+
+/* (sqrt(v))' = dv/(2*sqrt(v)) */
+NMAST* nmath::d_sqrt(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	NMAST *r;
+
+	r = (NMAST *)malloc(sizeof(NMAST));
+	r->type = DIVIDE;
+	r->sign = 1;
+	r->parent = NULL;
+
+	r->left = dv;
+	if (dv != NULL)
+		dv->parent = r;
+
+	/*Right child: product operator */
+	r->right = (NMAST *)malloc(sizeof(NMAST));
+	r->right->value = 0;
+	r->right->sign = 1;
+	r->right->type = MULTIPLY;
+	r->right->parent = r;
+
+	r->right->left = (NMAST *)malloc(sizeof(NMAST));
+	r->right->left->type = NUMBER;
+	r->right->left->value = 2;
+	r->right->left->sign = 1;
+	r->right->left->valueType = TYPE_FLOATING_POINT;
+	r->right->left->parent = r->right;
+	r->right->left->right = r->right->left->left = NULL;
+
+	r->right->right = cloneTree(t, r->right);
+	return r;
 }
