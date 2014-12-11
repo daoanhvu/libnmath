@@ -17,6 +17,8 @@ namespace nmath {
 			~Complex();
 			
 			friend Complex& operator +(double r, const Complex& c);
+			friend Complex& operator +(const Complex& c, double r);
+			friend Complex& operator +(const Complex& c1, const Complex& c2);
 	};
 }
 #endif
