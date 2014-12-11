@@ -13,7 +13,7 @@
 
 using namespace nmath;
 
-NFunction::NFunction() {
+NFunction::NFunction(): text(0), valLen(0), prefix(0), domain(0), criteria(0), mLexer(0), mParser(0) {
 	
 }
 
@@ -73,7 +73,7 @@ double NFunction::dcalc(double *values, int numOfValue) {
 	DParam rp;
 	rp.error = 0;
 	rp.t = *(prefix->list);
-	rp.values = values;
+	memcpy(rp.values, values, numOfValue * 2 * sizeof(double));
 	memcpy(rp.variables, variables, 4);
 	calc_t((void*)&rp);
 	return rp.retv;
@@ -87,6 +87,83 @@ int NFunction::reduce() {
 	return 0;
 }
 
+ListFData* NFunction::getSpace(const float *values, const char* vars, int numOfValue, float epsilon) {
+	ListFData *lstData = NULL;
+	FData *sp;
+	DParamF param;
+	float y, lastX;
+	int elementOnRow = 0;
+	float *tmpP;
+
+	switch (valLen) {
+		case 1:
+			if (criteria == NULL) {
+
+				sp = (FData*)malloc(sizeof(FData));
+				sp->dimension = 2;
+				sp->loggedSize = 20;
+				sp->dataSize = 0;
+				sp->data = (float*)malloc(sizeof(float) * sp->loggedSize);
+				sp->rowCount = 0;
+				sp->loggedRowCount = 1;
+				sp->rowInfo = (int*)malloc(sizeof(int));
+
+				param.error = NMATH_NO_ERROR;
+				param.variables[0] = variables[0];
+				param.values[0] = values[0];
+				while (param.values[0] <= values[1]) {
+					calcF_t(&param);
+					y = param.retv;
+
+					if (sp->dataSize >= sp->loggedSize - 2){
+						sp->loggedSize += 20;
+						tmpP = (float*)realloc(sp->data, sizeof(float) * sp->loggedSize);
+						if (tmpP != NULL)
+							sp->data = tmpP;
+					}
+					sp->data[sp->dataSize++] = param.values[0];
+					sp->data[sp->dataSize++] = y;
+					elementOnRow++;
+					lastX = param.values[0];
+					param.values[0] += epsilon;
+				}
+
+				if ( (lastX < values[1]) && (param.values[0] > values[1])) {
+					param.values[0] = values[1];
+					calcF_t((void*)&param);
+					y = param.retv;
+					if (sp->dataSize >= sp->loggedSize - 2){
+						sp->loggedSize += 4;
+						tmpP = (float*)realloc(sp->data, sizeof(float) * sp->loggedSize);
+						if (tmpP != NULL)
+							sp->data = tmpP;
+					}
+					sp->data[sp->dataSize++] = param.values[0];
+					sp->data[sp->dataSize++] = y;
+					elementOnRow++;
+				}
+
+				sp->rowInfo[sp->rowCount++] = elementOnRow;
+				lstData = new ListFData();
+				lstData->list = (FData**)malloc(sizeof(FData*) * 1);
+				lstData->list[0] = sp;
+				return lstData;
+			}
+
+			criteria->list[0]->
+			break;
+
+		case 2:
+			break;
+
+		case 3:
+			break;
+	}
+
+	return lstData;
+}
+
+/*****************************************************************************************************************/
 /*
 Check if a tree contains variable x
 @param t the tree
@@ -769,7 +846,8 @@ void* nmath::calc_t(void *param){
 	this_param_left.variables[3] = this_param_right.variables[3] = dp->variables[3];
 	//memcpy(this_param_left.variables, dp->variables, 4);
 	//memcpy(this_param_right.variables, dp->variables, 4);
-	this_param_left.values = this_param_right.values = dp->values;
+	memcpy(this_param_left.values, dp->values, 8);
+	memcpy(this_param_right.values, dp->values, 8);
 
 	/* If the input tree is NULL, we do nothing */
 	if (t == NULL) return 0;
@@ -859,7 +937,8 @@ void* nmath::calcF_t(void *param){
 	this_param_left.variables[3] = this_param_right.variables[3] = dp->variables[3];
 	//memcpy(this_param_left.variables, dp->variables, 4);
 	//memcpy(this_param_right.variables, dp->variables, 4);
-	this_param_left.values = this_param_right.values = dp->values;
+	memcpy(this_param_left.values, dp->values, 8);
+	memcpy(this_param_right.values, dp->values, 8);
 
 	/* If the input tree is NULL, we do nothing */
 	if (t == NULL) return 0;
@@ -876,7 +955,7 @@ void* nmath::calcF_t(void *param){
 	}
 
 	if ((t->type == NUMBER) || (t->type == PI_TYPE) || (t->type == E_TYPE)){
-		dp->retv = t->value;
+		dp->retv = (float)(t->value);
 #ifdef _WIN32
 		return dp->error;
 #else

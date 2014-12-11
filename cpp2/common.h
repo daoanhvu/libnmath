@@ -104,7 +104,6 @@
 	extern "C" {
 #endif
 
-typedef struct tagListCriteria ListCriteria;
 typedef struct tagFData FData;
 typedef struct tagListFData ListFData;
 typedef struct tagOutBuiltCriteria OutBuiltCriteria;
@@ -157,11 +156,6 @@ struct tagNMASTList {
 };
 
 /** ================================================================================================ */
-struct tagListCriteria {
-	void **list;
-	unsigned int loggedSize;
-	unsigned int size;
-};
 
 struct tagFData {
 	float *data;

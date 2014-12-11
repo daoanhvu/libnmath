@@ -1,16 +1,25 @@
 #ifndef _NFUNCTION_H
 #define _NFUNCTION_H
 
+#include "criteria.h"
 #include "common.h"
 #include "nlablexer.h"
 #include "nlabparser.h"
 
 namespace nmath {
+	typedef struct tagListCriteria ListCriteria;
+
+	struct tagListCriteria {
+		Criteria **list;
+		unsigned int loggedSize;
+		unsigned int size;
+	};
+
 	typedef struct tagDParam {
 		NMAST *t;
 		char variables[4];
 		int error;
-		double *values;
+		double values[8];
 		double retv;
 		NMAST *returnValue;
 	}DParam;
@@ -19,7 +28,7 @@ namespace nmath {
 		NMAST *t;
 		char variables[4];
 		int error;
-		float *values;
+		float values[8];
 		float retv;
 		NMAST *returnValue;
 	}DParamF;
@@ -37,7 +46,7 @@ namespace nmath {
 
 		NMASTList *prefix;
 		NMASTList *domain;
-		ListCriteria *criterias;
+		ListCriteria *criteria;
 
 		NMAST **variableNode;
 		int numVarNode;
@@ -52,7 +61,7 @@ namespace nmath {
 		void release();
 		int reduce();
 		double dcalc(double *values, int numOfValue);
-		ListFData* getSpace(float *values, int numOfValue);
+		ListFData* getSpace(const float *values, const char* vars, int numOfValue, float epsilone);
 	};
 
 	NMAST* cloneTree(NMAST *t, NMAST *cloneParent);
