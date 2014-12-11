@@ -413,7 +413,7 @@ void* nmath::reduce_t(void *param){
 						(dp->t)->variable = p->variable;
 						(dp->t)->value = p->value;
 						(dp->t)->valueType = p->valueType;
-						(dp->t)->frValue = p->frValue;
+						//(dp->t)->frValue = p->frValue;
 						(dp->t)->priority = getPriorityOfType((dp->t)->type);
 						(dp->t)->sign = p->sign;
 						/* NO copy parent */
@@ -446,7 +446,7 @@ void* nmath::reduce_t(void *param){
 						(dp->t)->variable = p->variable;
 						(dp->t)->value = p->value;
 						(dp->t)->valueType = p->valueType;
-						(dp->t)->frValue = p->frValue;
+						//(dp->t)->frValue = p->frValue;
 						(dp->t)->priority = getPriorityOfType((dp->t)->type);
 						(dp->t)->sign = p->sign;
 
@@ -506,7 +506,7 @@ void* nmath::reduce_t(void *param){
 					(dp->t)->value = p->value;
 					(dp->t)->sign = p->sign;
 					(dp->t)->variable = p->variable;
-					(dp->t)->frValue = p->frValue;
+					//(dp->t)->frValue = p->frValue;
 					(dp->t)->priority = getPriorityOfType((dp->t)->type);
 					(dp->t)->valueType = p->valueType;
 					(dp->t)->left = p->left;
@@ -529,7 +529,7 @@ void* nmath::reduce_t(void *param){
 					(dp->t)->value = p->value;
 					(dp->t)->sign = p->sign;
 					(dp->t)->variable = p->variable;
-					(dp->t)->frValue = p->frValue;
+					//(dp->t)->frValue = p->frValue;
 					(dp->t)->priority = getPriorityOfType((dp->t)->type);
 					(dp->t)->valueType = p->valueType;
 					(dp->t)->left = p->left;
@@ -554,8 +554,8 @@ void* nmath::reduce_t(void *param){
 						(dp->t)->variable = 0;
 						(dp->t)->valueType = TYPE_FLOATING_POINT;
 						(dp->t)->value = 1.0;
-						((dp->t)->frValue).numerator = 1;
-						((dp->t)->frValue).denomerator = 1;
+						//((dp->t)->frValue).numerator = 1;
+						//((dp->t)->frValue).denomerator = 1;
 						(dp->t)->priority = getPriorityOfType((dp->t)->type);
 						(dp->t)->sign = 1;
 						(dp->t)->left = (dp->t)->right = NULL;
@@ -577,7 +577,7 @@ void* nmath::reduce_t(void *param){
 						(dp->t)->variable = p->variable;
 						(dp->t)->valueType = p->valueType;
 						(dp->t)->value = p->value;
-						(dp->t)->frValue = p->frValue;
+						//(dp->t)->frValue = p->frValue;
 						(dp->t)->priority = getPriorityOfType((dp->t)->type);
 						(dp->t)->sign = p->sign;
 						(dp->t)->left = p->left;
@@ -604,8 +604,8 @@ void* nmath::reduce_t(void *param){
 					(dp->t)->type = NUMBER;
 					(dp->t)->valueType = TYPE_FLOATING_POINT;
 					(dp->t)->value = 0.0;
-					((dp->t)->frValue).numerator = 0;
-					((dp->t)->frValue).denomerator = 1;
+					//((dp->t)->frValue).numerator = 0;
+					//((dp->t)->frValue).denomerator = 1;
 					(dp->t)->sign = p->sign;
 					(dp->t)->left = (dp->t)->right = NULL;
 
@@ -1277,8 +1277,8 @@ NMAST* nmath::d_cotan(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x
 	r->left->type = PLUS;
 	r->left->value = 1.0;
 	r->left->valueType = TYPE_FLOATING_POINT;
-	r->left->frValue.numerator = 1;
-	r->left->frValue.denomerator = 1;
+	//r->left->frValue.numerator = 1;
+	//r->left->frValue.denomerator = 1;
 	r->left->sign = -1;
 	r->left->parent = r;
 
@@ -1286,8 +1286,8 @@ NMAST* nmath::d_cotan(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x
 	r->left->left->type = NUMBER;
 	r->left->left->value = 1.0;
 	r->left->left->valueType = TYPE_FLOATING_POINT;
-	r->left->left->frValue.numerator = 1;
-	r->left->left->frValue.denomerator = 1;
+	//r->left->left->frValue.numerator = 1;
+	//r->left->left->frValue.denomerator = 1;
 	r->left->left->sign = 1;
 	r->left->left->parent = r->left;
 
@@ -1295,8 +1295,8 @@ NMAST* nmath::d_cotan(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x
 	r->left->right->type = SQRT;
 	r->left->right->value = 1.0;
 	r->left->right->valueType = TYPE_FLOATING_POINT;
-	r->left->right->frValue.numerator = 1;
-	r->left->right->frValue.denomerator = 1;
+	//r->left->right->frValue.numerator = 1;
+	//r->left->right->frValue.denomerator = 1;
 	r->left->right->sign = 1;
 	r->left->right->parent = r->left;
 
@@ -1304,8 +1304,8 @@ NMAST* nmath::d_cotan(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x
 	r->left->right->left->type = COTAN;
 	r->left->right->left->value = 1.0;
 	r->left->right->left->valueType = TYPE_FLOATING_POINT;
-	r->left->right->left->frValue.numerator = 1;
-	r->left->right->left->frValue.denomerator = 1;
+	//r->left->right->left->frValue.numerator = 1;
+	//r->left->right->left->frValue.denomerator = 1;
 	r->left->right->left->sign = 1;
 	r->left->right->left->parent = r->left->right;
 

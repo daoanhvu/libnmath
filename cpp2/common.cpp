@@ -488,8 +488,8 @@ NMAST* getFromPool() {
 		node->value = 0;
 		node->type = NUMBER;
 		node->priority = 0;
-		node->frValue.numerator = 0;
-		node->frValue.denomerator = 1;
+		//node->frValue.numerator = 0;
+		//node->frValue.denomerator = 1;
 #ifdef DEBUG
 	gNumberOfDynamicObject++;
 #endif
@@ -526,8 +526,8 @@ void putIntoPool(NMAST *node) {
 	node->value = 0;
 	node->type = NUMBER;
 	node->priority = 0;
-	node->frValue.numerator = 0;
-	node->frValue.denomerator = 1;
+	//node->frValue.numerator = 0;
+	//node->frValue.denomerator = 1;
 
 	if( gPoolSize < POOL_CAPACITY ) {
 		AST_POOL[gPoolSize] = node;

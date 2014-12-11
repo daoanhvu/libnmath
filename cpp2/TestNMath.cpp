@@ -15,7 +15,6 @@ using namespace nmath;
 
 void releaseNMATree(NMASTList **t) {
 	int i, j = 0, k = 0;
-	char crType;
 	
 	if (t == NULL) return;
 

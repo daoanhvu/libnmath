@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include "SimpleCriteria.h"
-#include "combinedcriteria.h"
 #include "compositecriteria.h"
 
 #ifdef _TARGET_HOST_ANDROID
