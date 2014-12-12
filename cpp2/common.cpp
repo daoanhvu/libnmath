@@ -548,3 +548,85 @@ void clearPool() {
 		gPoolSize = 0;
 	}
 }
+
+std::ostream& printNMAST(const NMAST *ast, int level, std::ostream& os) {
+	int i;
+
+	if (ast == NULL) return os;
+
+	if (level > 0){
+		for (i = 0; i<level - 1; i++)
+			os << "\t";
+		os << "|--";
+	}
+
+	switch (ast->type) {
+	case AND:
+		os << "AND \n";
+		break;
+
+	case OR:
+		os << "OR \n";
+		break;
+
+	case LT:
+		os << "< \n";
+		break;
+
+	case LTE:
+		os << "(variable:" << ast->variable << " <= value :" << ast->value << ")\n";
+		break;
+
+	case GT:
+		printf("(variable:%c > value:%lf) \n", ast->variable, ast->value);
+		break;
+
+	case NAME:
+	case VARIABLE:
+		os << ast->variable << "\n";
+		break;
+
+	case NUMBER:
+		os << ast->value << "\n";
+		break;
+
+	case PI_TYPE:
+		printf("PI \n");
+		break;
+
+	case E_TYPE:
+		printf("e \n");
+		break;
+
+	case PLUS:
+		printf("+ \n");
+		break;
+
+	case MINUS:
+		printf("- \n");
+		break;
+
+	case MULTIPLY:
+		printf("* \n");
+		break;
+
+	case DIVIDE:
+		os << "/ \n";
+		break;
+
+	case POWER:
+		os << "^";
+		break;
+
+	default:
+		printf("(type=%d) \n", ast->type);
+	}
+
+	if (ast->left != NULL)
+		printNMAST(ast->left, level + 1, os);
+
+	if (ast->right != NULL)
+		printNMAST(ast->right, level + 1, os);
+
+	return os;
+}

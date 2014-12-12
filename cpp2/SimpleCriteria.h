@@ -23,37 +23,26 @@ namespace nmath {
 			SimpleCriteria(int type, char var, double lval, double rval, 
 											bool leftInfinity, bool rightInfinity);
 
-			int getType()	{ return type; }
+			int getType() const	{ return type; }
 			void setType(int t) { type = t; }
 
-			char getVariable()	{ return variable; }
+			char getVariable() const { return variable; }
 			void setVariable(char var) { variable = var; }
 
-			double getLeftValue() { return leftVal; }
+			double getLeftValue() const { return leftVal; }
 			void setLeftValue(double v) { leftVal = v; }
-			double getRightValue() { return rightVal; }
+			double getRightValue() const { return rightVal; }
 			void setRightValue(double v) { rightVal = v; }
-			bool isRightInfinity() { return rightInfinity; }
+			bool isRightInfinity() const { return rightInfinity; }
 			void setRightInfinity(bool rInf) { rightInfinity = rInf; }
-			bool isLeftInfinity() { return leftInfinity; }
+			bool isLeftInfinity() const { return leftInfinity; }
 			void setLeftInfinity(bool lInf) { leftInfinity = lInf; }
 
 			bool isOverlapped(const SimpleCriteria& c);
+
 			
-			template <class VT>
-			Criteria* getInterval(const VT *values, const char* var, int varCount) {
-				Criteria* out;
-				int i;
-				for (i = 0; i<varCount; i++){
-					if (variable == var[i]) {
-						out = and(values + (i * 2));
-						return out;
-					}
-				}
-
-				return NULL;
-			}
-
+			Criteria* getIntervalF(const float *values, const char* var, int varCount);
+			Criteria* getInterval(const double *values, const char* var, int varCount);
 			Criteria* and(SimpleCriteria& c);
 			Criteria* and(CompositeCriteria& c);
 
@@ -67,6 +56,7 @@ namespace nmath {
 
 				if (this->leftInfinity && this->rightInfinity) {
 					outInterval = new SimpleCriteria();
+					outInterval->variable = variable;
 					outInterval->available = 1;
 					outInterval->leftInfinity = 0;
 					outInterval->rightInfinity = 0;
@@ -88,6 +78,7 @@ namespace nmath {
 						}
 
 						outInterval = new SimpleCriteria();
+						outInterval->variable = variable;
 						outInterval->available = 1;
 						outInterval->leftInfinity = 0;
 						outInterval->rightInfinity = 0;
@@ -109,6 +100,7 @@ namespace nmath {
 						}
 
 						outInterval = new SimpleCriteria();
+						outInterval->variable = variable;
 						outInterval->available = 1;
 						outInterval->leftInfinity = 0;
 						outInterval->rightInfinity = 0;
@@ -132,6 +124,7 @@ namespace nmath {
 							return 0;
 						}
 						outInterval = new SimpleCriteria();
+						outInterval->variable = variable;
 						outInterval->available = 1;
 						outInterval->leftInfinity = 0;
 						outInterval->rightInfinity = 0;
@@ -151,6 +144,7 @@ namespace nmath {
 							return 0;
 						}
 						outInterval = new SimpleCriteria();
+						outInterval->variable = variable;
 						outInterval->available = 1;
 						outInterval->leftInfinity = 0;
 						outInterval->rightInfinity = 0;
@@ -173,6 +167,7 @@ namespace nmath {
 						}
 
 						outInterval = new SimpleCriteria();
+						outInterval->variable = variable;
 						outInterval->available = 1;
 						outInterval->leftInfinity = 0;
 						outInterval->rightInfinity = 0;
@@ -196,6 +191,7 @@ namespace nmath {
 							return 0;
 						}
 						outInterval = new SimpleCriteria();
+						outInterval->variable = variable;
 						outInterval->available = 1;
 						outInterval->leftInfinity = 0;
 						outInterval->rightInfinity = 0;
@@ -219,6 +215,7 @@ namespace nmath {
 							return 0;
 						}
 						outInterval = new SimpleCriteria();
+						outInterval->variable = variable;
 						outInterval->available = 1;
 						outInterval->leftInfinity = 0;
 						outInterval->rightInfinity = 0;
@@ -241,6 +238,7 @@ namespace nmath {
 							return 0;
 						}
 						outInterval = new SimpleCriteria();
+						outInterval->variable = variable;
 						outInterval->available = 1;
 						outInterval->leftInfinity = 0;
 						outInterval->rightInfinity = 0;
@@ -260,6 +258,9 @@ namespace nmath {
 
 				return outInterval;
 			}
+
+			istream& operator >>(istream& is);
+			ostream& operator <<(ostream& os);
 
 			Criteria* operator &(Criteria& c);
 			Criteria* operator |(Criteria& c);

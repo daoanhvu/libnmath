@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <iostream>
 #include "StackUtil.h"
 
 using namespace StackUtil;

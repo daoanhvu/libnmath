@@ -2,10 +2,9 @@
 #define _COMPOSITECRITERIA_H
 
 #include "criteria.h"
+#include "SimpleCriteria.h"
 
 namespace nmath {
-	class SimpleCriteria;
-
 	class CompositeCriteria: public Criteria {
 		private:
 			Criteria** list;
@@ -19,7 +18,7 @@ namespace nmath {
 
 			CompositeCriteria* or(SimpleCriteria& c);
 			CompositeCriteria* or(CompositeCriteria& c);
-			
+
 		public:
 			CompositeCriteria();
 			~CompositeCriteria();
@@ -32,19 +31,21 @@ namespace nmath {
 			int size() const { return mSize; }
 			int loggedSize() const { return mLoggedSize; }
 			bool check(const double* values);
-			Criteria* getInterval(const double *values, const char* var, int varCount);
 
 			void add(Criteria* c);
+
+			istream& operator >>(istream& is);
+			ostream& operator <<(ostream& os);
 			
 			Criteria* operator [](int index) const;
-			
 			Criteria* operator |(Criteria &);
 			Criteria* operator &(Criteria &);
-
 			CompositeCriteria& operator |=(Criteria &);
 			CompositeCriteria& operator &=(Criteria &);
-
 			CompositeCriteria& operator =(CompositeCriteria &);
+
+			Criteria* getInterval(const double *values, const char* var, int varCount);
+			Criteria* getIntervalF(const float *values, const char* var, int varCount);
 	};
 }
 

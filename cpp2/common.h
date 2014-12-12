@@ -1,6 +1,8 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
+#include <iostream>
+
 /* Unicode values */
 #define COMMA			0x0000002C
 #define SEMI			0x0000003B
@@ -104,76 +106,93 @@
 	extern "C" {
 #endif
 
-typedef struct tagFData FData;
-typedef struct tagListFData ListFData;
-typedef struct tagOutBuiltCriteria OutBuiltCriteria;
-typedef struct tagFraction Fraction;
-typedef struct tagToken Token;
-typedef struct tagTokenList TokenList;
-typedef struct tagNMAST NMAST;
-typedef struct tagNMASTList NMASTList;
+		typedef struct tagToken Token;
+		typedef struct tagTokenList TokenList;
+		typedef struct tagNMAST NMAST;
+		typedef struct tagNMASTList NMASTList;
 
-struct tagToken {
-	int type;
-	char text[MAXTEXTLEN];
-	int column;
-	unsigned char textLength;
-	
-	/* This is used for operators & functions */
-	char priority;
-};
+		struct tagToken {
+			int type;
+			char text[MAXTEXTLEN];
+			int column;
+			unsigned char textLength;
 
-struct tagNMAST {
-	int type;
+			/* This is used for operators & functions */
+			char priority;
+		};
 
-	char priority;
-	/*
-	 TYPE_FLOATING_POINT OR TYPE_FRACTION
-	 0: floating point value
-	 1: Fraction value
-	 * */
-	char valueType;
-	double value;
-	//Fraction frValue;
+		struct tagNMAST {
+			int type;
 
-	//if this ast is a VARIABLE and NAME
-	char variable;
-	
-	/* this flag is just used for function cause the function cannot express its sign itself */
-	/* MUST = 1 by default */
-	int sign;
-	struct tagNMAST *parent;
-	struct tagNMAST *left;
-	struct tagNMAST *right;
+			char priority;
+			/*
+			TYPE_FLOATING_POINT OR TYPE_FRACTION
+			0: floating point value
+			1: Fraction value
+			* */
+			char valueType;
+			double value;
+			//Fraction frValue;
 
-	char level;
-};
+			//if this ast is a VARIABLE and NAME
+			char variable;
 
-struct tagNMASTList {
-	unsigned int loggedSize;
-	unsigned int size;
-	struct tagNMAST **list;
-};
+			/* this flag is just used for function cause the function cannot express its sign itself */
+			/* MUST = 1 by default */
+			int sign;
+			struct tagNMAST *parent;
+			struct tagNMAST *left;
+			struct tagNMAST *right;
 
-/** ================================================================================================ */
+			char level;
+		};
 
-struct tagFData {
-	float *data;
-	unsigned int dataSize;
-	unsigned int loggedSize;
-	char dimension;
-	int *rowInfo;
-	unsigned int rowCount;
-	unsigned int loggedRowCount;
-};
+		struct tagNMASTList {
+			unsigned int loggedSize;
+			unsigned int size;
+			struct tagNMAST **list;
+		};
 
-struct tagListFData {
-	FData **list;
-	unsigned int loggedSize;
-	unsigned int size;
-};
+		/** ================================================================================================ */
+
+		typedef struct tagFData {
+			float *data;
+			unsigned int dataSize;
+			unsigned int loggedSize;
+			char dimension;
+			int *rowInfo;
+			unsigned int rowCount;
+			unsigned int loggedRowCount;
+		} FData;
+
+		typedef struct tagListFData {
+			FData **list;
+			unsigned int loggedSize;
+			unsigned int size;
+		} ListFData;
+
+		typedef struct tagDParam {
+			NMAST *t;
+			char variables[4];
+			int error;
+			double values[8];
+			double retv;
+			NMAST *returnValue;
+		}DParam;
+
+		typedef struct tagDParamF {
+			NMAST *t;
+			char variables[4];
+			int error;
+			float values[8];
+			float retv;
+			NMAST *returnValue;
+		}DParamF;
+
 
 /* ====================================================================================================== */
+
+std::ostream& printNMAST(const NMAST *ast, int level, std::ostream& os);
 
 void pushASTStack(NMASTList *sk, NMAST* ele);
 NMAST* popASTStack(NMASTList *sk);

@@ -17,7 +17,7 @@ namespace nmath{
 
 			unsigned int mLoggedSize;
 			unsigned int mSize;
-			struct tagToken *list;
+			Token *list;
 
 			int isLogicOperator(char c);
 

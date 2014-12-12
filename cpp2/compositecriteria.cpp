@@ -34,6 +34,28 @@ void CompositeCriteria::release() {
 	mLoggedSize = 0;
 }
 
+istream& CompositeCriteria::operator >>(istream& is) {
+	return is;
+}
+
+ostream& CompositeCriteria::operator <<(ostream& os) {
+	int i;
+
+	os << "(";
+	if (logicOp == OR) {
+		for (i = 0; i < mSize; i++)
+			os << list[i] << " OR ";
+	}
+	else {
+		for (i = 0; i < mSize; i++)
+			os << list[i] << " AND ";
+	}
+	
+	os << ")\n";
+
+	return os;
+}
+
 Criteria* CompositeCriteria::clone() {
 	int i;
 	CompositeCriteria* out = new CompositeCriteria();
@@ -226,21 +248,36 @@ Criteria* CompositeCriteria::operator |(Criteria& c) {
 }
 
 /**
-	values [IN]
-		This is a matrix N rows x 2 columns which N equals varCount
-		
-	@param outInterval
-		This output parameter, it's a matrix N row and M columns which each row is for each continuous space for the expression
-		It means that each row will hold a combined-interval for n-tule variables and M equal varCount * 2
+values [IN]
+This is a matrix N rows x 2 columns which N equals varCount
+
+@param outInterval
+This output parameter, it's a matrix N row and M columns which each row is for each continuous space for the expression
+It means that each row will hold a combined-interval for n-tule variables and M equal varCount * 2
 */
+Criteria* CompositeCriteria::getIntervalF(const float *values, const char* var, int varCount) {
+	CompositeCriteria *out = new CompositeCriteria();
+	Criteria *listIn;
+	int i;
+
+	for (i = 0; i<mSize; i++) {
+		listIn = list[i]->getIntervalF(values, var, varCount);
+		if (listIn != NULL) {
+			out->add(listIn);
+		}
+	}
+
+	return out;
+}
+
 Criteria* CompositeCriteria::getInterval(const double *values, const char* var, int varCount) {
 	CompositeCriteria *out = new CompositeCriteria();
 	Criteria *listIn;
 	int i;
-	
-	for(i=0; i<mSize; i++) {
+
+	for (i = 0; i<mSize; i++) {
 		listIn = list[i]->getInterval(values, var, varCount);
-		if( listIn != NULL ) {
+		if (listIn != NULL) {
 			out->add(listIn);
 		}
 	}

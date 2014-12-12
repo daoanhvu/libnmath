@@ -1,37 +1,18 @@
 #ifndef _NFUNCTION_H
 #define _NFUNCTION_H
 
+#include <iostream>
 #include "criteria.h"
 #include "common.h"
 #include "nlablexer.h"
 #include "nlabparser.h"
 
 namespace nmath {
-	typedef struct tagListCriteria ListCriteria;
-
-	struct tagListCriteria {
+	typedef struct tagListCriteria {
 		Criteria **list;
 		unsigned int loggedSize;
 		unsigned int size;
-	};
-
-	typedef struct tagDParam {
-		NMAST *t;
-		char variables[4];
-		int error;
-		double values[8];
-		double retv;
-		NMAST *returnValue;
-	}DParam;
-
-	typedef struct tagDParamF {
-		NMAST *t;
-		char variables[4];
-		int error;
-		float values[8];
-		float retv;
-		NMAST *returnValue;
-	}DParamF;
+	} ListCriteria;
 
 	class NFunction {
 	private:
@@ -40,7 +21,6 @@ namespace nmath {
 		char variables[4];
 		char valLen;
 
-		//Aggregation association
 		NLabLexer *mLexer;
 		NLabParser *mParser;
 
@@ -62,7 +42,16 @@ namespace nmath {
 		int reduce();
 		double dcalc(double *values, int numOfValue);
 		ListFData* getSpace(const float *values, const char* vars, int numOfValue, float epsilone);
+
+		char getVarCount() const { return valLen; }
+		NMASTList* getPrefixList() const { return prefix; }
+		NMASTList* getDomainList() const { return domain; }
+		ListCriteria* getCriteriaList() const { return criteria; }
+
+		friend std::ostream& operator<< (std::ostream& os, const NFunction& f);
 	};
+
+	void releaseNMATree(NMASTList **t);
 
 	NMAST* cloneTree(NMAST *t, NMAST *cloneParent);
 	NMAST* d_product(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);

@@ -23,6 +23,41 @@ Criteria* nmath::buildSameVariableCriteria(const NMAST *left, const NMAST *right
 }
 */
 
+istream& operator >>(istream& is, const Criteria& c) {
+	return is;
+}
+
+ostream& nmath::operator <<(ostream& os, const Criteria& c) {
+	SimpleCriteria* sc;
+
+	switch (c.getCClassType()) {
+	case SIMPLE:
+		sc = (SimpleCriteria*)(&c);
+		switch (sc->getType()) {
+		case GT_LT:
+			os << sc->getLeftValue() << " < " << sc->getVariable() << " < " << sc->getRightValue();
+			break;
+
+		case GTE_LT:
+			os << sc->getLeftValue() << " <= " << sc->getVariable() << " < " << sc->getRightValue();
+			break;
+
+		case GT_LTE:
+			os << sc->getLeftValue() << " < " << sc->getVariable() << " <= " << sc->getRightValue();
+			break;
+
+		case GTE_LTE:
+			os << sc->getLeftValue() << " <= " << sc->getVariable() << " <= " << sc->getRightValue();
+			break;
+		}
+		break;
+
+	case COMPOSITE:
+		break;
+	}
+	return os;
+}
+
 Criteria* nmath::buildCriteria(const NMAST *ast) {
 
 	Criteria *out = 0;
@@ -128,19 +163,19 @@ Criteria* nmath::buildCriteria(const NMAST *ast) {
 			break;
 
 		case LT:
-			out = new SimpleCriteria(GT_LT, ast->left->variable, 0, ast->right->value, true, false );
+			out = new SimpleCriteria(GT_LT, ast->variable, 0, ast->value, true, false );
 			break;
 
 		case LTE:
-			out = new SimpleCriteria(GT_LTE, ast->left->variable, 0, ast->right->value, true, false);
+			out = new SimpleCriteria(GT_LTE, ast->variable, 0, ast->value, true, false);
 			break;
 
 		case GT:
-			out = new SimpleCriteria(GT_LT, ast->left->variable, ast->right->value, 0, false, true);
+			out = new SimpleCriteria(GT_LT, ast->variable, ast->value, 0, false, true);
 			break;
 
 		case GTE:
-			out = new SimpleCriteria(GTE_LT, ast->left->variable, ast->right->value, 0, false, true);
+			out = new SimpleCriteria(GTE_LT, ast->variable, ast->value, 0, false, true);
 			break;
 
 		case GT_LT:

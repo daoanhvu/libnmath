@@ -36,6 +36,49 @@ SimpleCriteria::SimpleCriteria(int type, char var, double lval, double rval,
 	this->available = 1;
 }
 
+istream& SimpleCriteria::operator >>(istream& is) {
+
+	/** GT_LT, GTE_LT, GT_LTE, GTE_LTE */
+	switch (type) {
+	case GT_LT:
+		is >> variable;
+		break;
+
+	case GTE_LT:
+		break;
+
+	case GT_LTE:
+		break;
+
+	case GTE_LTE:
+		break;
+	}
+
+	return is;
+}
+
+ostream& operator <<(ostream& os, const SimpleCriteria &c) {
+	/** GT_LT, GTE_LT, GT_LTE, GTE_LTE */
+	switch (c.getType()) {
+	case GT_LT:
+		os << c.getLeftValue() << " < " << c.getVariable() << " < " << c.getRightValue();
+		break;
+
+	case GTE_LT:
+		os << c.getLeftValue() << " <= " << c.getVariable() << " < " << c.getRightValue();
+		break;
+
+	case GT_LTE:
+		os << c.getLeftValue() << " < " << c.getVariable() << " <= " << c.getRightValue();
+		break;
+
+	case GTE_LTE:
+		os << c.getLeftValue() << " <= " << c.getVariable() << " <= " << c.getRightValue();
+		break;
+	}
+	return os;
+}
+
 Criteria* SimpleCriteria::clone() {
 	SimpleCriteria *out;
 	out = new SimpleCriteria(type, variable, leftVal, rightVal, leftInfinity, rightInfinity);
@@ -81,6 +124,31 @@ bool SimpleCriteria::isOverlapped(const SimpleCriteria& c) {
 	}
 
 	return false;
+}
+
+Criteria* SimpleCriteria::getIntervalF(const float *values, const char* var, int varCount) {
+	Criteria* out;
+	int i;
+	for (i = 0; i<varCount; i++){
+		if (variable == var[i]) {
+			out = and(values + (i * 2));
+			return out;
+		}
+	}
+	return NULL;
+}
+
+Criteria* SimpleCriteria::getInterval(const double *values, const char* var, int varCount) {
+	Criteria* out;
+	int i;
+	for (i = 0; i<varCount; i++){
+		if (variable == var[i]) {
+			out = and(values + (i * 2));
+			return out;
+		}
+	}
+
+	return NULL;
 }
 
 bool SimpleCriteria::check(const double* values) {

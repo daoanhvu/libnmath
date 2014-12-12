@@ -17,10 +17,14 @@ using namespace nmath;
 
 const int NLabLexer::setLeadNegativeNumber[14] = { LPAREN, LPRACKET, SEMI, COMMA, AND, OR, LT, LTE, GT, GTE, EQ, NE, IMPLY, RARROW };
 
-NLabLexer::NLabLexer(int logSize) {
-	list = new Token[logSize];
-	mLoggedSize = logSize;
+NLabLexer::NLabLexer(int logSize):mLoggedSize(logSize) {
+	if (logSize > 0) {
+		list = new Token[logSize];
+	} else {
+		list = 0;
+	}
 	mSize = 0;
+	
 }
 
 NLabLexer::~NLabLexer() {

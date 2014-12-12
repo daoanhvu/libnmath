@@ -10,31 +10,46 @@
 #include "nfunction.h"
 #include "nlablexer.h"
 #include "nlabparser.h"
+#include "SimpleCriteria.h"
+#include "compositecriteria.h"
 
 using namespace nmath;
 
-NFunction::NFunction(): text(0), valLen(0), prefix(0), domain(0), criteria(0), mLexer(0), mParser(0) {
-	
+NFunction::NFunction(): text(0), valLen(0), prefix(0), domain(0), criteria(0) {
+	mLexer = new NLabLexer(0);
+	mParser = new NLabParser();
 }
 
 NFunction::~NFunction() {
 	release();
 }
 
+std::ostream& nmath::operator <<(std::ostream& os, const NFunction& f) {
+	os << "\n";
+	os << "Number of variable: " << (int)f.getVarCount() << "\n";
+	os << "Prefix: \n";
+	printNMAST(f.getPrefixList()->list[0], 0, os);
+	if (f.getDomainList() != NULL) {
+		os << "Domain: ";
+		printNMAST(f.getDomainList()->list[0], 0, os);
+	}
+	return os;
+}
+
 /*
 Parse the input string in object f to NMAST tree
 */
 int NFunction::parse(const char *str, int len) {
-	if (mLexer == 0) {
-		mLexer = new NLabLexer(len);
-	}
-	else {
-		mLexer->reset(len);
-	}
+	int i;
+	Criteria *c;
+
+	mLexer->reset(len);
 
 	if (text != NULL) {
 		delete[] text;
 	}
+
+	text = new char[len];
 	memcpy(text, str, len);
 	textLen = len;
 
@@ -53,6 +68,18 @@ int NFunction::parse(const char *str, int len) {
 		if (valLen > 0)
 			memcpy(variables, mParser->variables(), valLen);
 
+		if (domain != NULL) {
+			criteria = new ListCriteria;
+			criteria->list = (Criteria**)malloc(sizeof(Criteria*) * domain->size);
+			criteria->loggedSize = domain->size;
+			criteria->size = domain->size;
+
+			for (i = 0; i < domain->size; i++) {
+				c = nmath::buildCriteria(domain->list[i]);
+				criteria->list[i] = c;
+			}
+		}
+
 		mParser->reset();
 	} else
 		errorColumn = mParser->getErrorColumn();
@@ -62,10 +89,34 @@ int NFunction::parse(const char *str, int len) {
 
 		
 void NFunction::release() {
+	int i;
 	if (text != NULL) {
 		delete[] text;
 		text = 0;
 		textLen = 0;
+	}
+
+	if (mLexer != NULL) {
+		delete mLexer;
+		mLexer = NULL;
+	}
+
+	if (mParser != NULL) {
+		delete mParser;
+		mParser = NULL;
+	}
+
+	nmath::releaseNMATree(&prefix);
+	nmath::releaseNMATree(&domain);
+
+	if (criteria != NULL) {
+		for (i = 0; i < criteria->size; i++) {
+			if (criteria->list[i] != NULL)
+				delete criteria->list[i];
+		}
+		free(criteria->list);
+		delete criteria;
+		criteria = NULL;
 	}
 }
 
@@ -87,11 +138,14 @@ int NFunction::reduce() {
 	return 0;
 }
 
-ListFData* NFunction::getSpace(const float *values, const char* vars, int numOfValue, float epsilon) {
+ListFData* NFunction::getSpace(const float *inputInterval, const char* vars, int numOfVar, float epsilon) {
 	ListFData *lstData = NULL;
 	FData *sp;
 	DParamF param;
-	float y, lastX;
+	SimpleCriteria* sc;
+	CompositeCriteria* cc;
+	Criteria* outCriteria;
+	float y, lastX, rightVal;
 	int elementOnRow = 0;
 	float *tmpP;
 
@@ -110,8 +164,9 @@ ListFData* NFunction::getSpace(const float *values, const char* vars, int numOfV
 
 				param.error = NMATH_NO_ERROR;
 				param.variables[0] = variables[0];
-				param.values[0] = values[0];
-				while (param.values[0] <= values[1]) {
+				param.values[0] = inputInterval[0];
+				param.t = this->prefix->list[0];
+				while (param.values[0] <= inputInterval[1]) {
 					calcF_t(&param);
 					y = param.retv;
 
@@ -128,8 +183,8 @@ ListFData* NFunction::getSpace(const float *values, const char* vars, int numOfV
 					param.values[0] += epsilon;
 				}
 
-				if ( (lastX < values[1]) && (param.values[0] > values[1])) {
-					param.values[0] = values[1];
+				if ((lastX < inputInterval[1]) && (param.values[0] > inputInterval[1])) {
+					param.values[0] = inputInterval[1];
 					calcF_t((void*)&param);
 					y = param.retv;
 					if (sp->dataSize >= sp->loggedSize - 2){
@@ -144,13 +199,93 @@ ListFData* NFunction::getSpace(const float *values, const char* vars, int numOfV
 				}
 
 				sp->rowInfo[sp->rowCount++] = elementOnRow;
-				lstData = new ListFData();
+				lstData = new ListFData;
+				lstData->size = 0;
 				lstData->list = (FData**)malloc(sizeof(FData*) * 1);
-				lstData->list[0] = sp;
+				lstData->list[lstData->size++] = sp;
+				
+
 				return lstData;
 			}
 
-			criteria->list[0]->getInterval(values, vars, numOfValue/2);
+			outCriteria = criteria->list[0]->getIntervalF(inputInterval, vars, numOfVar);
+
+			if (outCriteria == NULL) return NULL;
+
+			/*
+				Because this is an one-unknown variable function so output criteria is SIMPLE or
+				OR-COMPOSITE criteria
+
+				if out criteria is SIMPLE: this function is continueous on the output interval
+				otherwise this function is not continueous on the output interval, in other word, it's continueous 
+				in output criteria partially
+			*/
+			switch (outCriteria->getCClassType()) {
+				case SIMPLE:
+					sc = (SimpleCriteria*)outCriteria;
+
+					sp = (FData*)malloc(sizeof(FData));
+					sp->dimension = 2;
+					sp->loggedSize = 20;
+					sp->dataSize = 0;
+					sp->data = (float*)malloc(sizeof(float) * sp->loggedSize);
+					sp->rowCount = 0;
+					sp->loggedRowCount = 1;
+					sp->rowInfo = (int*)malloc(sizeof(int));
+
+					param.error = NMATH_NO_ERROR;
+					param.variables[0] = variables[0];
+					param.values[0] = sc->getLeftValue();
+					param.t = prefix->list[0];
+					rightVal = sc->getRightValue();
+					while (param.values[0] <= rightVal) {
+						calcF_t(&param);
+						y = param.retv;
+
+						if (sp->dataSize >= sp->loggedSize - 2){
+							sp->loggedSize += 20;
+							tmpP = (float*)realloc(sp->data, sizeof(float) * sp->loggedSize);
+							if (tmpP != NULL)
+								sp->data = tmpP;
+						}
+						sp->data[sp->dataSize++] = param.values[0];
+						sp->data[sp->dataSize++] = y;
+						elementOnRow++;
+						lastX = param.values[0];
+						param.values[0] += epsilon;
+					}
+
+					if ((lastX < rightVal) && (param.values[0] > rightVal)) {
+						param.values[0] = rightVal;
+						calcF_t((void*)&param);
+						y = param.retv;
+						if (sp->dataSize >= sp->loggedSize - 2){
+							sp->loggedSize += 4;
+							tmpP = (float*)realloc(sp->data, sizeof(float) * sp->loggedSize);
+							if (tmpP != NULL)
+								sp->data = tmpP;
+						}
+						sp->data[sp->dataSize++] = param.values[0];
+						sp->data[sp->dataSize++] = y;
+						elementOnRow++;
+					}
+
+					sp->rowInfo[sp->rowCount++] = elementOnRow;
+					lstData = new ListFData;
+					lstData->size = 0;
+					lstData->list = (FData**)malloc(sizeof(FData*) * 1);
+					lstData->list[lstData->size++] = sp;
+					break;
+
+				case COMPOSITE: //OR-COMPOSITE criteria
+					int i; 
+					cc = (CompositeCriteria*)outCriteria;
+					for (i = 0; i < cc->size(); i++) {
+
+					}
+					break;
+			}
+
 			break;
 
 		case 2:
@@ -164,6 +299,27 @@ ListFData* NFunction::getSpace(const float *values, const char* vars, int numOfV
 }
 
 /*****************************************************************************************************************/
+
+void nmath::releaseNMATree(NMASTList **t) {
+	int i, j = 0, k = 0;
+
+	if ((*t) == NULL) return;
+
+	if ((*t) != NULL){
+		for (i = 0; i<(*t)->size; i++){
+			clearTree(&((*t)->list[i]));
+		}
+		if ((*t)->list != NULL){
+			free((*t)->list);
+		}
+		(*t)->size = 0;
+		(*t)->loggedSize = 0;
+		free(*t);
+		*t = NULL;
+	}
+}
+
+
 /*
 Check if a tree contains variable x
 @param t the tree

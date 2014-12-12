@@ -5,32 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <tchar.h>
-#include <nlablexer.h>
-#include <nlabparser.h>
-#include <criteria.h>
-#include <SimpleCriteria.h>
-#include <CompositeCriteria.h>
+#include <iostream>
+#include <nmath.h>
 
 using namespace nmath;
-
-void releaseNMATree(NMASTList **t) {
-	int i, j = 0, k = 0;
-	
-	if (t == NULL) return;
-
-	if (t != NULL){
-		for (i = 0; i<(*t)->size; i++){
-			clearTree(&((*t)->list[i]));
-		}
-		if ((*t)->list != NULL){
-			free((*t)->list);
-		}
-		(*t)->size = 0;
-		(*t)->loggedSize = 0;
-		free(*t);
-		t = NULL;
-	}
-}
 
 void printCriteria(Criteria *c) {
 	int i, n;
@@ -49,98 +27,79 @@ void printCriteria(Criteria *c) {
 	}
 }
 
-void printNMAST(NMAST *ast, int level) {
-	int i;
-
-	if (ast == NULL) return;
-
-	if (level > 0){
-		for (i = 0; i<level - 1; i++)
-			printf("\t");
-		printf("|-----");
-	}
-
-	switch (ast->type) {
-	case AND:
-		printf("AND \n");
-		break;
-
-	case OR:
-		printf("OR \n");
-		break;
-
-	case LT:
-		printf("< \n");
-		break;
-
-	case LTE:
-		printf("<= \n");
-		break;
-
-	case GT:
-		printf("GT \n");
-		break;
-
-	case NAME:
-	case VARIABLE:
-		printf("%c \n", ast->variable);
-		break;
-
-	case NUMBER:
-		printf("%lf \n", ast->value);
-		break;
-
-	case PI_TYPE:
-		printf("PI \n");
-		break;
-
-	case E_TYPE:
-		printf("e \n");
-		break;
-
-	case PLUS:
-		printf("+ \n");
-		break;
-
-	case MINUS:
-		printf("- \n");
-		break;
-
-	case MULTIPLY:
-		printf("* \n");
-		break;
-
-	case DIVIDE:
-		printf("/ \n");
-		break;
-
-	default:
-		printf("(type=%d) \n", ast->type);
-	}
-
-	if (ast->left != NULL)
-		printNMAST(ast->left, level + 1);
-
-	if (ast->right != NULL)
-		printNMAST(ast->right, level + 1);
+void printMenu() {
+	printf("\n0. Exit \n");
+	printf("1. Test lexer \n");
+	printf("2. Test Function \n");
+	printf("3. Test getSpace \n");
+	printf("4. Test Calculating \n");
+	printf("-----------------------------------------------------------------------------------\n");
 }
 
-int _tmain(int argc, _TCHAR* argv[]) {
+void testFunction() {
+	NFunction f;
+	ListFData *data;
+	float interval[] = {-1, 2, 0, 1};
+	int i, j, vcount;
+
+	int error = f.parse("f(x)=x^2-2 D: x>0.5", 10);
+	//int error = f.parse("f(x,y)=x^2-y D: x>0.3", 19);
+
+	if (error != NMATH_NO_ERROR) {
+		std::cout << "Function Parsing ERROR = " << error;
+		f.release();
+		return;
+	}
+	else {
+		std::cout << f;
+		//data = f.getSpace(interval, "xy", 2, 0.2f);
+		data = f.getSpace(interval, "x", 1, 0.2f);
+
+		if (data != NULL) {
+			for (i = 0; i<data->size; i++){
+				vcount = data->list[i]->dataSize / data->list[i]->dimension;
+				cout << "Mesh " << i << ", row count: " << data->list[i]->rowCount << " number of vertex: " << vcount << "\n";
+				
+				for (j = 0; j<vcount; j++){
+					cout << "x=" << data->list[i]->data[j * 2] << ", y = " << data->list[i]->data[j * 2 + 1] << "\n";
+				}
+
+				free(data->list[i]->data);
+				free(data->list[i]->rowInfo);
+				free(data->list[i]);
+			}
+			free(data->list);
+			free(data);
+		}
+		else {
+			cout << "Get Space Failed";
+		}
+
+		f.release();
+		cout << "\nFunction Parsing OK\n";
+	}
+}
+
+void testCalculate() {
+
+}
+
+void testCriteria(){
 	NLabLexer lexer(10);
 	NLabParser parser;
 	NMASTList *domain;
 	Criteria *c, *o;
 	char outStr[64];
 	int start = 0;
-	double value[] = {3, 12};
+	double value[] = { 3, 12 };
 
 	lexer.lexicalAnalysis("a > 10 and a <= 15", 18, 0);
-	
+
 	parser.parseDomain(lexer, &start);
 	if (parser.getErrorCode() == NMATH_NO_ERROR) {
 		domain = parser.domain();
 		start = 0;
-		printNMAST(domain->list[0], 0);
+		printNMAST(domain->list[0], 0, cout);
 		outStr[start] = '\0';
 		puts(outStr);
 
@@ -148,8 +107,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
 
 		o = c->getInterval(value, "a", 1);
 
-		printCriteria(c);
-		printCriteria(o);
+		std::cout << ((Criteria&)*c) << "\n";
+		std::cout << ((Criteria&)*o) << "\n";
 		releaseNMATree(&domain);
 
 		if (c != NULL)
@@ -157,9 +116,53 @@ int _tmain(int argc, _TCHAR* argv[]) {
 
 		if (o != NULL)
 			delete o;
-	} else {
+	}
+	else {
 		printf("Parsing error with code = %d", parser.getErrorCode());
 	}
-	
+}
+
+int _tmain(int argc, _TCHAR* argv[]) {
+	int command;
+
+	do {
+		printMenu();
+		printf("command = ");
+		scanf("%d", &command);
+
+		switch (command) {
+		case 0:
+			testCriteria();
+			break;
+
+		case 1:
+			break;
+
+		case 2:
+			testFunction();
+			break;
+
+		case 3:
+			//jniJLexerGetSpace();
+			//testGetSpaces();
+			break;
+
+		case 4:
+			testCalculate();
+			break;
+		}
+
+		//testReduce(f);
+		//testDerivative(f);
+		//	fflush(stdin);
+		//	printf("Filename: ");
+		//	fgets(str, 128, stdin);
+
+
+		//testCalculate(f);
+		//testReuseFunction(f);
+		//testCriteria2(f);
+	} while (command != 0);
+
 	return 0;
 }
