@@ -40,7 +40,19 @@ namespace nmath {
 
 			bool isOverlapped(const SimpleCriteria& c);
 			
-			Criteria* getInterval(const double *values, const char* var, int varCount);
+			template <class VT>
+			Criteria* getInterval(const VT *values, const char* var, int varCount) {
+				Criteria* out;
+				int i;
+				for (i = 0; i<varCount; i++){
+					if (variable == var[i]) {
+						out = and(values + (i * 2));
+						return out;
+					}
+				}
+
+				return NULL;
+			}
 
 			Criteria* and(SimpleCriteria& c);
 			Criteria* and(CompositeCriteria& c);
@@ -49,7 +61,206 @@ namespace nmath {
 			CompositeCriteria* or(CompositeCriteria& c);
 
 			/* And this criteria with pair of values */
-			SimpleCriteria* and(const double *values);
+			template <class VT>
+			SimpleCriteria* and(const VT *values) {
+				SimpleCriteria *outInterval = 0;
+
+				if (this->leftInfinity && this->rightInfinity) {
+					outInterval = new SimpleCriteria();
+					outInterval->available = 1;
+					outInterval->leftInfinity = 0;
+					outInterval->rightInfinity = 0;
+					outInterval->leftVal = values[0];
+					outInterval->rightVal = values[1];
+					outInterval->type = GTE_LTE;
+					return outInterval;
+				}
+
+				if (this->leftInfinity) {
+					/** HERE we don't need to take care of leftVal */
+					switch (this->type){
+					case GT_LT:
+					case GTE_LT:
+						// x < rightVal
+						if (this->rightVal <= values[0]){
+							//return empty set, available bit set to FALSE
+							return 0;
+						}
+
+						outInterval = new SimpleCriteria();
+						outInterval->available = 1;
+						outInterval->leftInfinity = 0;
+						outInterval->rightInfinity = 0;
+						outInterval->leftVal = values[0];
+						outInterval->type = GTE_LT; //TODO: need to test here
+						if (values[1] < this->rightVal)
+							outInterval->rightVal = values[1];
+						else
+							outInterval->rightVal = this->rightVal;
+						//outInterval->rightVal = this->rightVal - epsilon;
+						break;
+
+					case GT_LTE:
+					case GTE_LTE:
+						// x <= rightVal
+						if (this->rightVal < values[0]){
+							//return empty set, available bit set to FALSE
+							return 0;
+						}
+
+						outInterval = new SimpleCriteria();
+						outInterval->available = 1;
+						outInterval->leftInfinity = 0;
+						outInterval->rightInfinity = 0;
+						outInterval->leftVal = values[0];
+						outInterval->type = GTE_LTE; //TODO: need to test here
+						if (values[1] <= this->rightVal)
+							outInterval->rightVal = values[1];
+						else
+							outInterval->rightVal = this->rightVal;
+						break;
+					}
+				}
+				else if (this->rightInfinity) {
+					/** HERE we don't need to take care of rightVal */
+					switch (this->type){
+					case GT_LT:
+					case GT_LTE:
+						// leftVal < x
+						if (this->leftVal >= values[1]){
+							//return empty set, available bit set to FALSE
+							return 0;
+						}
+						outInterval = new SimpleCriteria();
+						outInterval->available = 1;
+						outInterval->leftInfinity = 0;
+						outInterval->rightInfinity = 0;
+						outInterval->rightVal = values[1];
+						outInterval->type = GT_LTE; //TODO: need to test here
+						if (this->leftVal < values[0])
+							outInterval->leftVal = values[0];
+						else
+							outInterval->leftVal = this->leftVal;
+						break;
+
+					case GTE_LT:
+					case GTE_LTE:
+						// leftVal <= x
+						if (this->leftVal > values[1]){
+							//return empty set, available bit set to FALSE
+							return 0;
+						}
+						outInterval = new SimpleCriteria();
+						outInterval->available = 1;
+						outInterval->leftInfinity = 0;
+						outInterval->rightInfinity = 0;
+						outInterval->rightVal = values[1];
+						outInterval->type = GTE_LTE; //TODO: need to test here
+						if (this->leftVal <= values[0])
+							outInterval->leftVal = values[0];
+						else
+							outInterval->leftVal = this->leftVal;
+						break;
+					}
+				}
+				else{
+					switch (this->type){
+					case GT_LT:
+						// leftVal < x < rightVal
+						if (this->leftVal >= values[1] || this->rightVal <= values[0]){
+							//return empty set, available bit set to FALSE
+							return 0;
+						}
+
+						outInterval = new SimpleCriteria();
+						outInterval->available = 1;
+						outInterval->leftInfinity = 0;
+						outInterval->rightInfinity = 0;
+						outInterval->type = GTE_LTE;
+
+						if (this->leftVal < values[0])
+							outInterval->leftVal = values[0];
+						else
+							outInterval->leftVal = this->leftVal;
+
+						if (values[1] < this->rightVal)
+							outInterval->rightVal = values[1];
+						else
+							outInterval->rightVal = this->rightVal;
+
+						break;
+
+					case GT_LTE:
+						if (this->leftVal >= values[1] || this->rightVal < values[0]){
+							//return empty set, available bit set to FALSE
+							return 0;
+						}
+						outInterval = new SimpleCriteria();
+						outInterval->available = 1;
+						outInterval->leftInfinity = 0;
+						outInterval->rightInfinity = 0;
+						outInterval->type = GTE_LTE;
+						if (this->leftVal < values[0])
+							outInterval->leftVal = values[0];
+						else
+							outInterval->leftVal = this->leftVal;
+
+						if (values[1] <= this->rightVal)
+							outInterval->rightVal = values[1];
+						else
+							outInterval->rightVal = this->rightVal;
+
+						break;
+
+					case GTE_LT:
+						// leftVal <= x < rightVal
+						if (this->leftVal > values[1] || this->rightVal <= values[0]){
+							//return empty set, available bit set to FALSE
+							return 0;
+						}
+						outInterval = new SimpleCriteria();
+						outInterval->available = 1;
+						outInterval->leftInfinity = 0;
+						outInterval->rightInfinity = 0;
+						outInterval->type = GTE_LTE;
+						if (this->leftVal <= values[0])
+							outInterval->leftVal = values[0];
+						else
+							outInterval->leftVal = this->leftVal;
+
+						if (values[1] < this->rightVal)
+							outInterval->rightVal = values[1];
+						else
+							outInterval->rightVal = this->rightVal;
+						break;
+
+					case GTE_LTE:
+						// leftVal <= x <= rightVal
+						if (this->leftVal > values[1] || this->rightVal < values[0]){
+							//return empty set, available bit set to FALSE
+							return 0;
+						}
+						outInterval = new SimpleCriteria();
+						outInterval->available = 1;
+						outInterval->leftInfinity = 0;
+						outInterval->rightInfinity = 0;
+						outInterval->type = GTE_LTE;
+						if (this->leftVal <= values[0])
+							outInterval->leftVal = values[0];
+						else
+							outInterval->leftVal = this->leftVal;
+
+						if (values[1] <= this->rightVal)
+							outInterval->rightVal = values[1];
+						else
+							outInterval->rightVal = this->rightVal;
+						break;
+					}
+				}
+
+				return outInterval;
+			}
+
 			Criteria* operator &(Criteria& c);
 			Criteria* operator |(Criteria& c);
 

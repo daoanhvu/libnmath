@@ -150,7 +150,7 @@ ListFData* NFunction::getSpace(const float *values, const char* vars, int numOfV
 				return lstData;
 			}
 
-			criteria->list[0]->
+			criteria->list[0]->getInterval(values, vars, numOfValue/2);
 			break;
 
 		case 2:

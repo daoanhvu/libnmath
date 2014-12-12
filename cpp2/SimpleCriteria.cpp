@@ -42,19 +42,6 @@ Criteria* SimpleCriteria::clone() {
 	return out;
 }
 
-Criteria* SimpleCriteria::getInterval(const double *values, const char* var, int varCount) {
-	Criteria* out;
-	int i;
-	for(i=0; i<varCount; i++){
-		if(variable == var[i]) {
-			out = and(values + (i*2));
-			return out;
-		}
-	}
-	
-	return NULL;
-}
-
 bool SimpleCriteria::isOverlapped(const SimpleCriteria& c) {
 	if (variable == c.variable){
 		if (!(this->leftInfinity) && !(this->rightInfinity)) { /* If this interval is closed*/
@@ -166,7 +153,7 @@ bool SimpleCriteria::check(const double* values) {
 	
 	return result;
 }
-
+/*
 SimpleCriteria* SimpleCriteria::and(const double *values) {
 	SimpleCriteria *outInterval = 0;
 	
@@ -182,7 +169,7 @@ SimpleCriteria* SimpleCriteria::and(const double *values) {
 	}
 		
 	if( this->leftInfinity ) {
-		/** HERE we don't need to take care of leftVal */
+		// HERE we don't need to take care of leftVal
 		switch(this->type){
 			case GT_LT:
 			case GTE_LT:
@@ -226,7 +213,7 @@ SimpleCriteria* SimpleCriteria::and(const double *values) {
 			break;
 		}
 	}else if ( this->rightInfinity ) {
-		/** HERE we don't need to take care of rightVal */
+		// HERE we don't need to take care of rightVal 
 		switch(this->type){
 			case GT_LT:
 			case GT_LTE:
@@ -363,6 +350,7 @@ SimpleCriteria* SimpleCriteria::and(const double *values) {
 
 	return outInterval;
 }
+*/
 
 Criteria* SimpleCriteria::and(SimpleCriteria& c) {
 	Criteria* out = NULL;

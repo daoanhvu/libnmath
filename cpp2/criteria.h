@@ -29,7 +29,9 @@ namespace nmath {
 			/* check if value does belong to this interval */
 			virtual bool check(const double *value) { return false; }
 			virtual Criteria* clone() { return 0; }
-			virtual Criteria* getInterval(const double *values, const char* var, int varCount) { return 0; }
+
+			template <class VT>
+			Criteria* getInterval(const VT *values, const char* var, int varCount);
 
 			friend Criteria* buildCriteria(const NMAST *ast);
 	};
