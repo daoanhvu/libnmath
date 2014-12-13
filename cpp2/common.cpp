@@ -578,7 +578,7 @@ std::ostream& printNMAST(const NMAST *ast, int level, std::ostream& os) {
 		break;
 
 	case GT:
-		printf("(variable:%c > value:%lf) \n", ast->variable, ast->value);
+		os << "(variable:"<< ast->variable <<" > value:"<< ast->value <<") \n";
 		break;
 
 	case NAME:
@@ -591,23 +591,23 @@ std::ostream& printNMAST(const NMAST *ast, int level, std::ostream& os) {
 		break;
 
 	case PI_TYPE:
-		printf("PI \n");
+		os << "PI \n";
 		break;
 
 	case E_TYPE:
-		printf("e \n");
+		os << "e \n";
 		break;
 
 	case PLUS:
-		printf("+ \n");
+		os << "+ \n";
 		break;
 
 	case MINUS:
-		printf("- \n");
+		os << "- \n";
 		break;
 
 	case MULTIPLY:
-		printf("* \n");
+		os <<"* \n";
 		break;
 
 	case DIVIDE:
@@ -619,7 +619,7 @@ std::ostream& printNMAST(const NMAST *ast, int level, std::ostream& os) {
 		break;
 
 	default:
-		printf("(type=%d) \n", ast->type);
+		os << "(type=" << ast->type << ") \n";
 	}
 
 	if (ast->left != NULL)

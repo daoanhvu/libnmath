@@ -16,8 +16,13 @@
 using namespace nmath;
 
 NFunction::NFunction(): text(0), valLen(0), prefix(0), domain(0), criteria(0) {
-	mLexer = new NLabLexer(0);
+	mLexer = new NLabLexer();
 	mParser = new NLabParser();
+
+	//Hard code to test
+	mTokenCapability = 50;
+	mTokens = new Token[mTokenCapability];
+	mTokeSize = 0;
 }
 
 NFunction::~NFunction() {
@@ -43,7 +48,7 @@ int NFunction::parse(const char *str, int len) {
 	int i;
 	Criteria *c;
 
-	mLexer->reset(len);
+	mLexer->reset();
 
 	if (text != NULL) {
 		delete[] text;
@@ -53,17 +58,17 @@ int NFunction::parse(const char *str, int len) {
 	memcpy(text, str, len);
 	textLen = len;
 
-	errorCode = mLexer->lexicalAnalysis(text, textLen, 0);
+	mTokeSize = mLexer->lexicalAnalysis(text, textLen, 0, mTokens, mTokenCapability, 0);
+	errorColumn = mLexer->getErrorColumn();
+	errorCode = mLexer->getErrorCode();
 	if (errorCode != NMATH_NO_ERROR) {
 		return errorCode;
 	}
-	else
-		errorColumn = mLexer->getErrorColumn();
-
-	errorCode = mParser->parseFunctionExpression(*mLexer);
+		
+	//TODO: Need to release prefix and domain before call parseFunctionExpression from NLabParser
+	errorCode = mParser->parseFunctionExpression(mTokens, mTokeSize, &prefix, &domain);
+	errorColumn = mParser->getErrorColumn();
 	if (errorCode == NMATH_NO_ERROR) {
-		this->prefix = mParser->prefix();
-		this->domain = mParser->domain();
 		valLen = mParser->variableCount();
 		if (valLen > 0)
 			memcpy(variables, mParser->variables(), valLen);
@@ -79,10 +84,7 @@ int NFunction::parse(const char *str, int len) {
 				criteria->list[i] = c;
 			}
 		}
-
-		mParser->reset();
-	} else
-		errorColumn = mParser->getErrorColumn();
+	}
 
 	return errorCode;
 }
@@ -118,6 +120,13 @@ void NFunction::release() {
 		delete criteria;
 		criteria = NULL;
 	}
+
+	if(mTokens != NULL) {
+		delete[] mTokens;
+		mTokens = NULL;
+	}
+	mTokenCapability = 0;
+	mTokeSize = 0;
 }
 
 double NFunction::dcalc(double *values, int numOfValue) {

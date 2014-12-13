@@ -3,6 +3,10 @@
 
 #include "common.h"
 
+/*
+	This class is an utility. It not generate any data so we don't need to release resource after
+	use it.
+*/
 namespace nmath{
 	class NLabLexer {
 		private:
@@ -15,9 +19,9 @@ namespace nmath{
 			int errorCode;
 			int errorColumn;
 
-			unsigned int mLoggedSize;
-			unsigned int mSize;
-			Token *list;
+			int mSize;
+			int mCapability;
+			Token *mList;
 
 			int isLogicOperator(char c);
 
@@ -30,15 +34,17 @@ namespace nmath{
 			int isAName(int index);
 
 		public:
-			NLabLexer(int loggerSize);
+			NLabLexer();
 			~NLabLexer();
 
-			void reset(int logSize);
+			void reset();
+			int getErrorCode() { return errorCode; }
 			int getErrorColumn()	{ return errorColumn; }
 
-			int lexicalAnalysis(char *inStr, int len, int appended);
-			int size() { return mSize; }
-			Token* operator [](int index);
+			/*
+				
+			*/
+			int lexicalAnalysis(char *inStr, int len, int appended/*NOT USE*/, Token *tokens, int capability, int start);
 	};
 
 	/**

@@ -17,94 +17,81 @@ using namespace nmath;
 
 const int NLabLexer::setLeadNegativeNumber[14] = { LPAREN, LPRACKET, SEMI, COMMA, AND, OR, LT, LTE, GT, GTE, EQ, NE, IMPLY, RARROW };
 
-NLabLexer::NLabLexer(int logSize):mLoggedSize(logSize) {
-	if (logSize > 0) {
-		list = new Token[logSize];
-	} else {
-		list = 0;
-	}
+NLabLexer::NLabLexer() {
+	mList = 0;
 	mSize = 0;
-	
+	mInputString = 0;
+	mInputLen = 0;
 }
 
 NLabLexer::~NLabLexer() {
-	if (list != 0) {
-		delete[] list;
-	}
 }
 
-void NLabLexer::reset(int logSize) {
-	if (list != 0) {
-		delete[] list;
-	}
-
-	list = new Token[logSize];
-	mLoggedSize = logSize;
+void NLabLexer::reset() {
+	mList = 0;
 	mSize = 0;
-}
-
-Token* NLabLexer::operator [](int index){
-	return (list + index);
+	mInputString = 0;
+	mInputLen = 0;
 }
 
 /**
-	Add a token info into list, size of the list will be increased one
+	Add a token info into mList, size of the mList will be increased one
 
 	if SUCCESS, return the size of token
 	otherwise return a negative value
 */
 int NLabLexer::addToken(int _type, const char *_text, char txtlen, int _col) {
 
-	if(mSize >= mLoggedSize) {
+	if(mSize >= mCapability) {
 		return E_NOT_ENOUGH_PLACE;
 	}
 
-	list[mSize].type = _type;
-	list[mSize].column = _col;
+	mList[mSize].type = _type;
+	mList[mSize].column = _col;
 
 	/*
 		IMPORTANT: If you want to change this, PLEASE change function common:getPriorityOfType(int type) also
 	*/
 	switch(_type){
 		case OR:
-			list[mSize].priority = 1;
+			mList[mSize].priority = 1;
 		break;
 		
 		case AND:
-			list[mSize].priority = 2;
+			mList[mSize].priority = 2;
 		break;
 		
 		case LT:
 		case GT:
 		case LTE:
 		case GTE:
-			list[mSize].priority = 3;
+			mList[mSize].priority = 3;
 		break;
 		
 		case PLUS:
 		case MINUS:
-			list[mSize].priority = 4;
+			mList[mSize].priority = 4;
 		break;
 		
 		case MULTIPLY:
 		case DIVIDE:
-			list[mSize].priority = 5;
+			mList[mSize].priority = 5;
 		break;
 		
 		case POWER:
-			list[mSize].priority = 6;
+			mList[mSize].priority = 6;
 		break;
 		
 		case NE:
-			list[mSize].priority = 7;
+			mList[mSize].priority = 7;
 		break;
 		
 		default:
-			list[mSize].priority = 0;
+			mList[mSize].priority = 0;
 	}
 	
-	list[mSize].textLength = (char)((MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen);
-	memcpy(list[mSize].text, _text, list[mSize].textLength);
+	mList[mSize].textLength = (char)((MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen);
+	memcpy(mList[mSize].text, _text, mList[mSize].textLength);
 
 	mSize++;
 
@@ -114,25 +101,32 @@ int NLabLexer::addToken(int _type, const char *_text, char txtlen, int _col) {
 /**********************************************************************/
 
 /*
-	@return errorCode
+	This method do the anlysis on input string
+	@param inStr the input string that need to be analysis [IN]
+	@param len the length of inStr [IN]
+	@return the size of the token list to be used actually
 */
-int NLabLexer::lexicalAnalysis(char *inStr, int length, int appended) {
+int NLabLexer::lexicalAnalysis(char *inStr, int len, int appended/*NOT USE*/, Token *tokens, int capability, int start) {
 	int chCode, type, k = 0;
-	int idx = 0, nextIdx;
+	int idx = 0;
+	int nextIdx;
 	int floatingPoint;
 
 	errorColumn = -1;
 	errorCode = NMATH_NO_ERROR;
 
 	if( (appended==TRUE) && (mSize > 0) ) {
-		idx = list[mSize-1].column;
+		idx = mList[mSize-1].column;
 		mSize -= 1;
 	}
 
+	mList = tokens;
+	mCapability = capability;
 	mInputString = inStr;
-	mInputLen = length;
+	mInputLen = len;
+	mSize = 0;
 
-	while( idx < length ) {
+	while( idx < len ) {
 		//LOGI(3, "index: %d, 0x%X(%d)", idx, mInputString[idx], (char)(mInputString[idx]));
 		if( (mInputString[idx] & 0x80) != 0x80 ) {
 			if( checkNumericOperator(idx, &type, &k )==TRUE ) {
@@ -154,18 +148,18 @@ int NLabLexer::lexicalAnalysis(char *inStr, int length, int appended) {
 				}else{ //ERROR: bad token found
 					errorColumn = idx;
 					errorCode = ERROR_BAD_TOKEN;
-					return ERROR_BAD_TOKEN;
+					return 0;
 				}
 			}else if(isDigit(mInputString[idx])) {
 				floatingPoint = FALSE;
-				for(k = idx+1; k < length; k++) {
+				for(k = idx+1; k < len; k++) {
 					if(!isDigit(mInputString[k])) {
 						if(mInputString[k] == '.') {
 							//check if we got a floating point
 							if(floatingPoint){ //<- ERROR: the second floating point
 								errorColumn = k;
 								errorCode = ERROR_TOO_MANY_FLOATING_POINT;
-								return ERROR_TOO_MANY_FLOATING_POINT;
+								return 0;
 							}
 							floatingPoint = TRUE;
 						} else {
@@ -208,11 +202,11 @@ int NLabLexer::lexicalAnalysis(char *inStr, int length, int appended) {
 					idx++;
 				}
 				
-			}else if( (idx+1 < length ) && (mInputString[idx]=='p' || mInputString[idx]=='P') && (mInputString[idx+1]=='i' || mInputString[idx+1]=='I')
-							&& ( (idx+1 == length-1) || !isLetter(mInputString[idx+2]) ) ) {
+			}else if( (idx+1 < len ) && (mInputString[idx]=='p' || mInputString[idx]=='P') && (mInputString[idx+1]=='i' || mInputString[idx+1]=='I')
+							&& ( (idx+1 == len-1) || !isLetter(mInputString[idx+2]) ) ) {
 				addToken(PI_TYPE, "3.14159265358979", 16, idx);
 				idx += 2;
-			}else if(mInputString[idx]=='e' && ((idx==length-1) || !isLetter(mInputString[idx+1]))) {
+			}else if(mInputString[idx]=='e' && ((idx==len-1) || !isLetter(mInputString[idx+1]))) {
 				addToken(E_TYPE, "2.718281828", 11, idx);
 				idx++;
 			}else
@@ -220,9 +214,9 @@ int NLabLexer::lexicalAnalysis(char *inStr, int length, int appended) {
 
 		} else {
 
-			chCode = nmath::getCharacter(mInputString, length, idx, &nextIdx, &errorCode);
+			chCode = nmath::getCharacter(mInputString, len, idx, &nextIdx, &errorCode);
 			if (errorCode != NMATH_NO_ERROR)
-				return errorCode;
+				return 0;
 			//LOGI(3, "UTF Code: (0x%X)%d", chCode, chCode);
 			switch(chCode) {
 				case PI_TYPE:
@@ -253,7 +247,13 @@ int NLabLexer::lexicalAnalysis(char *inStr, int length, int appended) {
 		}
 	}
 
-	return errorCode;
+	//we don't hold external resource when we finish the job here
+	mList = 0;
+	mCapability = 0;
+	mInputString = 0;
+	mInputLen = 0;
+
+	return mSize;
 }
 
 /**
@@ -452,7 +452,7 @@ int NLabLexer::parseSubtractSign(int idx, int *type, int *outlen) {
 			If a minus sign is placed at the beginning of the input string or the previous token is in setLeadNegativeNumber then
 			maybe you will get the a negative number.
 		*/
-		if (((idx == 0) || contains(list[mSize-1].type, setLeadNegativeNumber, LeadNegativeNumberSize))
+		if (((idx == 0) || contains(mList[mSize-1].type, setLeadNegativeNumber, LeadNegativeNumberSize))
 			&& (isDigit(mInputString[idx + 1]))) {
 				
 			floatingPoint = FALSE;

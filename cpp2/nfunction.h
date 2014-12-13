@@ -28,6 +28,10 @@ namespace nmath {
 		NMASTList *domain;
 		ListCriteria *criteria;
 
+		Token *mTokens;
+		int mTokenCapability;
+		int mTokeSize;
+
 		NMAST **variableNode;
 		int numVarNode;
 

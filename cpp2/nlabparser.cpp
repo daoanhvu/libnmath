@@ -29,14 +29,6 @@ NLabParser::NLabParser(){
 NLabParser::~NLabParser() {
 }
 
-void NLabParser::reset() {
-	errorCode = 0;
-	errorColumn = -1;
-	mPrefix = 0;
-	mDomain = 0;
-	mVarCount = 0;
-}
-
 /******************************************************************************************/
 /**
 	Special routine used for PRN, just use internally please
@@ -172,28 +164,22 @@ void addFunction2Tree(NMASTList *t, Token * stItm){
 	}
 }
 
-/**
-	@return errorCode
-*/	
-int NLabParser::parseFunctionExpression(NLabLexer& lexer) {
+int NLabParser::parseFunctionExpression(Token* tokens, int tokenCount, NMASTList **prefix, NMASTList **domain) {
 	int k, l, i, idx = 0;
 	errorCode = ERROR_NOT_A_FUNCTION;
-	errorColumn = lexer[idx]->column;
+	errorColumn = tokens[idx].column;
 	
 	// LOGI(3, "[NativeParser] GOT HERE - token size: %d", tokens->size);
 	/** This array will hold the variables of the function */
 	mVarCount = 0;
-	if ((k = functionNotation(lexer, idx)) > idx){
-		if(lexer[k]->type == EQ){
+	if ((k = functionNotation(tokens, tokenCount, idx)) > idx){
+		if(tokens[k].type == EQ){
 
-			mPrefix = NULL;
-			mDomain = NULL;
-
-			for(i=0; i<lexer.size(); i++) {
-				if(lexer[i]->type == NAME) {
+			for(i=0; i<tokenCount; i++) {
+				if(tokens[i].type == NAME) {
 					for(l=0; l<mVarCount; l++) {
-						if(lexer[i]->text[0]==mVariables[l] && lexer[i]->textLength==1)
-							lexer[i]->type = VARIABLE;
+						if(tokens[i].text[0]==mVariables[l] && tokens[i].textLength==1)
+							tokens[i].type = VARIABLE;
 					}
 				}
 			}
@@ -203,20 +189,20 @@ int NLabParser::parseFunctionExpression(NLabLexer& lexer) {
 				/*
 					Parse expression
 				*/
-				parseExpression(lexer, &k);
+				*prefix = parseExpression(tokens, tokenCount, &k);
 				/** after parseExpression, we may get error, so MUST check if it's OK here */
-				if( (errorCode!=NMATH_NO_ERROR) || (k >= lexer.size()) ) break;
+				if( (errorCode!=NMATH_NO_ERROR) || (k >= tokenCount) ) break;
 				
-				if(lexer[k]->type == DOMAIN_NOTATION) {
+				if(tokens[k].type == DOMAIN_NOTATION) {
 					errorCode = ERROR_MISSING_DOMAIN;
-					errorColumn = lexer[k]->column;
-					if(k+1 < lexer.size()) {
+					errorColumn = tokens[k].column;
+					if(k+1 < tokenCount) {
 						l = k + 1;
-						parseDomain(lexer, &l);
+						*domain = parseDomain(tokens, tokenCount, &l);
 						k = l;
 					}
 				}
-			} while ( errorCode==NMATH_NO_ERROR && k < lexer.size() );
+			} while ( errorCode==NMATH_NO_ERROR && k < tokenCount );
 		}
 	} else {
 		/*
@@ -225,29 +211,27 @@ int NLabParser::parseFunctionExpression(NLabLexer& lexer) {
 		*/
 		//reset errorCode
 		errorCode = NMATH_NO_ERROR;
-
-		mPrefix = NULL;
-		mDomain = NULL;
 		k = 0;
-		parseExpression(lexer, &k);
-
+		*prefix = parseExpression(tokens, tokenCount, &k);
 	}
 	
 	if(errorCode != NMATH_NO_ERROR){
-		if(mPrefix != NULL) {
-			for(k=0; k<mPrefix->size; k++){
-				clearTree(&(mPrefix->list[k]));
+		if( (*prefix) != NULL) {
+			for(k=0; k<(*prefix)->size; k++){
+				clearTree(&((*prefix)->list[k]));
 			}
-			mPrefix->size = 0;
-			free(mPrefix);
+			(*prefix)->size = 0;
+			free((*prefix));
+			*prefix = NULL;
 		}
 			
-		if(mDomain != NULL) {
-			for(k=0; k<mDomain->size; k++){
-				clearTree(&(mDomain->list[k]));
+		if((*domain) != NULL) {
+			for(k=0; k<(*domain)->size; k++){
+				clearTree(&((*domain)->list[k]));
 			}
-			mDomain->size = 0;
-			free(mDomain);
+			(*domain)->size = 0;
+			free(*domain);
+			*domain = NULL;
 		}
 		
 		if(returnedAst != NULL){
@@ -262,32 +246,32 @@ int NLabParser::parseFunctionExpression(NLabLexer& lexer) {
 	functionNotation: NAME LPAREN NAME (COMA NAME)* PRARENT;
 	@return if
 */
-int NLabParser::functionNotation(NLabLexer& lexer, int index) {
+int NLabParser::functionNotation(const Token* tokens, int tokenCount, int index) {
 	int oldIndex = index;
 
-	if( (index < 0) || index >= lexer.size())
+	if( (index < 0) || index >= tokenCount )
 		return index;
 		
 	mVarCount = 0;
 	errorCode = ERROR_NOT_A_FUNCTION;
-	errorColumn = lexer[index]->column;
-	if(lexer[index]->type == NAME ) {
+	errorColumn = tokens[index].column;
+	if(tokens[index].type == NAME ) {
 		errorCode = ERROR_PARENTHESE_MISSING;
-		if(lexer[index+1]->type == LPAREN) {
+		if(tokens[index+1].type == LPAREN) {
 			errorCode = ERROR_MISSING_VARIABLE;
-			errorColumn = lexer[index+1]->column;
+			errorColumn = tokens[index+1].column;
 			
-			if(lexer[index+2]->type == NAME){
-				mVariables[mVarCount++] = lexer[index+2]->text[0];
+			if(tokens[index+2].type == NAME){
+				mVariables[mVarCount++] = tokens[index+2].text[0];
 				index += 3;
-				while( (index+1<lexer.size()) && (lexer[index]->type == COMMA)
-							&& (lexer[index+1]->type == NAME ) ){
-					mVariables[mVarCount++] = lexer[index+1]->text[0];
+				while( (index+1<tokenCount) && (tokens[index].type == COMMA)
+							&& (tokens[index+1].type == NAME ) ){
+					mVariables[mVarCount++] = tokens[index+1].text[0];
 					index += 2;
 				}
 				errorCode = ERROR_PARENTHESE_MISSING;
-				errorColumn = lexer[index]->column;
-				if( (index < lexer.size()) && (lexer[index]->type == RPAREN)){
+				errorColumn = tokens[index].column;
+				if( (index < tokenCount) && (tokens[index].type == RPAREN)){
 					errorCode = NMATH_NO_ERROR;
 					errorColumn = -1;
 					return (index + 1);
@@ -302,17 +286,15 @@ int NLabParser::functionNotation(NLabLexer& lexer, int index) {
 /**
 	Parse the input string in object f to NMAST tree
 */
-void NLabParser::parseExpression(NLabLexer& lexer, int *start) {
+NMASTList* NLabParser::parseExpression(Token* tokens, int size, int *start) {
 	int i, top=-1, allocLen=0, isEndExp = FALSE;
 	int error;
 	double val;
-	int size = lexer.size();
 	Token *tk = NULL;
 	Token **stack = NULL;
 	Token *stItm = NULL;
 	NMAST *ast = NULL;
-	//NMAST* varNodes[50];
-	mPrefix = (NMASTList*)malloc(sizeof(NMASTList));
+	NMASTList* mPrefix = (NMASTList*)malloc(sizeof(NMASTList));
 	mPrefix->size = 0;
 	mPrefix->loggedSize = 0;
 	mPrefix->list = NULL;
@@ -323,7 +305,7 @@ void NLabParser::parseExpression(NLabLexer& lexer, int *start) {
 	i = (*start);
 	// LOGI(2, "[parseExpression] Before while loop i=%d", i);
 	while( (i < size) && !isEndExp) {
-		tk = lexer[i];
+		tk = &(tokens[i]);
 		// LOGI(2, "token %d type:%d", i, tk->type);
 		switch(tk->type) {
 			case NUMBER:
@@ -337,7 +319,7 @@ void NLabParser::parseExpression(NLabLexer& lexer, int *start) {
 					free(mPrefix);
 					errorColumn = tk->column;
 					errorCode = ERROR_PARSING_NUMBER;
-					return;
+					return NULL;
 				}
 
 				ast = getFromPool();
@@ -412,7 +394,7 @@ void NLabParser::parseExpression(NLabLexer& lexer, int *start) {
 					free(mPrefix->list);
 					free(mPrefix);
 					errorColumn = tk->column;
-					return;
+					return NULL;
 				}
 				i++;
 				break;
@@ -427,7 +409,7 @@ void NLabParser::parseExpression(NLabLexer& lexer, int *start) {
 					free(mPrefix->list);
 					free(mPrefix);
 					errorColumn = tk->column;
-					return;
+					return NULL;
 				}
 				i++;
 				break;
@@ -445,7 +427,7 @@ void NLabParser::parseExpression(NLabLexer& lexer, int *start) {
 					free(mPrefix);
 					errorColumn = tk->column;
 					errorCode = ERROR_PARENTHESE_MISSING;
-					return ;
+					return NULL;
 				}
 
 				/*  */
@@ -465,7 +447,7 @@ void NLabParser::parseExpression(NLabLexer& lexer, int *start) {
 					free(mPrefix);
 					errorColumn = tk->column;
 					errorCode = ERROR_PARENTHESE_MISSING;
-					return;
+					return NULL;
 				}
 
 				if(isAFunctionType(stItm->type)  == TRUE){
@@ -516,7 +498,7 @@ void NLabParser::parseExpression(NLabLexer& lexer, int *start) {
 					free(mPrefix->list);
 					free(mPrefix);
 					errorColumn = tk->column;
-					return;
+					return NULL;
 				}
 
 				/**
@@ -561,14 +543,14 @@ void NLabParser::parseExpression(NLabLexer& lexer, int *start) {
 				errorColumn = tk->column;
 				errorCode = ERROR_BAD_TOKEN;
 				//LOGI(2, "[parseExpression] Error at Token_index=%d; Token_type=%d; ErrorCode=%d; ErrorColumn=%d", i, tk->type, errorCode, errorColumn);
-				return;
+				return NULL;
 		}//end switch
 	}//end while
 
 	while(top >= 0){
 		stItm = StackUtil::popFromStack(stack, &top);
 		
-		if(stItm->type == LPAREN || isAFunctionType(stItm->type)==TRUE){
+		if(stItm->type == LPAREN || isAFunctionType(stItm->type)==TRUE) {
 			clearStackWithoutFreeItem(stack, top+1);
 			free(stack);
 			for (i = 0; i<mPrefix->size; i++)
@@ -577,7 +559,7 @@ void NLabParser::parseExpression(NLabLexer& lexer, int *start) {
 			free(mPrefix);
 			errorColumn = tk->column;
 			errorCode = ERROR_PARENTHESE_MISSING;
-			return; 
+			return NULL;
 		}
 		addFunction2Tree(mPrefix, stItm);
 	}
@@ -591,9 +573,11 @@ void NLabParser::parseExpression(NLabLexer& lexer, int *start) {
 	//		f->variableNode[i] = varNodes[i];
 	//	}
 	//}
+
+	return mPrefix;
 }
 
-int NLabParser::parseDomain(NLabLexer& lexer, int *start) {
+NMASTList* NLabParser::parseDomain(Token *tokens, int tokenCount, int *start) {
 	int isEndExp = FALSE;
 	int i, index, top = -1, allocLen=0;
 	Token* tk;
@@ -602,7 +586,7 @@ int NLabParser::parseDomain(NLabLexer& lexer, int *start) {
 	Token *tokenItm = NULL;
 	NMAST *ast;
 
-	mDomain = (NMASTList*)malloc(sizeof(NMASTList));
+	NMASTList* mDomain = (NMASTList*)malloc(sizeof(NMASTList));
 	mDomain->size = 0;
 	mDomain->loggedSize = 0;
 	mDomain->list = NULL;
@@ -611,16 +595,16 @@ int NLabParser::parseDomain(NLabLexer& lexer, int *start) {
 	errorCode = NMATH_NO_ERROR;
 	
 	index = *start;
-	while(index < lexer.size() && !isEndExp){
-		tk = lexer[index];
+	while( (index < tokenCount) && !isEndExp) {
+		tk = &(tokens[index]);
 		switch(tk->type) {
 			case NUMBER:
 			case PI_TYPE:
 			case E_TYPE:
-				if( (index+4)<lexer.size() && isComparationOperator(lexer[index+1]->type) 
-									&& lexer[index+2]->type==VARIABLE 
-									&& isComparationOperator(lexer[index+3]->type)
-									&& (lexer[index+4]->type==NUMBER || lexer[index+4]->type==PI_TYPE || lexer[index+4]->type==E_TYPE )) {
+				if( (index+4)<tokenCount && isComparationOperator(tokens[index+1].type) 
+									&& tokens[index+2].type==VARIABLE 
+									&& isComparationOperator(tokens[index+3].type)
+									&& (tokens[index+4].type==NUMBER || tokens[index+4].type==PI_TYPE || tokens[index+4].type==E_TYPE )) {
 					/**
 						HERE, I missed the case that NUMBER < VARIABLE < NUMBER or
 						NUMBER <= VARIABLE < NUMBER or NUMBER < VARIABLE <= NUMBER or 
@@ -628,7 +612,7 @@ int NLabParser::parseDomain(NLabLexer& lexer, int *start) {
 						
 						Build an AND tree to hold the case
 					*/
-					ast = buildIntervalTree(tk, lexer[index+1], lexer[index+2], lexer[index+3], lexer[index+4]);
+					ast = buildIntervalTree(tk, &tokens[index+1], &tokens[index+2], &tokens[index+3], &tokens[index+4]);
 					if (ast == NULL) {
 						clearStackWithoutFreeItem(stack, top+1);
 						free(stack);
@@ -795,7 +779,7 @@ int NLabParser::parseDomain(NLabLexer& lexer, int *start) {
 						clearTree(&(mDomain->list[i]));
 					free(mDomain->list);
 					free(mDomain);
-					errorColumn = lexer[index]->column;
+					errorColumn = tokens[index].column;
 					return NULL;
 				}
 				index++;
@@ -803,7 +787,7 @@ int NLabParser::parseDomain(NLabLexer& lexer, int *start) {
 			
 			case NAME:
 			case VARIABLE:
-				if(( (index+1) < lexer.size()) && lexer[index+1]->type == ELEMENT_OF){
+				if(( (index+1) < tokenCount) && tokens[index+1].type == ELEMENT_OF){
 					/*
 						
 						VARIABLE ELEMENT_OF [NUMBER,NUMBER]
@@ -811,17 +795,17 @@ int NLabParser::parseDomain(NLabLexer& lexer, int *start) {
 						VARIABLE ELEMENT_OF [NUMBER,NUMBER)
 						VARIABLE ELEMENT_OF (NUMBER,NUMBER)
 					*/
-					if( ( index+6 < lexer.size()) && (lexer[index+2]->type == LPRACKET || lexer[index+2]->type == LPAREN)
-								&& (lexer[index+3]->type == NUMBER || lexer[index+3]->type == PI_TYPE || lexer[index+3]->type == E_TYPE)
-								&& lexer[index+4]->type == COMMA 
-								&& (lexer[index + 5]->type == NUMBER || lexer[index + 5]->type == PI_TYPE || lexer[index + 5]->type == E_TYPE)
-								&& (lexer[index + 6]->type == RPRACKET || lexer[index + 6]->type == RPAREN)) {
+					if( ( index+6 < tokenCount) && (tokens[index+2].type == LPRACKET || tokens[index+2].type == LPAREN)
+								&& (tokens[index+3].type == NUMBER || tokens[index+3].type == PI_TYPE || tokens[index+3].type == E_TYPE)
+								&& tokens[index+4].type == COMMA 
+								&& (tokens[index + 5].type == NUMBER || tokens[index + 5].type == PI_TYPE || tokens[index + 5].type == E_TYPE)
+								&& (tokens[index + 6].type == RPRACKET || tokens[index + 6].type == RPAREN)) {
 								
 						
 						/** ========START Parse floating point values======= */
-						switch(lexer[index+3]->type) {
+						switch(tokens[index+3].type) {
 							case NUMBER:
-								val = parseDouble(lexer[index+3]->text, 0, lexer[index+3]->textLength, &errorCode);
+								val = parseDouble(tokens[index+3].text, 0, tokens[index+3].textLength, &errorCode);
 								if(val == 0 && errorCode != NMATH_NO_ERROR){
 									clearStackWithoutFreeItem(stack, top+1);
 									free(stack);
@@ -842,9 +826,9 @@ int NLabParser::parseDomain(NLabLexer& lexer, int *start) {
 							break;
 						}
 						
-						switch(lexer[index+5]->type){
+						switch(tokens[index+5].type){
 							case NUMBER:
-								val2 = parseDouble(lexer[index + 5]->text, 0, lexer[index + 5]->textLength, &errorCode);
+								val2 = parseDouble(tokens[index + 5].text, 0, tokens[index + 5].textLength, &errorCode);
 								if(val2 == 0 && errorCode != NMATH_NO_ERROR){
 									clearStackWithoutFreeItem(stack, top+1);
 									free(stack);
@@ -852,7 +836,7 @@ int NLabParser::parseDomain(NLabLexer& lexer, int *start) {
 										clearTree(&(mDomain->list[i]));
 									free(mDomain->list);
 									free(mDomain);
-									errorColumn = lexer[index + 4]->column;
+									errorColumn = tokens[index + 4].column;
 									return NULL;
 								}
 							break;
@@ -874,25 +858,25 @@ int NLabParser::parseDomain(NLabLexer& lexer, int *start) {
 						*/
 						ast = getFromPool();
 						ast->variable = tk->text[0];
-						if ((lexer[index + 2]->type == LPAREN) && (lexer[index + 6]->type == RPAREN))
+						if ((tokens[index + 2].type == LPAREN) && (tokens[index + 6].type == RPAREN))
 							ast->type = GT_LT;
-						else if ((lexer[index + 2]->type == LPRACKET) && (lexer[index + 6]->type == RPAREN))
+						else if ((tokens[index + 2].type == LPRACKET) && (tokens[index + 6].type == RPAREN))
 							ast->type = GTE_LT;
-						else if ((lexer[index + 2]->type == LPAREN) && (lexer[index + 6]->type == RPRACKET))
+						else if ((tokens[index + 2].type == LPAREN) && (tokens[index + 6].type == RPRACKET))
 							ast->type = GT_LTE;
-						else if ((lexer[index + 2]->type == LPRACKET) && (lexer[index + 6]->type == RPRACKET))
+						else if ((tokens[index + 2].type == LPRACKET) && (tokens[index + 6].type == RPRACKET))
 							ast->type = GTE_LTE;
 						
 						//ast->Left number 1
 						ast->left = getFromPool();
 						ast->left->parent = ast;
 						ast->left->value = val;
-						ast->left->type = lexer[index + 3]->type;
+						ast->left->type = tokens[index + 3].type;
 						//Left->Right NUMBER or PI_TYPE or E_TYPE
 						ast->right = getFromPool();
 						ast->right->parent = ast;
 						ast->right->value = val2;
-						ast->right->type = lexer[index + 5]->type;
+						ast->right->type = tokens[index + 5].type;
 						pushASTStack(mDomain, ast);
 						index += 7;		
 					}else{
@@ -907,18 +891,18 @@ int NLabParser::parseDomain(NLabLexer& lexer, int *start) {
 						free(mDomain);
 						errorColumn = tk->column;
 						errorCode = ERROR_SYNTAX;
-						return ERROR_SYNTAX;
+						return NULL;
 					}
 				}else {
 					// VARIABLE OPERATOR VALUE
-					if(isComparationOperator(lexer[index+1]->type)) {
-						if( isConstant(lexer[index+2]->type) ) {
+					if(isComparationOperator(tokens[index+1].type)) {
+						if( isConstant(tokens[index+2].type) ) {
 						
 							//OPERATOR
 							ast = getFromPool();
-							ast->type = lexer[index + 1]->type;
+							ast->type = tokens[index + 1].type;
 							ast->variable = tk->text[0]; //Variable or NAME is stored at operator node
-							ast->value = parseDouble(lexer[index+2]->text, 0, lexer[index+2]->textLength, &errorCode);
+							ast->value = parseDouble(tokens[index+2].text, 0, tokens[index+2].textLength, &errorCode);
 							
 							pushASTStack(mDomain, ast);
 							index += 3;
@@ -951,14 +935,14 @@ int NLabParser::parseDomain(NLabLexer& lexer, int *start) {
 			free(mDomain);
 			errorColumn = tk->column;
 			errorCode = ERROR_PARENTHESE_MISSING;
-			return ERROR_PARENTHESE_MISSING;
+			return NULL;
 		}
 		addFunction2Tree(mDomain, tokenItm);
 	}
 	*start = index;
 	free(stack);
 
-	return NMATH_NO_ERROR;
+	return mDomain;
 }
 
 NMAST* NLabParser::buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, Token* valtk2) {

@@ -42,7 +42,7 @@ void testFunction() {
 	float interval[] = {-1, 2, 0, 1};
 	int i, j, vcount;
 
-	int error = f.parse("f(x)=x^2-2 D: x>0.5", 10);
+	int error = f.parse("f(x)=x^2-2 D: x>0.5", 19);
 	//int error = f.parse("f(x,y)=x^2-y D: x>0.3", 19);
 
 	if (error != NMATH_NO_ERROR) {
@@ -85,19 +85,28 @@ void testCalculate() {
 }
 
 void testCriteria(){
-	NLabLexer lexer(10);
+	NLabLexer lexer;
 	NLabParser parser;
 	NMASTList *domain;
 	Criteria *c, *o;
 	char outStr[64];
 	int start = 0;
 	double value[] = { 3, 12 };
+	int tokenCount = 10;
+	Token * tokens = new Token[tokenCount];
+	int tokenInUse;
 
-	lexer.lexicalAnalysis("a > 10 and a <= 15", 18, 0);
+	tokenInUse = lexer.lexicalAnalysis("a > 10 and a <= 15", 18, 0, tokens, tokenCount, 0);
 
-	parser.parseDomain(lexer, &start);
+	if(lexer.getErrorCode() != NMATH_NO_ERROR) {
+		cout << "ERROR AT LEXICAL PHASE: \n";
+		cout << "Error code = " << lexer.getErrorCode() << " at Column " << lexer.getErrorColumn() << "\n";
+		delete[] tokens;
+		return;
+	}
+
+	domain = parser.parseDomain(tokens, tokenInUse, &start);
 	if (parser.getErrorCode() == NMATH_NO_ERROR) {
-		domain = parser.domain();
 		start = 0;
 		printNMAST(domain->list[0], 0, cout);
 		outStr[start] = '\0';
@@ -118,8 +127,11 @@ void testCriteria(){
 			delete o;
 	}
 	else {
-		printf("Parsing error with code = %d", parser.getErrorCode());
+		cout << "ERROR AT PARSING PHASE: \n";
+		cout << "Parsing error with code = " <<  parser.getErrorCode() << "\n";
 	}
+
+	delete[] tokens;
 }
 
 int _tmain(int argc, _TCHAR* argv[]) {
@@ -131,11 +143,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
 		scanf("%d", &command);
 
 		switch (command) {
-		case 0:
-			testCriteria();
-			break;
-
 		case 1:
+			testCriteria();
 			break;
 
 		case 2:
