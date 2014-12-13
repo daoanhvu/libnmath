@@ -570,7 +570,7 @@ std::ostream& printNMAST(const NMAST *ast, int level, std::ostream& os) {
 		break;
 
 	case LT:
-		os << "< \n";
+		os << "(variable:" << ast->variable << " < value :" << ast->value << ")\n";
 		break;
 
 	case LTE:

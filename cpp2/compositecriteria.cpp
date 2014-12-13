@@ -256,9 +256,10 @@ This output parameter, it's a matrix N row and M columns which each row is for e
 It means that each row will hold a combined-interval for n-tule variables and M equal varCount * 2
 */
 Criteria* CompositeCriteria::getIntervalF(const float *values, const char* var, int varCount) {
-	CompositeCriteria *out = new CompositeCriteria();
 	Criteria *listIn;
 	int i;
+	CompositeCriteria *out = new CompositeCriteria();
+	out->setOperator(logicOp);
 
 	for (i = 0; i<mSize; i++) {
 		listIn = list[i]->getIntervalF(values, var, varCount);

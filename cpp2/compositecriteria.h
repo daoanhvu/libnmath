@@ -38,6 +38,8 @@ namespace nmath {
 			ostream& operator <<(ostream& os);
 			
 			Criteria* operator [](int index) const;
+			Criteria* get(int index) const { return list[index]; }
+
 			Criteria* operator |(Criteria &);
 			Criteria* operator &(Criteria &);
 			CompositeCriteria& operator |=(Criteria &);

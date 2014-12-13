@@ -29,30 +29,47 @@ istream& operator >>(istream& is, const Criteria& c) {
 
 ostream& nmath::operator <<(ostream& os, const Criteria& c) {
 	SimpleCriteria* sc;
+	CompositeCriteria *cc;
+	int i;
 
 	switch (c.getCClassType()) {
 	case SIMPLE:
 		sc = (SimpleCriteria*)(&c);
 		switch (sc->getType()) {
 		case GT_LT:
-			os << sc->getLeftValue() << " < " << sc->getVariable() << " < " << sc->getRightValue();
+			if(!sc->isLeftInfinity())
+				os << sc->getLeftValue() << " < ";
+			os << sc->getVariable();
+
+			if(!sc->isRightInfinity())
+				os << " < " << sc->getRightValue() << "\n";
 			break;
 
 		case GTE_LT:
-			os << sc->getLeftValue() << " <= " << sc->getVariable() << " < " << sc->getRightValue();
+			os << sc->getLeftValue() << " <= " << sc->getVariable() << " < " << sc->getRightValue() << "\n";
 			break;
 
 		case GT_LTE:
-			os << sc->getLeftValue() << " < " << sc->getVariable() << " <= " << sc->getRightValue();
+			os << sc->getLeftValue() << " < " << sc->getVariable() << " <= " << sc->getRightValue() << "\n";
 			break;
 
 		case GTE_LTE:
-			os << sc->getLeftValue() << " <= " << sc->getVariable() << " <= " << sc->getRightValue();
+			os << sc->getLeftValue() << " <= " << sc->getVariable() << " <= " << sc->getRightValue() << "\n";
 			break;
 		}
 		break;
 
 	case COMPOSITE:
+		cc = (CompositeCriteria*)(&c);
+		os << "COMPOSIT(";
+		if(cc->logicOperator() == OR)
+			os << "OR) \n";
+		else 
+			os << "AND) \n";
+
+		for(i=0; i< cc->size(); i++) {
+			os << "\t" << (*(cc->get(i)));
+		}
 		break;
 	}
 	return os;
@@ -109,6 +126,7 @@ Criteria* nmath::buildCriteria(const NMAST *ast) {
 							switch(ast->right->type) {
 								case LT:
 									if(ast->left->value < ast->right->value) {
+										delete out;
 										return 0;
 									}
 									

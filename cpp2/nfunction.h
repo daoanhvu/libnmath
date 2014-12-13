@@ -38,6 +38,8 @@ namespace nmath {
 		int errorCode;
 		int errorColumn;
 
+		ListFData* getSpaceFor2UnknownVariables(const float *inputInterval, float epsilon);
+
 	public:
 		NFunction();
 		~NFunction();
@@ -45,7 +47,7 @@ namespace nmath {
 		void release();
 		int reduce();
 		double dcalc(double *values, int numOfValue);
-		ListFData* getSpace(const float *values, const char* vars, int numOfValue, float epsilone);
+		ListFData* getSpace(const float *values, float epsilone);
 
 		char getVarCount() const { return valLen; }
 		NMASTList* getPrefixList() const { return prefix; }

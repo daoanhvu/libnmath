@@ -23,6 +23,10 @@ NFunction::NFunction(): text(0), valLen(0), prefix(0), domain(0), criteria(0) {
 	mTokenCapability = 50;
 	mTokens = new Token[mTokenCapability];
 	mTokeSize = 0;
+
+	prefix = (NMASTList*)malloc(sizeof(NMASTList));
+	domain = (NMASTList*)malloc(sizeof(NMASTList));
+	criteria = new ListCriteria;
 }
 
 NFunction::~NFunction() {
@@ -34,10 +38,17 @@ std::ostream& nmath::operator <<(std::ostream& os, const NFunction& f) {
 	os << "Number of variable: " << (int)f.getVarCount() << "\n";
 	os << "Prefix: \n";
 	printNMAST(f.getPrefixList()->list[0], 0, os);
+
 	if (f.getDomainList() != NULL) {
 		os << "Domain: ";
 		printNMAST(f.getDomainList()->list[0], 0, os);
 	}
+
+	if(f.getCriteriaList() != NULL) {
+		os << "Criteria: ";
+		os << (*f.getCriteriaList()->list[0]) << "\n";
+	}
+
 	return os;
 }
 
@@ -66,7 +77,7 @@ int NFunction::parse(const char *str, int len) {
 	}
 		
 	//TODO: Need to release prefix and domain before call parseFunctionExpression from NLabParser
-	errorCode = mParser->parseFunctionExpression(mTokens, mTokeSize, &prefix, &domain);
+	errorCode = mParser->parseFunctionExpression(mTokens, mTokeSize, prefix, domain);
 	errorColumn = mParser->getErrorColumn();
 	if (errorCode == NMATH_NO_ERROR) {
 		valLen = mParser->variableCount();
@@ -74,7 +85,6 @@ int NFunction::parse(const char *str, int len) {
 			memcpy(variables, mParser->variables(), valLen);
 
 		if (domain != NULL) {
-			criteria = new ListCriteria;
 			criteria->list = (Criteria**)malloc(sizeof(Criteria*) * domain->size);
 			criteria->loggedSize = domain->size;
 			criteria->size = domain->size;
@@ -147,7 +157,78 @@ int NFunction::reduce() {
 	return 0;
 }
 
-ListFData* NFunction::getSpace(const float *inputInterval, const char* vars, int numOfVar, float epsilon) {
+ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, float epsilon) {
+	ListFData *lstData = NULL;
+	FData *sp;
+	float *tmpP;
+	DParamF param;
+	float max1, max2;
+	float z;
+	int i, elementOnRow;
+
+	lstData = new ListFData;
+	lstData->size = 0;
+	lstData->loggedSize = prefix->size;
+	lstData->list = (FData**)malloc(sizeof(FData*) * lstData->loggedSize);
+
+	for(i=0; i<prefix->size; i++) {
+		sp = (FData*)malloc(sizeof(FData));
+		sp->dimension = 3;
+		sp->loggedSize = 20;
+		sp->dataSize = 0;
+		sp->data = (float*)malloc(sizeof(float) * sp->loggedSize);
+		sp->loggedRowCount = 0;
+		sp->rowCount = 0;
+		sp->rowInfo= NULL;
+
+		param.t = prefix->list[i];
+		param.variables[0] = variables[0];
+		param.variables[1] = variables[1];
+		param.error = 0;
+		if(criteria->list[i] == NULL) {
+			max1 = inputInterval[1];
+			max2 = inputInterval[3];
+
+			param.values[0] = inputInterval[0];
+			param.values[1] = inputInterval[2];
+			while(param.values[0] < max1 ) {
+				elementOnRow = 0;
+				while(param.values[1] < max2) {
+					calcF_t((void*)&param);
+					z = param.retv;
+					if(sp->dataSize >= sp->loggedSize - 3){
+						sp->loggedSize += 20;
+						tmpP = (float*)realloc(sp->data, sizeof(float) * sp->loggedSize);
+						if(tmpP != NULL)
+							sp->data = (float*)tmpP;
+					}
+					sp->data[sp->dataSize++] = param.values[0];
+					sp->data[sp->dataSize++] = param.values[1];
+					sp->data[sp->dataSize++] = z;
+					elementOnRow++;
+					param.values[1] += epsilon;
+				}
+
+				if(sp->rowCount >= sp->loggedRowCount){
+					sp->loggedRowCount += 10;
+					tmpP = (float*)realloc(sp->rowInfo, sizeof(int) * sp->loggedRowCount);
+					if(tmpP != NULL)
+						sp->rowInfo = (int*)tmpP;
+				}
+		
+				sp->rowInfo[sp->rowCount++] = elementOnRow;
+				param.values[0] += epsilon;
+			}
+
+			lstData->list[lstData->size++] = sp;
+		} else {
+		}
+	}
+
+	return lstData;
+}
+
+ListFData* NFunction::getSpace(const float *inputInterval, float epsilon) {
 	ListFData *lstData = NULL;
 	FData *sp;
 	DParamF param;
@@ -217,7 +298,7 @@ ListFData* NFunction::getSpace(const float *inputInterval, const char* vars, int
 				return lstData;
 			}
 
-			outCriteria = criteria->list[0]->getIntervalF(inputInterval, vars, numOfVar);
+			outCriteria = criteria->list[0]->getIntervalF(inputInterval, variables, valLen);
 
 			if (outCriteria == NULL) return NULL;
 
@@ -289,8 +370,61 @@ ListFData* NFunction::getSpace(const float *inputInterval, const char* vars, int
 				case COMPOSITE: //OR-COMPOSITE criteria
 					int i; 
 					cc = (CompositeCriteria*)outCriteria;
+					lstData = new ListFData;
+					lstData->size = 0;
+					lstData->list = (FData**)malloc(sizeof(FData*) * cc->size());
 					for (i = 0; i < cc->size(); i++) {
+						sc = (SimpleCriteria*)cc->get(i);
 
+						sp = (FData*)malloc(sizeof(FData));
+						sp->dimension = 2;
+						sp->loggedSize = 20;
+						sp->dataSize = 0;
+						sp->data = (float*)malloc(sizeof(float) * sp->loggedSize);
+						sp->rowCount = 0;
+						sp->loggedRowCount = 1;
+						sp->rowInfo = (int*)malloc(sizeof(int));
+
+						param.error = NMATH_NO_ERROR;
+						param.variables[0] = variables[0];
+						param.values[0] = sc->getLeftValue();
+						param.t = prefix->list[0];
+						rightVal = sc->getRightValue();
+
+						while (param.values[0] <= rightVal) {
+							calcF_t(&param);
+							y = param.retv;
+
+							if (sp->dataSize >= sp->loggedSize - 2){
+								sp->loggedSize += 20;
+								tmpP = (float*)realloc(sp->data, sizeof(float) * sp->loggedSize);
+								if (tmpP != NULL)
+									sp->data = tmpP;
+							}
+							sp->data[sp->dataSize++] = param.values[0];
+							sp->data[sp->dataSize++] = y;
+							elementOnRow++;
+							lastX = param.values[0];
+							param.values[0] += epsilon;
+						}
+
+						if ((lastX < rightVal) && (param.values[0] > rightVal)) {
+							param.values[0] = rightVal;
+							calcF_t((void*)&param);
+							y = param.retv;
+							if (sp->dataSize >= sp->loggedSize - 2){
+								sp->loggedSize += 4;
+								tmpP = (float*)realloc(sp->data, sizeof(float) * sp->loggedSize);
+								if (tmpP != NULL)
+									sp->data = tmpP;
+							}
+							sp->data[sp->dataSize++] = param.values[0];
+							sp->data[sp->dataSize++] = y;
+							elementOnRow++;
+						}
+
+						sp->rowInfo[sp->rowCount++] = elementOnRow;
+						lstData->list[lstData->size++] = sp;
 					}
 					break;
 			}
@@ -298,6 +432,7 @@ ListFData* NFunction::getSpace(const float *inputInterval, const char* vars, int
 			break;
 
 		case 2:
+			lstData = getSpaceFor2UnknownVariables(inputInterval, epsilon);
 			break;
 
 		case 3:

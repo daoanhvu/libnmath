@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <tchar.h>
 #include <iostream>
+#include <fstream>
+#include <string>
 #include <nmath.h>
 
 using namespace nmath;
@@ -40,44 +42,53 @@ void testFunction() {
 	NFunction f;
 	ListFData *data;
 	float interval[] = {-1, 2, 0, 1};
-	int i, j, vcount;
+	int i, j, vcount, error, lineCount = 0;
+	ifstream dataFile("D:\\data.txt");
+	string line;
 
-	int error = f.parse("f(x)=x^2-2 D: x>0.5", 19);
-	//int error = f.parse("f(x,y)=x^2-y D: x>0.3", 19);
-
-	if (error != NMATH_NO_ERROR) {
-		std::cout << "Function Parsing ERROR = " << error;
-		f.release();
-		return;
-	}
-	else {
-		std::cout << f;
-		//data = f.getSpace(interval, "xy", 2, 0.2f);
-		data = f.getSpace(interval, "x", 1, 0.2f);
-
-		if (data != NULL) {
-			for (i = 0; i<data->size; i++){
-				vcount = data->list[i]->dataSize / data->list[i]->dimension;
-				cout << "Mesh " << i << ", row count: " << data->list[i]->rowCount << " number of vertex: " << vcount << "\n";
-				
-				for (j = 0; j<vcount; j++){
-					cout << "x=" << data->list[i]->data[j * 2] << ", y = " << data->list[i]->data[j * 2 + 1] << "\n";
-				}
-
-				free(data->list[i]->data);
-				free(data->list[i]->rowInfo);
-				free(data->list[i]);
+	if(dataFile.is_open()) {
+		while( getline(dataFile, line) ) {
+			error = f.parse(line.c_str(), line.length());
+			if (error != NMATH_NO_ERROR) {
+				std::cout << "Function " << lineCount << " Parsing ERROR = " << error << "\n";
 			}
-			free(data->list);
-			free(data);
-		}
-		else {
-			cout << "Get Space Failed";
+			else {
+				std::cout << f;
+				data = f.getSpace(interval, 0.2f);
+
+				if (data != NULL) {
+					for (i = 0; i<data->size; i++) {
+						vcount = data->list[i]->dataSize / data->list[i]->dimension;
+						cout << "Mesh " << i << ", row count: " << data->list[i]->rowCount << " number of vertex: " << vcount << "\n";
+				
+						for (j = 0; j<vcount; j++){
+							cout << "x=" << data->list[i]->data[j * data->list[i]->dimension] << ", y = " << data->list[i]->data[j * data->list[i]->dimension + 1];
+
+							if((data->list[i]->dimension)>=3) {
+								cout << ", z = " << data->list[i]->data[j * data->list[i]->dimension + 2];
+							}
+							cout << "\n";
+						}
+
+						free(data->list[i]->data);
+						free(data->list[i]->rowInfo);
+						free(data->list[i]);
+					}
+					free(data->list);
+					free(data);
+				}
+				else {
+					cout << "Function " << lineCount << " Get Space Failed \n";
+				}
+				cout << "\nFunction Parsing OK\n";
+			}
+			cout << "\n******************************************************\n";
+			lineCount++;
 		}
 
-		f.release();
-		cout << "\nFunction Parsing OK\n";
+		dataFile.close();
 	}
+	f.release();
 }
 
 void testCalculate() {
@@ -105,6 +116,7 @@ void testCriteria(){
 		return;
 	}
 
+	domain
 	domain = parser.parseDomain(tokens, tokenInUse, &start);
 	if (parser.getErrorCode() == NMATH_NO_ERROR) {
 		start = 0;

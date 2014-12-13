@@ -26,9 +26,9 @@ namespace nmath {
 			int getErrorColumn()	{ return errorColumn; }
 			int getErrorCode() { return errorCode; }
 
-			int parseFunctionExpression(Token* tokens, int count, NMASTList **prefix, NMASTList **domain);
-			NMASTList* parseExpression(Token *tokens, int count, int *start);
-			NMASTList* parseDomain(Token *tokens, int count, int *start);
+			int parseFunctionExpression(Token* tokens, int count, NMASTList *prefix, NMASTList *domain);
+			NMAST* parseExpression(Token *tokens, int count, int *start);
+			NMAST* parseDomain(Token *tokens, int count, int *start);
 	};
 }
 

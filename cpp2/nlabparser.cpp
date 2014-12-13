@@ -164,10 +164,13 @@ void addFunction2Tree(NMASTList *t, Token * stItm){
 	}
 }
 
-int NLabParser::parseFunctionExpression(Token* tokens, int tokenCount, NMASTList **prefix, NMASTList **domain) {
+int NLabParser::parseFunctionExpression(Token* tokens, int tokenCount, NMASTList *prefix, NMASTList *domain) {
 	int k, l, i, idx = 0;
 	errorCode = ERROR_NOT_A_FUNCTION;
 	errorColumn = tokens[idx].column;
+
+	NMAST *item;
+	NMAST **tempList;
 	
 	// LOGI(3, "[NativeParser] GOT HERE - token size: %d", tokens->size);
 	/** This array will hold the variables of the function */
@@ -189,50 +192,54 @@ int NLabParser::parseFunctionExpression(Token* tokens, int tokenCount, NMASTList
 				/*
 					Parse expression
 				*/
-				*prefix = parseExpression(tokens, tokenCount, &k);
+				item = parseExpression(tokens, tokenCount, &k);
 				/** after parseExpression, we may get error, so MUST check if it's OK here */
 				if( (errorCode!=NMATH_NO_ERROR) || (k >= tokenCount) ) break;
+
+				if(prefix->size >= prefix->loggedSize) {
+					prefix->loggedSize += 1;
+					tempList = (NMAST**)realloc(prefix->list, sizeof(NMAST*) * prefix->loggedSize);
+					if(tempList != NULL) {
+						prefix->list = tempList;
+						prefix->list[prefix->size++] = item;
+					}
+
+					domain->loggedSize = prefix->loggedSize;
+					tempList = (NMAST**)realloc(domain->list, sizeof(NMAST*) * domain->loggedSize);
+					if(tempList != NULL) {
+						domain->list = tempList;
+					}
+				}
 				
 				if(tokens[k].type == DOMAIN_NOTATION) {
 					errorCode = ERROR_MISSING_DOMAIN;
 					errorColumn = tokens[k].column;
 					if(k+1 < tokenCount) {
 						l = k + 1;
-						*domain = parseDomain(tokens, tokenCount, &l);
+						item = parseDomain(tokens, tokenCount, &l);
+						domain->list[domain->size++] = item;
 						k = l;
 					}
 				}
 			} while ( errorCode==NMATH_NO_ERROR && k < tokenCount );
 		}
-	} else {
-		/*
-			The input tokens not started with a function notation then
-			we try to parse expression here.
-		*/
-		//reset errorCode
-		errorCode = NMATH_NO_ERROR;
-		k = 0;
-		*prefix = parseExpression(tokens, tokenCount, &k);
 	}
 	
 	if(errorCode != NMATH_NO_ERROR){
-		if( (*prefix) != NULL) {
-			for(k=0; k<(*prefix)->size; k++){
-				clearTree(&((*prefix)->list[k]));
+		for(k=0; k<prefix->size; k++){
+			clearTree(&(prefix->list[k]));
+
+			if(domain->list[k] != NULL){
+				clearTree(&(domain->list[k]));
 			}
-			(*prefix)->size = 0;
-			free((*prefix));
-			*prefix = NULL;
 		}
-			
-		if((*domain) != NULL) {
-			for(k=0; k<(*domain)->size; k++){
-				clearTree(&((*domain)->list[k]));
-			}
-			(*domain)->size = 0;
-			free(*domain);
-			*domain = NULL;
-		}
+		prefix->size = 0;
+		prefix->loggedSize = 0;
+		free(prefix->list);
+
+		domain->size = 0;
+		domain->loggedSize = 0;
+		free(domain->list);
 		
 		if(returnedAst != NULL){
 			clearTree(&returnedAst);
@@ -286,7 +293,7 @@ int NLabParser::functionNotation(const Token* tokens, int tokenCount, int index)
 /**
 	Parse the input string in object f to NMAST tree
 */
-NMASTList* NLabParser::parseExpression(Token* tokens, int size, int *start) {
+NMAST* NLabParser::parseExpression(Token* tokens, int size, int *start) {
 	int i, top=-1, allocLen=0, isEndExp = FALSE;
 	int error;
 	double val;
@@ -573,11 +580,15 @@ NMASTList* NLabParser::parseExpression(Token* tokens, int size, int *start) {
 	//		f->variableNode[i] = varNodes[i];
 	//	}
 	//}
+	ast = mPrefix->list[0];
 
-	return mPrefix;
+	free(mPrefix->list);
+	free(mPrefix);
+
+	return ast;
 }
 
-NMASTList* NLabParser::parseDomain(Token *tokens, int tokenCount, int *start) {
+NMAST* NLabParser::parseDomain(Token *tokens, int tokenCount, int *start) {
 	int isEndExp = FALSE;
 	int i, index, top = -1, allocLen=0;
 	Token* tk;
@@ -942,7 +953,12 @@ NMASTList* NLabParser::parseDomain(Token *tokens, int tokenCount, int *start) {
 	*start = index;
 	free(stack);
 
-	return mDomain;
+	ast = mDomain->list[0];
+
+	free(mDomain->list);
+	free(mDomain);
+
+	return ast;
 }
 
 NMAST* NLabParser::buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, Token* valtk2) {
