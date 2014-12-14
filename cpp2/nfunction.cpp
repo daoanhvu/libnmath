@@ -15,7 +15,7 @@
 
 using namespace nmath;
 
-NFunction::NFunction(): text(0), valLen(0), prefix(0), domain(0), criteria(0) {
+NFunction::NFunction(): text(0), valLen(0) {
 	mLexer = new NLabLexer();
 	mParser = new NLabParser();
 
@@ -24,9 +24,17 @@ NFunction::NFunction(): text(0), valLen(0), prefix(0), domain(0), criteria(0) {
 	mTokens = new Token[mTokenCapability];
 	mTokeSize = 0;
 
-	prefix = (NMASTList*)malloc(sizeof(NMASTList));
-	domain = (NMASTList*)malloc(sizeof(NMASTList));
-	criteria = new ListCriteria;
+	prefix.list = 0;
+	prefix.loggedSize = 0;
+	prefix.size = 0;
+
+	domain.list = 0;
+	domain.loggedSize = 0;
+	domain.size = 0;
+
+	criteria.list = 0;
+	criteria.size = 0;
+	criteria.loggedSize = 0;
 }
 
 NFunction::~NFunction() {
@@ -34,19 +42,24 @@ NFunction::~NFunction() {
 }
 
 std::ostream& nmath::operator <<(std::ostream& os, const NFunction& f) {
-	os << "\n";
+	int i;
+	os << "\n Function: " << f.getText() << "\n";
 	os << "Number of variable: " << (int)f.getVarCount() << "\n";
-	os << "Prefix: \n";
-	printNMAST(f.getPrefixList()->list[0], 0, os);
+	if(f.getPrefixList()->size > 0){
+		for(i = 0; i< f.getPrefixList()->size; i++){
+			os << "Prefix Expresion "<< i <<": \t \n";
+			printNMAST(f.getPrefixList()->list[i], 0, os);
 
-	if (f.getDomainList() != NULL) {
-		os << "Domain: ";
-		printNMAST(f.getDomainList()->list[0], 0, os);
-	}
+			if(f.getDomainList()->list[i] != NULL) {
+				os << "\n \t Domain: \n";
+				printNMAST(f.getDomainList()->list[i], 0, os);
+			}
 
-	if(f.getCriteriaList() != NULL) {
-		os << "Criteria: ";
-		os << (*f.getCriteriaList()->list[0]) << "\n";
+			if(f.getCriteriaList()->list[i] != NULL) {
+				os << "\n \t Criteria: \n";
+				os << (*f.getCriteriaList()->list[i]) << "\n";
+			}
+		}
 	}
 
 	return os;
@@ -65,9 +78,10 @@ int NFunction::parse(const char *str, int len) {
 		delete[] text;
 	}
 
-	text = new char[len];
+	text = new char[len+1];
 	memcpy(text, str, len);
 	textLen = len;
+	text[len] = '\0';
 
 	mTokeSize = mLexer->lexicalAnalysis(text, textLen, 0, mTokens, mTokenCapability, 0);
 	errorColumn = mLexer->getErrorColumn();
@@ -77,21 +91,24 @@ int NFunction::parse(const char *str, int len) {
 	}
 		
 	//TODO: Need to release prefix and domain before call parseFunctionExpression from NLabParser
-	errorCode = mParser->parseFunctionExpression(mTokens, mTokeSize, prefix, domain);
+	errorCode = mParser->parseFunctionExpression(mTokens, mTokeSize, &prefix, &domain);
 	errorColumn = mParser->getErrorColumn();
 	if (errorCode == NMATH_NO_ERROR) {
 		valLen = mParser->variableCount();
 		if (valLen > 0)
 			memcpy(variables, mParser->variables(), valLen);
 
-		if (domain != NULL) {
-			criteria->list = (Criteria**)malloc(sizeof(Criteria*) * domain->size);
-			criteria->loggedSize = domain->size;
-			criteria->size = domain->size;
+		if (domain.list != NULL) {
+			criteria.list = (Criteria**)malloc(sizeof(Criteria*) * domain.size);
+			criteria.loggedSize = domain.size;
+			criteria.size = domain.size;
+			memset(criteria.list, NULL, criteria.loggedSize);
 
-			for (i = 0; i < domain->size; i++) {
-				c = nmath::buildCriteria(domain->list[i]);
-				criteria->list[i] = c;
+			for (i = 0; i < domain.size; i++) {
+				c = NULL;
+				if(domain.list[i] != NULL)
+					c = nmath::buildCriteria(domain.list[i]);
+				criteria.list[i] = c;
 			}
 		}
 	}
@@ -118,17 +135,33 @@ void NFunction::release() {
 		mParser = NULL;
 	}
 
-	nmath::releaseNMATree(&prefix);
-	nmath::releaseNMATree(&domain);
+	if(prefix.list != NULL) {
+		for(i=0; i<prefix.size; i++)
+			::clearTree(&(prefix.list[i]));
+		free(prefix.list);
+		prefix.list = NULL;
+		prefix.loggedSize = 0;
+		prefix.size = 0;
+	}
 
-	if (criteria != NULL) {
-		for (i = 0; i < criteria->size; i++) {
-			if (criteria->list[i] != NULL)
-				delete criteria->list[i];
+	if(domain.list != NULL) {
+		for(i=0; i<domain.size; i++)
+			::clearTree(&(domain.list[i]));
+		free(domain.list);
+		domain.list = NULL;
+		domain.loggedSize = 0;
+		domain.size = 0;
+	}
+
+	if (criteria.list != NULL) {
+		for (i = 0; i < criteria.size; i++) {
+			if (criteria.list[i] != NULL)
+				delete criteria.list[i];
 		}
-		free(criteria->list);
-		delete criteria;
-		criteria = NULL;
+		free(criteria.list);
+		criteria.list = NULL;
+		criteria.loggedSize = 0;
+		criteria.size = 0;
 	}
 
 	if(mTokens != NULL) {
@@ -142,7 +175,7 @@ void NFunction::release() {
 double NFunction::dcalc(double *values, int numOfValue) {
 	DParam rp;
 	rp.error = 0;
-	rp.t = *(prefix->list);
+	rp.t = *(prefix.list);
 	memcpy(rp.values, values, numOfValue * 2 * sizeof(double));
 	memcpy(rp.variables, variables, 4);
 	calc_t((void*)&rp);
@@ -151,7 +184,7 @@ double NFunction::dcalc(double *values, int numOfValue) {
 
 int NFunction::reduce() {
 	DParam dp;
-	dp.t = *(prefix->list);
+	dp.t = *(prefix.list);
 	dp.error = 0;
 	nmath::reduce_t(&dp);
 	return 0;
@@ -162,16 +195,20 @@ ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, f
 	FData *sp;
 	float *tmpP;
 	DParamF param;
+	CompositeCriteria *outCriteria;
+	SimpleCriteria *sc;
+	float min1, min2;
 	float max1, max2;
 	float z;
-	int i, elementOnRow;
+	int i, j, k, elementOnRow;
+	char currentVar;
 
 	lstData = new ListFData;
 	lstData->size = 0;
-	lstData->loggedSize = prefix->size;
+	lstData->loggedSize = prefix.size;
 	lstData->list = (FData**)malloc(sizeof(FData*) * lstData->loggedSize);
 
-	for(i=0; i<prefix->size; i++) {
+	for(i=0; i<prefix.size; i++) {
 		sp = (FData*)malloc(sizeof(FData));
 		sp->dimension = 3;
 		sp->loggedSize = 20;
@@ -181,18 +218,18 @@ ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, f
 		sp->rowCount = 0;
 		sp->rowInfo= NULL;
 
-		param.t = prefix->list[i];
+		param.t = prefix.list[i];
 		param.variables[0] = variables[0];
 		param.variables[1] = variables[1];
 		param.error = 0;
-		if(criteria->list[i] == NULL) {
+		if(criteria.list[i] == NULL) {
 			max1 = inputInterval[1];
 			max2 = inputInterval[3];
 
 			param.values[0] = inputInterval[0];
-			param.values[1] = inputInterval[2];
 			while(param.values[0] < max1 ) {
 				elementOnRow = 0;
+				param.values[1] = inputInterval[2];
 				while(param.values[1] < max2) {
 					calcF_t((void*)&param);
 					z = param.retv;
@@ -222,6 +259,19 @@ ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, f
 
 			lstData->list[lstData->size++] = sp;
 		} else {
+			outCriteria = (CompositeCriteria*)criteria.list[i]->getIntervalF(inputInterval, this->variables, valLen);
+			if(outCriteria->logicOperator() == AND) {
+				currentVar = variables[0];
+				//search for criteria that bounds the current variable
+				for(j=0; j<outCriteria->size(); j++) {
+					sc = (SimpleCriteria*)outCriteria->get(j);
+					if(sc->getVariable() == currentVar) {
+					}
+				}
+
+			} else {
+			}
+			
 		}
 	}
 
@@ -241,7 +291,7 @@ ListFData* NFunction::getSpace(const float *inputInterval, float epsilon) {
 
 	switch (valLen) {
 		case 1:
-			if (criteria == NULL) {
+			if (criteria.list == NULL) {
 
 				sp = (FData*)malloc(sizeof(FData));
 				sp->dimension = 2;
@@ -255,7 +305,7 @@ ListFData* NFunction::getSpace(const float *inputInterval, float epsilon) {
 				param.error = NMATH_NO_ERROR;
 				param.variables[0] = variables[0];
 				param.values[0] = inputInterval[0];
-				param.t = this->prefix->list[0];
+				param.t = this->prefix.list[0];
 				while (param.values[0] <= inputInterval[1]) {
 					calcF_t(&param);
 					y = param.retv;
@@ -298,7 +348,7 @@ ListFData* NFunction::getSpace(const float *inputInterval, float epsilon) {
 				return lstData;
 			}
 
-			outCriteria = criteria->list[0]->getIntervalF(inputInterval, variables, valLen);
+			outCriteria = criteria.list[0]->getIntervalF(inputInterval, variables, valLen);
 
 			if (outCriteria == NULL) return NULL;
 
@@ -325,8 +375,8 @@ ListFData* NFunction::getSpace(const float *inputInterval, float epsilon) {
 
 					param.error = NMATH_NO_ERROR;
 					param.variables[0] = variables[0];
-					param.values[0] = sc->getLeftValue();
-					param.t = prefix->list[0];
+					param.values[0] = (float)sc->getLeftValue();
+					param.t = prefix.list[0];
 					rightVal = sc->getRightValue();
 					while (param.values[0] <= rightVal) {
 						calcF_t(&param);
@@ -388,7 +438,7 @@ ListFData* NFunction::getSpace(const float *inputInterval, float epsilon) {
 						param.error = NMATH_NO_ERROR;
 						param.variables[0] = variables[0];
 						param.values[0] = sc->getLeftValue();
-						param.t = prefix->list[0];
+						param.t = prefix.list[0];
 						rightVal = sc->getRightValue();
 
 						while (param.values[0] <= rightVal) {

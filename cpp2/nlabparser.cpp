@@ -168,6 +168,7 @@ int NLabParser::parseFunctionExpression(Token* tokens, int tokenCount, NMASTList
 	int k, l, i, idx = 0;
 	errorCode = ERROR_NOT_A_FUNCTION;
 	errorColumn = tokens[idx].column;
+	int oldOffset;
 
 	NMAST *item;
 	NMAST **tempList;
@@ -194,7 +195,7 @@ int NLabParser::parseFunctionExpression(Token* tokens, int tokenCount, NMASTList
 				*/
 				item = parseExpression(tokens, tokenCount, &k);
 				/** after parseExpression, we may get error, so MUST check if it's OK here */
-				if( (errorCode!=NMATH_NO_ERROR) || (k >= tokenCount) ) break;
+				if( errorCode!=NMATH_NO_ERROR ) break;
 
 				if(prefix->size >= prefix->loggedSize) {
 					prefix->loggedSize += 1;
@@ -204,23 +205,31 @@ int NLabParser::parseFunctionExpression(Token* tokens, int tokenCount, NMASTList
 						prefix->list[prefix->size++] = item;
 					}
 
+					oldOffset = domain->loggedSize;
 					domain->loggedSize = prefix->loggedSize;
 					tempList = (NMAST**)realloc(domain->list, sizeof(NMAST*) * domain->loggedSize);
 					if(tempList != NULL) {
 						domain->list = tempList;
+						memset(domain->list + oldOffset, 0, domain->loggedSize - oldOffset);
+
+						//domain->list[domain->loggedSize-1] = NULL;
 					}
 				}
-				
-				if(tokens[k].type == DOMAIN_NOTATION) {
+
+				item = 0;
+				if( (k < tokenCount) && (tokens[k].type == DOMAIN_NOTATION) ) {
 					errorCode = ERROR_MISSING_DOMAIN;
 					errorColumn = tokens[k].column;
 					if(k+1 < tokenCount) {
 						l = k + 1;
 						item = parseDomain(tokens, tokenCount, &l);
-						domain->list[domain->size++] = item;
+						//domain->list[domain->size++] = item;
 						k = l;
 					}
 				}
+
+				domain->list[domain->size++] = item;
+
 			} while ( errorCode==NMATH_NO_ERROR && k < tokenCount );
 		}
 	}

@@ -24,9 +24,9 @@ namespace nmath {
 		NLabLexer *mLexer;
 		NLabParser *mParser;
 
-		NMASTList *prefix;
-		NMASTList *domain;
-		ListCriteria *criteria;
+		NMASTList prefix;
+		NMASTList domain;
+		ListCriteria criteria;
 
 		Token *mTokens;
 		int mTokenCapability;
@@ -49,10 +49,12 @@ namespace nmath {
 		double dcalc(double *values, int numOfValue);
 		ListFData* getSpace(const float *values, float epsilone);
 
+		char* getText() const { return text; }
+
 		char getVarCount() const { return valLen; }
-		NMASTList* getPrefixList() const { return prefix; }
-		NMASTList* getDomainList() const { return domain; }
-		ListCriteria* getCriteriaList() const { return criteria; }
+		NMASTList* getPrefixList() const { return (NMASTList*)&prefix; }
+		NMASTList* getDomainList() const { return (NMASTList*)&domain; }
+		ListCriteria* getCriteriaList() const { return (ListCriteria*)&criteria; }
 
 		friend std::ostream& operator<< (std::ostream& os, const NFunction& f);
 	};

@@ -43,6 +43,7 @@ namespace nmath {
 			
 			Criteria* getIntervalF(const float *values, const char* var, int varCount);
 			Criteria* getInterval(const double *values, const char* var, int varCount);
+
 			Criteria* and(SimpleCriteria& c);
 			Criteria* and(CompositeCriteria& c);
 

@@ -31,6 +31,7 @@ ostream& nmath::operator <<(ostream& os, const Criteria& c) {
 	SimpleCriteria* sc;
 	CompositeCriteria *cc;
 	int i;
+	char opCh = '&';
 
 	switch (c.getCClassType()) {
 	case SIMPLE:
@@ -42,45 +43,46 @@ ostream& nmath::operator <<(ostream& os, const Criteria& c) {
 			os << sc->getVariable();
 
 			if(!sc->isRightInfinity())
-				os << " < " << sc->getRightValue() << "\n";
+				os << " < " << sc->getRightValue();
 			break;
 
 		case GTE_LT:
-			os << sc->getLeftValue() << " <= " << sc->getVariable() << " < " << sc->getRightValue() << "\n";
+			os << sc->getLeftValue() << " <= " << sc->getVariable() << " < " << sc->getRightValue();
 			break;
 
 		case GT_LTE:
-			os << sc->getLeftValue() << " < " << sc->getVariable() << " <= " << sc->getRightValue() << "\n";
+			os << sc->getLeftValue() << " < " << sc->getVariable() << " <= " << sc->getRightValue();
 			break;
 
 		case GTE_LTE:
-			os << sc->getLeftValue() << " <= " << sc->getVariable() << " <= " << sc->getRightValue() << "\n";
+			os << sc->getLeftValue() << " <= " << sc->getVariable() << " <= " << sc->getRightValue();
 			break;
 		}
 		break;
 
 	case COMPOSITE:
 		cc = (CompositeCriteria*)(&c);
-		os << "COMPOSIT(";
-		if(cc->logicOperator() == OR)
-			os << "OR) \n";
-		else 
-			os << "AND) \n";
-
-		for(i=0; i< cc->size(); i++) {
-			os << "\t" << (*(cc->get(i)));
+		os << "{";
+		if(cc->logicOperator() == OR) {
+			opCh = '|';
 		}
+		for(i=0; i< cc->size(); i++) {
+			os << " " << (*(cc->get(i)));
+
+			if(i<(cc->size()-1))
+				os << " " << opCh;
+		}
+		os << "}";
 		break;
 	}
 	return os;
 }
 
 Criteria* nmath::buildCriteria(const NMAST *ast) {
-
 	Criteria *out = 0;
 	Criteria *left, *right;
 	SimpleCriteria *sc;
-	double v1, v2;
+	//double v1, v2;
 	switch (ast->type) {
 		case AND:
 			if(isComparationOperator(ast->left->type) && isComparationOperator(ast->right->type)) {
@@ -162,11 +164,30 @@ Criteria* nmath::buildCriteria(const NMAST *ast) {
 				}
 			}
 			
+			left = buildCriteria(ast->left);
+			right = buildCriteria(ast->right);
+
+			if( (left->getCClassType() == COMPOSITE && right->getCClassType() == SIMPLE) || 
+				(right->getCClassType() == COMPOSITE && left->getCClassType() == SIMPLE )) {
+				//Here I suspose the left will be the composition,
+				//if the left is not composite then we swap left and right
+				if(left->getCClassType() != COMPOSITE) {
+					Criteria * temp = left;
+					left = right;
+					right = temp;
+				}
+				CompositeCriteria * cc = (CompositeCriteria*)left;
+
+				out = cc->and((SimpleCriteria&)(*right));
+				delete right;
+				delete left;
+
+				return out;
+			}
+
 			out = new CompositeCriteria();
 			((CompositeCriteria*)out)->setOperator(ast->type);
-			left = buildCriteria(ast->left);
 			((CompositeCriteria*)out)->add(left);
-			right = buildCriteria(ast->right);
 			((CompositeCriteria*)out)->add(right);
 
 			break;

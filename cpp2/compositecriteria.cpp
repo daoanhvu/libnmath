@@ -100,22 +100,27 @@ bool CompositeCriteria::check(const double* values) {
 
 CompositeCriteria* CompositeCriteria::and(SimpleCriteria& c) {
 	Criteria *tmp;
-	CompositeCriteria* out = new CompositeCriteria();
+	CompositeCriteria* out;
 	int i;
 	if (logicOp == AND){
 		out = (CompositeCriteria*)clone();
 		out->add(c.clone());
+		return out;
 	}
-	else {
-		out = new CompositeCriteria();
-		out->setOperator(AND);
-		for (i = 0; i<size(); i++) {
-			tmp = (*list[i]) & (Criteria&)c;
-			if (tmp != NULL) {
-				out->add(tmp);
-			}
+
+	out = new CompositeCriteria();
+	out->setOperator(OR);
+	for (i = 0; i<mSize; i++) {
+
+		if(list[i]->getCClassType() == SIMPLE) {
+		}
+
+		tmp = (*list[i]) & (Criteria&)c;
+		if (tmp != NULL) {
+			out->add(tmp);
 		}
 	}
+	
 	return out;
 }
 
@@ -276,6 +281,7 @@ Criteria* CompositeCriteria::getInterval(const double *values, const char* var, 
 	Criteria *listIn;
 	int i;
 
+	out->setOperator(logicOp);
 	for (i = 0; i<mSize; i++) {
 		listIn = list[i]->getInterval(values, var, varCount);
 		if (listIn != NULL) {
@@ -284,4 +290,22 @@ Criteria* CompositeCriteria::getInterval(const double *values, const char* var, 
 	}
 
 	return out;
+}
+
+CompositeCriteria& CompositeCriteria::normalize() {
+	bool orFlag = false;
+	int i;
+	CompositeCriteria *cc;
+
+	for(i=0; i<mSize; i++) {
+		if((list[i]->getCClassType() == COMPOSITE) && 
+			((CompositeCriteria*)list[i])->logicOp == OR) {
+
+			cc = (CompositeCriteria*)list[i];
+
+
+		}
+	}
+
+	return *this;
 }

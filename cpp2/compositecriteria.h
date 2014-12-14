@@ -12,13 +12,7 @@ namespace nmath {
 			int mSize;
 
 			int logicOp; // AND OR
-
-			CompositeCriteria* and(SimpleCriteria& c);
-			CompositeCriteria* and(CompositeCriteria& c);
-
-			CompositeCriteria* or(SimpleCriteria& c);
-			CompositeCriteria* or(CompositeCriteria& c);
-
+			
 		public:
 			CompositeCriteria();
 			~CompositeCriteria();
@@ -34,8 +28,15 @@ namespace nmath {
 
 			void add(Criteria* c);
 
+			CompositeCriteria& normalize();
+
 			istream& operator >>(istream& is);
 			ostream& operator <<(ostream& os);
+
+			CompositeCriteria* and(SimpleCriteria& c);
+			CompositeCriteria* and(CompositeCriteria& c);
+			CompositeCriteria* or(SimpleCriteria& c);
+			CompositeCriteria* or(CompositeCriteria& c);
 			
 			Criteria* operator [](int index) const;
 			Criteria* get(int index) const { return list[index]; }

@@ -13,7 +13,7 @@ namespace nmath{
 			static const int setLeadNegativeNumber[14];
 			static const int LeadNegativeNumberSize = 14;
 
-			char *mInputString;
+			const char *mInputString;
 			int mInputLen;			//input length in byte
 
 			int errorCode;
@@ -44,7 +44,7 @@ namespace nmath{
 			/*
 				
 			*/
-			int lexicalAnalysis(char *inStr, int len, int appended/*NOT USE*/, Token *tokens, int capability, int start);
+			int lexicalAnalysis(const char *inStr, int len, int appended/*NOT USE*/, Token *tokens, int capability, int start);
 	};
 
 	/**

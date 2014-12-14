@@ -98,52 +98,57 @@ void testCalculate() {
 void testCriteria(){
 	NLabLexer lexer;
 	NLabParser parser;
-	NMASTList *domain;
+	NMAST *domain;
 	Criteria *c, *o;
 	char outStr[64];
 	int start = 0;
-	double value[] = { 3, 12 };
-	int tokenCount = 10;
-	Token * tokens = new Token[tokenCount];
+	double value[] = { -2, 2.3 , -0.5, 2};
+	int tokenCount = 20;
+	Token tokens[20];
 	int tokenInUse;
+	ifstream dataFile("D:\\data\\criteria.txt");
+	string line;
 
-	tokenInUse = lexer.lexicalAnalysis("a > 10 and a <= 15", 18, 0, tokens, tokenCount, 0);
+	if(dataFile.is_open()) {
+		while( getline(dataFile, line) ) {
+			tokenInUse = lexer.lexicalAnalysis(line.c_str(), line.length(), 0, tokens, tokenCount, 0);
 
-	if(lexer.getErrorCode() != NMATH_NO_ERROR) {
-		cout << "ERROR AT LEXICAL PHASE: \n";
-		cout << "Error code = " << lexer.getErrorCode() << " at Column " << lexer.getErrorColumn() << "\n";
-		delete[] tokens;
-		return;
+			if(lexer.getErrorCode() != NMATH_NO_ERROR) {
+				cout << "ERROR AT LEXICAL PHASE: \n";
+				cout << "Error code = " << lexer.getErrorCode() << " at Column " << lexer.getErrorColumn() << "\n";
+				continue;
+			}
+
+			domain = parser.parseDomain(tokens, tokenInUse, &start);
+
+			if (parser.getErrorCode() == NMATH_NO_ERROR) {
+				start = 0;
+				printNMAST(domain, 0, cout);
+				outStr[start] = '\0';
+				puts(outStr);
+
+				c = nmath::buildCriteria(domain);
+				o = c->getInterval(value, "xy", 2);
+
+				std::cout << ((Criteria&)*c) << "\n";
+				std::cout << "\n Result: \n";
+				std::cout << ((Criteria&)*o) << "\n";
+				::clearTree(&domain);
+
+				if (c != NULL)
+					delete c;
+
+				if (o != NULL)
+					delete o;
+			}
+			else {
+				cout << "ERROR AT PARSING PHASE: \n";
+				cout << "Parsing error with code = " <<  parser.getErrorCode() << "\n";
+			}
+		}// end while
+
+		dataFile.close();
 	}
-
-	domain
-	domain = parser.parseDomain(tokens, tokenInUse, &start);
-	if (parser.getErrorCode() == NMATH_NO_ERROR) {
-		start = 0;
-		printNMAST(domain->list[0], 0, cout);
-		outStr[start] = '\0';
-		puts(outStr);
-
-		c = nmath::buildCriteria(domain->list[0]);
-
-		o = c->getInterval(value, "a", 1);
-
-		std::cout << ((Criteria&)*c) << "\n";
-		std::cout << ((Criteria&)*o) << "\n";
-		releaseNMATree(&domain);
-
-		if (c != NULL)
-			delete c;
-
-		if (o != NULL)
-			delete o;
-	}
-	else {
-		cout << "ERROR AT PARSING PHASE: \n";
-		cout << "Parsing error with code = " <<  parser.getErrorCode() << "\n";
-	}
-
-	delete[] tokens;
 }
 
 int _tmain(int argc, _TCHAR* argv[]) {

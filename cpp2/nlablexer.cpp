@@ -106,7 +106,7 @@ int NLabLexer::addToken(int _type, const char *_text, char txtlen, int _col) {
 	@param len the length of inStr [IN]
 	@return the size of the token list to be used actually
 */
-int NLabLexer::lexicalAnalysis(char *inStr, int len, int appended/*NOT USE*/, Token *tokens, int capability, int start) {
+int NLabLexer::lexicalAnalysis(const char *inStr, int len, int appended/*NOT USE*/, Token *tokens, int capability, int start) {
 	int chCode, type, k = 0;
 	int idx = 0;
 	int nextIdx;
