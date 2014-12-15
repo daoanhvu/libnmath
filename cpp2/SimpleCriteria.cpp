@@ -36,6 +36,16 @@ SimpleCriteria::SimpleCriteria(int type, char var, double lval, double rval,
 	this->available = 1;
 }
 
+void SimpleCriteria::copyFrom(SimpleCriteria& c) {
+	this->type = c.getType();
+	this->variable = c.getVariable();
+	this->leftVal = c.getLeftValue();
+	this->rightVal = c.getRightValue();
+	this->rightInfinity = c.isRightInfinity();
+	this->leftInfinity = c.isRightInfinity();
+	this->available = c.isAvailable();
+}
+
 istream& SimpleCriteria::operator >>(istream& is) {
 
 	/** GT_LT, GTE_LT, GT_LTE, GTE_LTE */
@@ -221,204 +231,214 @@ bool SimpleCriteria::check(const double* values) {
 	
 	return result;
 }
-/*
-SimpleCriteria* SimpleCriteria::and(const double *values) {
-	SimpleCriteria *outInterval = 0;
-	
-	if( this->leftInfinity && this->rightInfinity ) {
-		outInterval = new SimpleCriteria();
-		outInterval->available = 1;
-		outInterval->leftInfinity = 0;
-		outInterval->rightInfinity = 0;
-		outInterval->leftVal = values[0];
-		outInterval->rightVal = values[1];
-		outInterval->type = GTE_LTE;
-		return outInterval;
-	}
-		
-	if( this->leftInfinity ) {
-		// HERE we don't need to take care of leftVal
-		switch(this->type){
-			case GT_LT:
-			case GTE_LT:
-				// x < rightVal
-				if(this->rightVal <= values[0]){
-					//return empty set, available bit set to FALSE
-					return 0;
-				}
 
-				outInterval = new SimpleCriteria();
-				outInterval->available = 1;
-				outInterval->leftInfinity = 0;
-				outInterval->rightInfinity = 0;
-				outInterval->leftVal = values[0];
-				outInterval->type = GTE_LT; //TODO: need to test here
-				if(values[1] < this->rightVal)
-					outInterval->rightVal = values[1];
-				else 
-					outInterval->rightVal = this->rightVal;
-					//outInterval->rightVal = this->rightVal - epsilon;
-			break;
-			
-			case GT_LTE:
-			case GTE_LTE:
-				// x <= rightVal
-				if(this->rightVal < values[0]){
-					//return empty set, available bit set to FALSE
-					return 0;
-				}
+Criteria* SimpleCriteria::andSelf(Criteria& c) {
 
-				outInterval = new SimpleCriteria();
-				outInterval->available = 1;
-				outInterval->leftInfinity = 0;
-				outInterval->rightInfinity = 0;
-				outInterval->leftVal = values[0];
-				outInterval->type = GTE_LTE; //TODO: need to test here
-				if(values[1] <= this->rightVal)
-					outInterval->rightVal = values[1];
-				else 
-					outInterval->rightVal = this->rightVal;
-			break;
-		}
-	}else if ( this->rightInfinity ) {
-		// HERE we don't need to take care of rightVal 
-		switch(this->type){
-			case GT_LT:
-			case GT_LTE:
-				// leftVal < x
-				if(this->leftVal >= values[1]){
-					//return empty set, available bit set to FALSE
-					return 0;
-				}
-				outInterval = new SimpleCriteria();
-				outInterval->available = 1;
-				outInterval->leftInfinity = 0;
-				outInterval->rightInfinity = 0;
-				outInterval->rightVal = values[1];
-				outInterval->type = GT_LTE; //TODO: need to test here
-				if(this->leftVal < values[0])
-					outInterval->leftVal = values[0];
-				else 
-					outInterval->leftVal = this->leftVal;
-			break;
-			
-			case GTE_LT:
-			case GTE_LTE:
-				// leftVal <= x
-				if(this->leftVal > values[1]){
-					//return empty set, available bit set to FALSE
-					return 0;
-				}
-				outInterval = new SimpleCriteria();
-				outInterval->available = 1;
-				outInterval->leftInfinity = 0;
-				outInterval->rightInfinity = 0;
-				outInterval->rightVal = values[1];
-				outInterval->type = GTE_LTE; //TODO: need to test here
-				if(this->leftVal <= values[0])
-					outInterval->leftVal = values[0];
-				else 
-					outInterval->leftVal = this->leftVal;
-			break;
-		}
-	}else{
-		switch(this->type){
-			case GT_LT:
-				// leftVal < x < rightVal
-				if(this->leftVal >= values[1] || this->rightVal <= values[0]){
-					//return empty set, available bit set to FALSE
-					return 0;
-				}
+	if (c.getCClassType() == SIMPLE)
+		return andSimpleSelf((SimpleCriteria&)c);
 
-				outInterval = new SimpleCriteria();
-				outInterval->available = 1;
-				outInterval->leftInfinity = 0;
-				outInterval->rightInfinity = 0;
-				outInterval->type = GTE_LTE;
-				
-				if(this->leftVal < values[0])
-					outInterval->leftVal = values[0];
-				else 
-					outInterval->leftVal = this->leftVal;
-				
-				if(values[1] < this->rightVal)
-					outInterval->rightVal = values[1];
-				else 
-					outInterval->rightVal = this->rightVal;
-					
-			break;
-			
-			case GT_LTE:
-				if(this->leftVal >= values[1] || this->rightVal < values[0]){
-					//return empty set, available bit set to FALSE
-					return 0;
-				}
-				outInterval = new SimpleCriteria();
-				outInterval->available = 1;
-				outInterval->leftInfinity = 0;
-				outInterval->rightInfinity = 0;
-				outInterval->type = GTE_LTE;
-				if(this->leftVal < values[0])
-					outInterval->leftVal = values[0];
-				else 
-					outInterval->leftVal = this->leftVal;
-					
-				if(values[1] <= this->rightVal)
-					outInterval->rightVal = values[1];
-				else 
-					outInterval->rightVal = this->rightVal;
-					
-			break;
-			
-			case GTE_LT:
-				// leftVal <= x < rightVal
-				if(this->leftVal > values[1] || this->rightVal <= values[0]){
-					//return empty set, available bit set to FALSE
-					return 0;
-				}
-				outInterval = new SimpleCriteria();
-				outInterval->available = 1;
-				outInterval->leftInfinity = 0;
-				outInterval->rightInfinity = 0;
-				outInterval->type = GTE_LTE;
-				if(this->leftVal <= values[0])
-					outInterval->leftVal = values[0];
-				else 
-					outInterval->leftVal = this->leftVal;
-					
-				if(values[1] < this->rightVal)
-					outInterval->rightVal = values[1];
-				else 
-					outInterval->rightVal = this->rightVal;
-			break;
-			
-			case GTE_LTE:
-				// leftVal <= x <= rightVal
-				if(this->leftVal > values[1] || this->rightVal < values[0]){
-					//return empty set, available bit set to FALSE
-					return 0;
-				}
-				outInterval = new SimpleCriteria();
-				outInterval->available = 1;
-				outInterval->leftInfinity = 0;
-				outInterval->rightInfinity = 0;
-				outInterval->type = GTE_LTE;
-				if(this->leftVal <= values[0])
-					outInterval->leftVal = values[0];
-				else 
-					outInterval->leftVal = this->leftVal;
-					
-				if(values[1] <= this->rightVal)
-					outInterval->rightVal = values[1];
-				else 
-					outInterval->rightVal = this->rightVal;
-			break;
-		}
-	}
-
-	return outInterval;
+	return andCompositeSelf((CompositeCriteria&)c);
 }
-*/
+
+Criteria* SimpleCriteria::andCompositeSelf(CompositeCriteria& c) {
+	int i;
+	Criteria *out, *outItem;
+	Criteria *itm;
+
+	if (c.logicOperator() == AND) {
+		// SIMPLE & AND  = out(clone c), add clone SIMPLE to out
+		out = c.clone();
+		((CompositeCriteria*)out)->add(this);
+	}
+	else {
+		// SIMPLE & OR = SIMPLE & every sub OR
+		out = new CompositeCriteria();
+		((CompositeCriteria*)out)->setOperator(OR);
+
+		for (i = 0; i<c.size(); i++) {
+			itm = c[i];
+			outItem = 0;
+			switch (itm->getCClassType()) {
+			case SIMPLE:
+				outItem = this->andSimpleSelf((SimpleCriteria&)*itm);
+				break;
+
+			case COMPOSITE:
+				outItem = this->andCompositeSelf((CompositeCriteria&)*itm);
+				break;
+			}
+
+			if (outItem != 0)
+				((CompositeCriteria*)out)->add(outItem);
+		}
+	}
+	return out;
+}
+
+Criteria* SimpleCriteria::andSimpleSelf(SimpleCriteria& c) {
+	double d[2] = {c.leftVal, c.rightVal};
+	Criteria* out = NULL;
+	SimpleCriteria *tmp;
+	
+	if(this->variable == c.variable) {	
+		if( !(this->leftInfinity) && !(this->rightInfinity)) { /* If this interval is closed*/
+			if( !(c.leftInfinity) && !(c.rightInfinity) ) { //c is closed
+				tmp = this->and(d);
+				if(tmp != NULL) {
+					copyFrom(*tmp);
+					delete tmp;
+				}
+				
+			} else if( !(c.leftInfinity) && (c.rightInfinity) ) { //c is close on left and open on right 101
+				/* For this case: return this object
+					This   |--------|
+					c    |-----------
+				*/
+					
+				if( (this->leftVal < c.leftVal) && (this->rightVal >= c.leftVal) ) {
+					/*
+						This   |--------|
+						c        |---------
+					*/
+					
+					this->leftVal = c.leftVal;
+				}
+			} else if( (c.leftInfinity) && !(c.rightInfinity) ) { //c is close on right and open on left 110
+				/*
+					This   |--------|
+					c     ---------------|
+				*/
+				
+				if( (c.rightVal<=this->rightVal) && (c.rightVal > this->leftVal) )  {
+					/*
+						This   |--------|
+						c     --------|
+					*/
+					this->rightVal = c.rightVal;
+				}
+			}
+		} if( !(this->leftInfinity) && (this->rightInfinity) ) { /* This interval is close on LEFT and open on RIGHT  */
+			if( !(c.leftInfinity) && !(c.rightInfinity) ) { //c is closed
+				if(c.leftVal >= this->leftVal) {
+					/*
+						This   |-----------------
+						c    	|-----------|
+					*/
+					copyFrom(c);
+				} else if(c.leftVal < this->leftVal) {
+					/*
+						This   |-----------------
+						c    |-----------|
+					*/
+					this->type = c.getType();
+					this->variable = c.getVariable();
+					//Dont copy leftValue
+					this->rightVal = c.getRightValue();
+					this->rightInfinity = c.isRightInfinity();
+					this->leftInfinity = c.isRightInfinity();
+					this->available = c.isAvailable();
+				}
+			} else if( !(c.leftInfinity) && (c.rightInfinity) ) { //c is close on left and open on right 101
+				/*
+					This   |----------
+					c    |-----------
+				*/
+				
+				/*
+					This   |----------
+					c    ----------------
+				*/
+				
+				if( c.leftVal > this->leftVal ) {
+					/*
+						This   |--------
+						c        |---------
+					*/
+					copyFrom(c);
+				}
+			} else if( (c.leftInfinity) && !(c.rightInfinity) ) { //c is close on right and open on left 110
+				if( this->leftVal <= c.rightVal ) {
+					/*
+						This   |-------------
+						c     ---------------|
+					*/
+					this->rightVal = c.getRightValue();
+				} else {
+					/*
+						This   			|--------
+						c     --------|
+					*/
+					//out = NULL;
+					return NULL;
+				}
+			}
+		} if( (this->leftInfinity) && !(this->rightInfinity) ) { /* This interval is close on RIGHT and open on LEFT  */
+			if( !(c.leftInfinity) && !(c.rightInfinity) ) { //c is closed
+				if( c.rightVal <= this->rightVal) {
+					/*
+						This   -----------------|
+						c    	|-----------|
+					*/
+					copyFrom(c);
+				} else {
+					if(c.leftVal <= this->rightVal) {
+						/*
+							This   ---------|
+							c    |------------|
+						*/
+						this->leftVal = c.getLeftValue();
+					} else {
+						/*
+							This   ----|
+							c    		 |------|
+						*/
+						//out = NULL;
+						return NULL;
+					}
+				}
+			} else if( !(c.leftInfinity) && (c.rightInfinity) ) { //c is close on left and open on right 101
+				if( c.leftVal <= this->rightVal ) {
+					/*
+						This   --------|
+						c    |-----------
+					*/
+					this->leftVal = c.getLeftValue();
+				} else {
+					/*
+						This   ---|
+						c        	|-----
+					*/
+					//out = NULL;
+					return NULL;
+				}
+			} else if( (c.leftInfinity) && !(c.rightInfinity) ) { //c is close on right and open on left 110
+				/*
+					This   --------|
+					c     ------------|
+				*/
+				
+				if( c.rightVal < this->rightVal ) {
+					/*
+						This   --------|
+						c     ------|
+					*/
+					copyFrom(c);
+				}
+			}
+		} else { //this is OPEN
+			copyFrom(c);
+		}
+		
+		out = this;
+	} else {
+		out = new CompositeCriteria();
+		((CompositeCriteria*)out)->setOperator(AND);
+		((CompositeCriteria*)out)->add(this);
+		((CompositeCriteria*)out)->add(c.clone());
+	}
+
+	return out;
+}
 
 Criteria* SimpleCriteria::and(SimpleCriteria& c) {
 	Criteria* out = NULL;

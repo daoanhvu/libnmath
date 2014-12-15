@@ -6,6 +6,7 @@
 #include "common.h"
 #include "nlablexer.h"
 #include "nlabparser.h"
+#include "compositecriteria.h"
 
 namespace nmath {
 	typedef struct tagListCriteria {
@@ -39,6 +40,7 @@ namespace nmath {
 		int errorColumn;
 
 		ListFData* getSpaceFor2UnknownVariables(const float *inputInterval, float epsilon);
+		FData* getSpaceFor2WithANDComposite(int prefixIndex, const float *inputInterval, float epsilon, const CompositeCriteria* c);
 
 	public:
 		NFunction();

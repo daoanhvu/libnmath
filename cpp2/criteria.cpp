@@ -178,11 +178,10 @@ Criteria* nmath::buildCriteria(const NMAST *ast) {
 				}
 				CompositeCriteria * cc = (CompositeCriteria*)left;
 
-				out = cc->and((SimpleCriteria&)(*right));
+				cc->andSelf((SimpleCriteria&)(*right));
 				delete right;
-				delete left;
 
-				return out;
+				return left;
 			}
 
 			out = new CompositeCriteria();

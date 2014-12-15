@@ -12,6 +12,9 @@ namespace nmath {
 			int mSize;
 
 			int logicOp; // AND OR
+
+			Criteria* andSimpleSelf(SimpleCriteria& c);
+			Criteria* andCompositeSelf(CompositeCriteria& c);
 			
 		public:
 			CompositeCriteria();
@@ -29,10 +32,13 @@ namespace nmath {
 			void add(Criteria* c);
 
 			CompositeCriteria& normalize();
+			
+			bool containsVar(char var);
 
 			istream& operator >>(istream& is);
 			ostream& operator <<(ostream& os);
 
+			Criteria* andSelf(Criteria& c);
 			CompositeCriteria* and(SimpleCriteria& c);
 			CompositeCriteria* and(CompositeCriteria& c);
 			CompositeCriteria* or(SimpleCriteria& c);

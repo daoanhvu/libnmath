@@ -34,6 +34,17 @@ void CompositeCriteria::release() {
 	mLoggedSize = 0;
 }
 
+bool CompositeCriteria::containsVar(char var) {
+	int i;
+	
+	for(i=0; i<mSize; i++) {
+		if(list[i]->containsVar(var))
+			return true;
+	}
+	
+	return false;
+}
+
 istream& CompositeCriteria::operator >>(istream& is) {
 	return is;
 }
@@ -96,6 +107,90 @@ bool CompositeCriteria::check(const double* values) {
 	}
 	
 	return false;
+}
+
+Criteria* CompositeCriteria::andSelf(Criteria& c) {
+
+	if (c.getCClassType() == SIMPLE)
+		return andSimpleSelf((SimpleCriteria&)c);
+
+	return andCompositeSelf((CompositeCriteria&)c);
+
+}
+Criteria* CompositeCriteria::andCompositeSelf(CompositeCriteria& c) {
+	CompositeCriteria* out;
+	Criteria *tmp;
+	int i, size;
+
+	if (c.logicOperator() == AND) {
+		if (logicOp == AND) {
+			size = c.size();
+			out = (CompositeCriteria*)this->clone();
+			for (i = 0; i<size; i++) {
+				out->add(c[i]->clone());
+			}
+		}
+		else {
+			//AND and OR
+			out = new CompositeCriteria();
+			out->setOperator(OR);
+			for (i = 0; i<mSize; i++) {
+				tmp = (*list[i]) & c;
+				if (tmp != NULL) {
+					out->add(tmp);
+				}
+			}
+		}
+	}
+	else {
+		if (logicOp == AND) { // OR & AND
+			out = new CompositeCriteria();
+			out->setOperator(OR);
+			for (i = 0; i<c.size(); i++) {
+				tmp = (*this) & (*c[i]);
+				if (tmp != NULL) {
+					out->add(tmp);
+				}
+			}
+		}
+		else { //OR & OR
+			size = c.size();
+			out = (CompositeCriteria*)this->clone();
+			for (i = 0; i<size; i++) {
+				out->add(c[i]->clone());
+			}
+		}
+	}
+	return out;
+}
+
+/*
+	Add directly to this object, don't clone it
+*/
+Criteria* CompositeCriteria::andSimpleSelf(SimpleCriteria& c) {
+	int i;
+	Criteria * itm;
+
+	if (logicOp == AND){
+		for(i=0; i<mSize; i++) {
+			if(list[i]->containsVar(c.getVariable())) {
+				itm = list[i]->andSelf(c);
+				list[i] = itm;
+				return this;
+			}
+		}
+		
+		add(c.clone());
+		return this;
+	}
+	
+	//OR
+	for(i=0; i<mSize; i++) {
+		itm = list[i]->andSelf(c);
+		list[i] = itm;
+	}
+	
+	return this;
 }
 
 CompositeCriteria* CompositeCriteria::and(SimpleCriteria& c) {

@@ -43,7 +43,7 @@ void testFunction() {
 	ListFData *data;
 	float interval[] = {-1, 2, 0, 1};
 	int i, j, vcount, error, lineCount = 0;
-	ifstream dataFile("D:\\data.txt");
+	ifstream dataFile("D:\\data\\data.txt");
 	string line;
 
 	if(dataFile.is_open()) {
@@ -103,8 +103,8 @@ void testCriteria(){
 	char outStr[64];
 	int start = 0;
 	double value[] = { -2, 2.3 , -0.5, 2};
-	int tokenCount = 20;
-	Token tokens[20];
+	int tokenCount = 50;
+	Token tokens[50];
 	int tokenInUse;
 	ifstream dataFile("D:\\data\\criteria.txt");
 	string line;

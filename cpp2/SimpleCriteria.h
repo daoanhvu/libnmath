@@ -18,6 +18,9 @@ namespace nmath {
 			bool rightInfinity;
 			bool leftInfinity;
 
+			Criteria* andSimpleSelf(SimpleCriteria& c);
+			Criteria* andCompositeSelf(CompositeCriteria& c);
+
 		public:
 			SimpleCriteria();
 			SimpleCriteria(int type, char var, double lval, double rval, 
@@ -37,13 +40,17 @@ namespace nmath {
 			void setRightInfinity(bool rInf) { rightInfinity = rInf; }
 			bool isLeftInfinity() const { return leftInfinity; }
 			void setLeftInfinity(bool lInf) { leftInfinity = lInf; }
+			
 
+			bool containsVar(char var) { return (variable == var); }
+			
 			bool isOverlapped(const SimpleCriteria& c);
 
 			
 			Criteria* getIntervalF(const float *values, const char* var, int varCount);
 			Criteria* getInterval(const double *values, const char* var, int varCount);
 
+			Criteria* andSelf(Criteria& c);
 			Criteria* and(SimpleCriteria& c);
 			Criteria* and(CompositeCriteria& c);
 
@@ -267,6 +274,7 @@ namespace nmath {
 			Criteria* operator |(Criteria& c);
 
 			Criteria* clone();
+			void copyFrom(SimpleCriteria& c);
 			SimpleCriteria& operator =(SimpleCriteria& c2);
 
 			/* check if value does belong to this interval */

@@ -190,17 +190,94 @@ int NFunction::reduce() {
 	return 0;
 }
 
+FData* NFunction::getSpaceFor2WithANDComposite(int prefixIndex, const float *inputInterval, float epsilon, const CompositeCriteria* c) {
+	FData *sp;
+	DParamF param;
+	float min[2];
+	float max[2];
+	float *dataTemp;
+	int *rowInfoTemp;
+	float z;
+	int i, j, k, elementOnRow;
+	SimpleCriteria *sc;
+	char currentVar;
+	
+	for(k=0; k<valLen; k++) {
+		currentVar = variables[k];
+		//search for criteria that bounds the current variable
+		for(j=0; j<c->size(); j++) {
+			sc = (SimpleCriteria*)c->get(j);
+			if(sc->getVariable() == currentVar) {
+				min[k] = sc->getLeftValue();
+				max[k] = sc->getRightValue();
+				break;
+			}
+		}
+	}
+	
+	sp = (FData*)malloc(sizeof(FData));
+	sp->dimension = this->valLen + 1;
+	sp->loggedSize = 20;
+	sp->dataSize = 0;
+	sp->data = (float*)malloc(sizeof(float) * sp->loggedSize);
+	sp->loggedRowCount = 0;
+	sp->rowCount = 0;
+	sp->rowInfo= NULL;
+
+	param.t = prefix.list[prefixIndex];
+	param.variables[0] = variables[0];
+	param.variables[1] = variables[1];
+	param.error = 0;
+	
+	max[0] = inputInterval[1];
+	max[1] = inputInterval[3];
+	param.values[0] = inputInterval[0];
+	while(param.values[0] < max[0] ) {
+		elementOnRow = 0;
+		param.values[1] = inputInterval[2];
+		while(param.values[1] < max[1]) {
+			calcF_t((void*)&param);
+			z = param.retv;
+			if(sp->dataSize >= sp->loggedSize - 3){
+				sp->loggedSize += 20;
+				dataTemp = (float*)realloc(sp->data, sizeof(float) * sp->loggedSize);
+				if(dataTemp != NULL)
+					sp->data = dataTemp;
+			}
+			sp->data[sp->dataSize++] = param.values[0];
+			sp->data[sp->dataSize++] = param.values[1];
+			sp->data[sp->dataSize++] = z;
+			elementOnRow++;
+			param.values[1] += epsilon;
+		}
+		
+		if(sp->rowCount >= sp->loggedRowCount){
+			sp->loggedRowCount += 10;
+			rowInfoTemp = (int*)realloc(sp->rowInfo, sizeof(int) * sp->loggedRowCount);
+			if(rowInfoTemp != NULL)
+				sp->rowInfo = rowInfoTemp;
+		}
+
+		sp->rowInfo[sp->rowCount++] = elementOnRow;
+		param.values[0] += epsilon;
+	}
+	
+	return sp;
+}
+
 ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, float epsilon) {
 	ListFData *lstData = NULL;
+	FData **tempList;
 	FData *sp;
 	float *tmpP;
+	int *rowInfoTemp;
 	DParamF param;
 	CompositeCriteria *outCriteria;
 	SimpleCriteria *sc;
-	float min1, min2;
-	float max1, max2;
+	float min[2];
+	float max[2];
 	float z;
-	int i, j, k, elementOnRow;
+	int i, j, k, t, elementOnRow;
 	char currentVar;
 
 	lstData = new ListFData;
@@ -209,35 +286,36 @@ ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, f
 	lstData->list = (FData**)malloc(sizeof(FData*) * lstData->loggedSize);
 
 	for(i=0; i<prefix.size; i++) {
-		sp = (FData*)malloc(sizeof(FData));
-		sp->dimension = 3;
-		sp->loggedSize = 20;
-		sp->dataSize = 0;
-		sp->data = (float*)malloc(sizeof(float) * sp->loggedSize);
-		sp->loggedRowCount = 0;
-		sp->rowCount = 0;
-		sp->rowInfo= NULL;
-
-		param.t = prefix.list[i];
-		param.variables[0] = variables[0];
-		param.variables[1] = variables[1];
-		param.error = 0;
 		if(criteria.list[i] == NULL) {
-			max1 = inputInterval[1];
-			max2 = inputInterval[3];
+			sp = (FData*)malloc(sizeof(FData));
+			sp->dimension = 3;
+			sp->loggedSize = 20;
+			sp->dataSize = 0;
+			sp->data = (float*)malloc(sizeof(float) * sp->loggedSize);
+			sp->loggedRowCount = 0;
+			sp->rowCount = 0;
+			sp->rowInfo= NULL;
+
+			param.t = prefix.list[i];
+			param.variables[0] = variables[0];
+			param.variables[1] = variables[1];
+			param.error = 0;
+		
+			max[0] = inputInterval[1];
+			max[1] = inputInterval[3];
 
 			param.values[0] = inputInterval[0];
-			while(param.values[0] < max1 ) {
+			while(param.values[0] < max[0] ) {
 				elementOnRow = 0;
 				param.values[1] = inputInterval[2];
-				while(param.values[1] < max2) {
+				while(param.values[1] < max[1]) {
 					calcF_t((void*)&param);
 					z = param.retv;
 					if(sp->dataSize >= sp->loggedSize - 3){
 						sp->loggedSize += 20;
 						tmpP = (float*)realloc(sp->data, sizeof(float) * sp->loggedSize);
 						if(tmpP != NULL)
-							sp->data = (float*)tmpP;
+							sp->data = tmpP;
 					}
 					sp->data[sp->dataSize++] = param.values[0];
 					sp->data[sp->dataSize++] = param.values[1];
@@ -248,9 +326,9 @@ ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, f
 
 				if(sp->rowCount >= sp->loggedRowCount){
 					sp->loggedRowCount += 10;
-					tmpP = (float*)realloc(sp->rowInfo, sizeof(int) * sp->loggedRowCount);
-					if(tmpP != NULL)
-						sp->rowInfo = (int*)tmpP;
+					rowInfoTemp = (int*)realloc(sp->rowInfo, sizeof(int) * sp->loggedRowCount);
+					if(rowInfoTemp != NULL)
+						sp->rowInfo = rowInfoTemp;
 				}
 		
 				sp->rowInfo[sp->rowCount++] = elementOnRow;
@@ -260,16 +338,24 @@ ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, f
 			lstData->list[lstData->size++] = sp;
 		} else {
 			outCriteria = (CompositeCriteria*)criteria.list[i]->getIntervalF(inputInterval, this->variables, valLen);
-			if(outCriteria->logicOperator() == AND) {
-				currentVar = variables[0];
-				//search for criteria that bounds the current variable
-				for(j=0; j<outCriteria->size(); j++) {
-					sc = (SimpleCriteria*)outCriteria->get(j);
-					if(sc->getVariable() == currentVar) {
+			switch(outCriteria->logicOperator()) {
+				case AND:
+					sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria);
+					lstData->list[lstData->size++] = sp;
+				break;
+				
+				case OR:
+					for(t=0; t<outCriteria->size(); t++) {
+						sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, (CompositeCriteria*)(outCriteria->get(t)));
+						if(lstData->size >= lstData->loggedSize){
+							lstData->loggedSize += 2;
+							tempList = (FData**)realloc(lstData->list, sizeof(FData*) * lstData->loggedSize);
+							if(tempList != NULL)
+								lstData->list = tempList;
+						}
+						lstData->list[lstData->size++] = sp;
 					}
-				}
-
-			} else {
+				break;
 			}
 			
 		}
