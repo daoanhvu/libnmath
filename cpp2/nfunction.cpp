@@ -269,7 +269,7 @@ FData* NFunction::getSpaceFor2WithANDComposite(int prefixIndex, const float *inp
 		while(param.values[1] < max[1]) {
 			calcF_t((void*)&param);
 			z = param.retv;
-			if(sp->dataSize >= sp->loggedSize - 3){
+			if( sp->dataSize >= sp->loggedSize - (sp->dimension) ){
 				sp->loggedSize += 20;
 				dataTemp = (float*)realloc(sp->data, sizeof(float) * sp->loggedSize);
 				if(dataTemp != NULL)

@@ -153,7 +153,7 @@ void testFunction() {
 			}
 			else {
 				std::cout << f;
-				data = f.getSpace(interval, 0.2f, false);
+				data = f.getSpace(interval, 0.2f, true);
 
 				if (data != NULL) {
 					for (i = 0; i<data->size; i++) {
@@ -166,6 +166,19 @@ void testFunction() {
 							if((data->list[i]->dimension)>=3) {
 								cout << ", z = " << data->list[i]->data[j * data->list[i]->dimension + 2];
 							}
+
+							if((data->list[i]->dimension) >=4 ) {
+								cout << ", nx = " << data->list[i]->data[j * data->list[i]->dimension + 3];
+							}
+
+							if((data->list[i]->dimension) >=5 ) {
+								cout << ", ny = " << data->list[i]->data[j * data->list[i]->dimension + 4];
+							}
+
+							if((data->list[i]->dimension) >=6 ) {
+								cout << ", nz = " << data->list[i]->data[j * data->list[i]->dimension + 5];
+							}
+
 							cout << "\n";
 						}
 
