@@ -31,7 +31,7 @@ namespace nmath {
 
 			void add(Criteria* c);
 
-			CompositeCriteria& normalize();
+			CompositeCriteria& normalize(const char* vars, int varcount);
 			
 			bool containsVar(char var);
 

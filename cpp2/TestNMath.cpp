@@ -102,7 +102,7 @@ void testCriteria(){
 	Criteria *c, *o;
 	char outStr[64];
 	int start = 0;
-	double value[] = { -2, 2.3 , -0.5, 2};
+	double value[] = { -1, 2, 0, 1 };
 	int tokenCount = 50;
 	Token tokens[50];
 	int tokenInUse;
@@ -128,6 +128,10 @@ void testCriteria(){
 				puts(outStr);
 
 				c = nmath::buildCriteria(domain);
+
+				if (c->getCClassType() == COMPOSITE && ((CompositeCriteria*)c)->logicOperator() == OR)
+					((CompositeCriteria*)c)->normalize("xy", 2);
+
 				o = c->getInterval(value, "xy", 2);
 
 				std::cout << ((Criteria&)*c) << "\n";

@@ -387,18 +387,24 @@ Criteria* CompositeCriteria::getInterval(const double *values, const char* var, 
 	return out;
 }
 
-CompositeCriteria& CompositeCriteria::normalize() {
+CompositeCriteria& CompositeCriteria::normalize(const char* vars, int varcount) {
 	bool orFlag = false;
-	int i;
-	CompositeCriteria *cc;
+	int k, i;
+	CompositeCriteria *ncc;
+	SimpleCriteria *sc;
 
-	for(i=0; i<mSize; i++) {
-		if((list[i]->getCClassType() == COMPOSITE) && 
-			((CompositeCriteria*)list[i])->logicOp == OR) {
+	for (i = 0; i<mSize; i++) {
+		for (k = 0; k < varcount; k++) {
+			if (!list[i]->containsVar(vars[k])){
+				sc = new SimpleCriteria(GTE_LTE, vars[k], 0, 0, true, true);
+				ncc = new CompositeCriteria();
+				ncc->setOperator(AND);
 
-			cc = (CompositeCriteria*)list[i];
+				ncc->add(list[i]);
+				ncc->add(sc);
 
-
+				list[i] = ncc;
+			}
 		}
 	}
 

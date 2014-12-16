@@ -1,6 +1,11 @@
 #include <string>
 #include <cstdlib>
 
+#ifdef _DEBUG
+#include <stdio.h>
+#include <iostream>
+#endif
+
 #ifdef _WIN32
 #include <Windows.h>
 #include <process.h>
@@ -69,8 +74,9 @@ std::ostream& nmath::operator <<(std::ostream& os, const NFunction& f) {
 Parse the input string in object f to NMAST tree
 */
 int NFunction::parse(const char *str, int len) {
-	int i;
+	int i, k;
 	Criteria *c;
+	CompositeCriteria *cc;
 
 	mLexer->reset();
 
@@ -106,8 +112,15 @@ int NFunction::parse(const char *str, int len) {
 
 			for (i = 0; i < domain.size; i++) {
 				c = NULL;
-				if(domain.list[i] != NULL)
+				if (domain.list[i] != NULL) {
 					c = nmath::buildCriteria(domain.list[i]);
+					//atemp to normalize criteria so that it hold criteria for all variable in every it's element
+					if ( (c!=NULL) && c->getCClassType() == COMPOSITE &&
+						((CompositeCriteria*)c)->logicOperator() == OR) {
+						cc = (CompositeCriteria*)c;
+						cc->normalize(variables, valLen);
+					}
+				}
 				criteria.list[i] = c;
 			}
 		}
@@ -338,6 +351,10 @@ ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, f
 			lstData->list[lstData->size++] = sp;
 		} else {
 			outCriteria = (CompositeCriteria*)criteria.list[i]->getIntervalF(inputInterval, this->variables, valLen);
+#ifdef _DEBUG
+			std::cout << "\n Get Interval: \n";
+			std::cout << ((Criteria&)*outCriteria) << "\n";
+#endif
 			switch(outCriteria->logicOperator()) {
 				case AND:
 					sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria);
