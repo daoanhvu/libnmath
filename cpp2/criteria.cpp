@@ -217,15 +217,10 @@ Criteria* nmath::buildCriteria(const NMAST *ast) {
 			break;
 
 		case GT_LT:
-			break;
-
 		case GT_LTE:
-			break;
-
 		case GTE_LT:
-			break;
-
 		case GTE_LTE:
+			out = new SimpleCriteria(ast->type, ast->variable, ast->left->value, ast->right->value, false, false);
 			break;
 	}
 

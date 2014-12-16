@@ -438,7 +438,7 @@ void testCriteria2(Function *f) {
 }
 
 
-void printError(int col, int code){
+void printError(int col, int code) {
 	switch(code){
 		case ERROR_DIV_BY_ZERO:
 			break;

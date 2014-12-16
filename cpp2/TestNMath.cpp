@@ -8,6 +8,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <StringUtil.h>
 #include <nmath.h>
 
 using namespace nmath;
@@ -38,6 +39,104 @@ void printMenu() {
 	printf("-----------------------------------------------------------------------------------\n");
 }
 
+void printError(int col, int code) {
+	switch(code){
+		case ERROR_DIV_BY_ZERO:
+			break;
+
+		case ERROR_LOG:
+			break;
+
+		case ERROR_OPERAND_MISSING:
+			break;
+
+		case ERROR_PARSE:
+			break;
+
+		case ERROR_TOO_MANY_FLOATING_POINT:
+			cout << "Too many floating point at "<< col << "\n";
+			break;
+
+		case ERROR_PARENTHESE_MISSING:
+			printf("Missing parenthese at %d\n", col);
+			break;
+			
+		case ERROR_TOO_MANY_PARENTHESE:
+			printf("Too many parenthese at %d\n", col);
+			break;
+
+		case ERROR_OUT_OF_DOMAIN:
+			break;
+
+		case ERROR_SYNTAX:
+			break;
+
+		case ERROR_NOT_AN_EXPRESSION:
+			printf("Bad expression found at %d\n", col);
+			break;
+
+		case ERROR_NOT_A_FUNCTION:
+			printf("Bad function notation found at %d\n", col);
+			break;
+
+		case ERROR_MISSING_FUNCTION_NOTATION:
+			printf("This expression is not a function due to variables not determined.\n");
+			break;
+
+		case ERROR_BAD_TOKEN:
+			printf("A bad token found at %d\n", col);
+			break;
+
+		case ERROR_LEXER:
+			break;
+
+		case ERROR_PARSING_NUMBER:
+			break;
+	}
+}
+
+
+void testDerivative() {
+	DParam d;
+	int error;
+	double vars[] = {4, 1};
+	double ret;
+	char dstr[128];
+	int l = 0;
+	NFunction f;
+	string str;
+
+	cout << "Input function: ";
+	cin >> str;	
+	
+	error = f.parse(str.c_str(), str.length());
+	if(error != NMATH_NO_ERROR) {
+		printError(f.getErrorColumn(), error);
+		return;
+	} 
+
+	if( f.getVarCount() == 0 ) {
+		cout << "This expression is not a function due to variables not determined.\n" ;
+	}
+	
+	d.t = f.getPrefix(0);
+	d.error = 0;
+	d.returnValue = NULL;
+	d.variables[0] = 'x';
+
+	nmath::derivative(&d);
+	//printNMAST(d.returnValue, 0, std::cout);
+	l = 0;
+	nmath::toString(d.returnValue, dstr, &l, 128);
+	dstr[l] = '\0';
+	cout << "f' = "<< dstr << "\n";
+	
+	clearTree(&(d.returnValue));
+
+	f.release();
+	clearPool();
+}
+
 void testFunction() {
 	NFunction f;
 	ListFData *data;
@@ -54,7 +153,7 @@ void testFunction() {
 			}
 			else {
 				std::cout << f;
-				data = f.getSpace(interval, 0.2f);
+				data = f.getSpace(interval, 0.2f, false);
 
 				if (data != NULL) {
 					for (i = 0; i<data->size; i++) {
@@ -173,6 +272,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			break;
 
 		case 3:
+			testDerivative();
 			//jniJLexerGetSpace();
 			//testGetSpaces();
 			break;

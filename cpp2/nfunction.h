@@ -25,8 +25,7 @@ namespace nmath {
 		NLabLexer *mLexer;
 		NLabParser *mParser;
 
-		NMASTList prefix;
-		NMASTList domain;
+		NMASTList prefix;		
 		ListCriteria criteria;
 
 		Token *mTokens;
@@ -38,25 +37,35 @@ namespace nmath {
 
 		int errorCode;
 		int errorColumn;
+		
+		/*
+			fidx Function expression index (the index of prefix.list)
+			vidx variable index
+		*/
+		NMAST* getDerivativeByVariable(int fidx, int vidx);
 
-		ListFData* getSpaceFor2UnknownVariables(const float *inputInterval, float epsilon);
-		FData* getSpaceFor2WithANDComposite(int prefixIndex, const float *inputInterval, float epsilon, const CompositeCriteria* c);
+		ListFData* getSpaceFor2UnknownVariables(const float *inputInterval, float epsilon, bool needNormalVector);
+		FData* getSpaceFor2WithANDComposite(int prefixIndex, const float *inputInterval, float epsilon, const CompositeCriteria* c, NMAST **df);
 
 	public:
 		NFunction();
 		~NFunction();
+		
+		int getErrorCode() { return errorCode; }
+		int getErrorColumn() { return errorColumn; }
+		
 		int parse(const char *str, int len);
 		void release();
 		int reduce();
 		double dcalc(double *values, int numOfValue);
-		ListFData* getSpace(const float *values, float epsilone);
-
+		ListFData* getSpace(const float *inputInterval, float epsilon, bool needNormalVector);
 		char* getText() const { return text; }
-
 		char getVarCount() const { return valLen; }
+		
 		NMASTList* getPrefixList() const { return (NMASTList*)&prefix; }
-		NMASTList* getDomainList() const { return (NMASTList*)&domain; }
+		NMAST* getPrefix(int index) const { return prefix.list[index]; }
 		ListCriteria* getCriteriaList() const { return (ListCriteria*)&criteria; }
+		Criteria* getCriteria(int index) const { return criteria.list[index]; }
 
 		friend std::ostream& operator<< (std::ostream& os, const NFunction& f);
 	};

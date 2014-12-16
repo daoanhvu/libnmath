@@ -125,40 +125,44 @@ Criteria* CompositeCriteria::andCompositeSelf(CompositeCriteria& c) {
 	if (c.logicOperator() == AND) {
 		if (logicOp == AND) {
 			size = c.size();
-			out = (CompositeCriteria*)this->clone();
 			for (i = 0; i<size; i++) {
-				out->add(c[i]->clone());
+				this->andSelf(*c[i]);
 			}
+			out = this;
 		}
 		else {
 			//AND and OR
-			out = new CompositeCriteria();
-			out->setOperator(OR);
 			for (i = 0; i<mSize; i++) {
-				tmp = (*list[i]) & c;
+				tmp = list[i]->andSelf(c);
 				if (tmp != NULL) {
-					out->add(tmp);
+					list[i] = tmp;
 				}
 			}
+			out = this;
 		}
 	}
 	else {
 		if (logicOp == AND) { // OR & AND
 			out = new CompositeCriteria();
 			out->setOperator(OR);
-			for (i = 0; i<c.size(); i++) {
-				tmp = (*this) & (*c[i]);
+			for (i = 0; i<c.size()-1; i++) {
+				CompositeCriteria* cc1 = (CompositeCriteria*)clone();
+				tmp = cc1->andSelf(*c[i]);
 				if (tmp != NULL) {
 					out->add(tmp);
 				}
 			}
+			
+			tmp = this->andSelf(*c[i]);
+			if (tmp != NULL) {
+				out->add(tmp);
+			}
 		}
 		else { //OR & OR
-			size = c.size();
-			out = (CompositeCriteria*)this->clone();
-			for (i = 0; i<size; i++) {
-				out->add(c[i]->clone());
+			for (i = 0; i<c.size(); i++) {
+				this->add(c[i]->clone());
 			}
+			out = this;
 		}
 	}
 	return out;

@@ -33,10 +33,6 @@ NFunction::NFunction(): text(0), valLen(0) {
 	prefix.loggedSize = 0;
 	prefix.size = 0;
 
-	domain.list = 0;
-	domain.loggedSize = 0;
-	domain.size = 0;
-
 	criteria.list = 0;
 	criteria.size = 0;
 	criteria.loggedSize = 0;
@@ -55,11 +51,6 @@ std::ostream& nmath::operator <<(std::ostream& os, const NFunction& f) {
 			os << "Prefix Expresion "<< i <<": \t \n";
 			printNMAST(f.getPrefixList()->list[i], 0, os);
 
-			if(f.getDomainList()->list[i] != NULL) {
-				os << "\n \t Domain: \n";
-				printNMAST(f.getDomainList()->list[i], 0, os);
-			}
-
 			if(f.getCriteriaList()->list[i] != NULL) {
 				os << "\n \t Criteria: \n";
 				os << (*f.getCriteriaList()->list[i]) << "\n";
@@ -77,6 +68,11 @@ int NFunction::parse(const char *str, int len) {
 	int i, k;
 	Criteria *c;
 	CompositeCriteria *cc;
+	NMASTList domain;
+	
+	domain.list = 0;
+	domain.loggedSize = 0;
+	domain.size = 0;
 
 	mLexer->reset();
 
@@ -125,6 +121,13 @@ int NFunction::parse(const char *str, int len) {
 			}
 		}
 	}
+	
+	if(domain.list != NULL) {
+		for(i=0; i<domain.size; i++)
+			::clearTree(&(domain.list[i]));
+		free(domain.list);
+		domain.list = NULL;
+	}
 
 	return errorCode;
 }
@@ -155,15 +158,6 @@ void NFunction::release() {
 		prefix.list = NULL;
 		prefix.loggedSize = 0;
 		prefix.size = 0;
-	}
-
-	if(domain.list != NULL) {
-		for(i=0; i<domain.size; i++)
-			::clearTree(&(domain.list[i]));
-		free(domain.list);
-		domain.list = NULL;
-		domain.loggedSize = 0;
-		domain.size = 0;
 	}
 
 	if (criteria.list != NULL) {
@@ -203,9 +197,29 @@ int NFunction::reduce() {
 	return 0;
 }
 
-FData* NFunction::getSpaceFor2WithANDComposite(int prefixIndex, const float *inputInterval, float epsilon, const CompositeCriteria* c) {
+/*
+	fidx Function expression index (the index of prefix.list)
+	vidx variable index
+*/
+NMAST* NFunction::getDerivativeByVariable(int fidx, int vidx) {
+	DParam d;
+	
+	d.t = prefix.list[fidx];
+	d.error = 0;
+	d.returnValue = NULL;
+	d.variables[0] = variables[vidx];
+	
+	nmath::derivative(&d);
+	
+	return d.returnValue;
+}
+
+FData* NFunction::getSpaceFor2WithANDComposite(int prefixIndex, const float *inputInterval, 
+			float epsilon, const CompositeCriteria* c, NMAST **df) {
 	FData *sp;
 	DParamF param;
+	DParamF dparam0;
+	DParamF dparam1;
 	float min[2];
 	float max[2];
 	float *dataTemp;
@@ -222,14 +236,20 @@ FData* NFunction::getSpaceFor2WithANDComposite(int prefixIndex, const float *inp
 			sc = (SimpleCriteria*)c->get(j);
 			if(sc->getVariable() == currentVar) {
 				min[k] = sc->getLeftValue();
+				if(sc->getType() == GT_LT || sc->getType() == GT_LTE)
+					min[k] = sc->getLeftValue() + epsilon;
+					
 				max[k] = sc->getRightValue();
+				if(sc->getType() == GT_LT || sc->getType() == GTE_LT)
+					max[k] = sc->getRightValue() - epsilon;
+		
 				break;
 			}
 		}
 	}
 	
 	sp = (FData*)malloc(sizeof(FData));
-	sp->dimension = this->valLen + 1;
+	sp->dimension = ((df==0)?3:6);
 	sp->loggedSize = 20;
 	sp->dataSize = 0;
 	sp->data = (float*)malloc(sizeof(float) * sp->loggedSize);
@@ -242,12 +262,10 @@ FData* NFunction::getSpaceFor2WithANDComposite(int prefixIndex, const float *inp
 	param.variables[1] = variables[1];
 	param.error = 0;
 	
-	max[0] = inputInterval[1];
-	max[1] = inputInterval[3];
-	param.values[0] = inputInterval[0];
+	param.values[0] = min[0];
 	while(param.values[0] < max[0] ) {
 		elementOnRow = 0;
-		param.values[1] = inputInterval[2];
+		param.values[1] = min[1];
 		while(param.values[1] < max[1]) {
 			calcF_t((void*)&param);
 			z = param.retv;
@@ -260,6 +278,31 @@ FData* NFunction::getSpaceFor2WithANDComposite(int prefixIndex, const float *inp
 			sp->data[sp->dataSize++] = param.values[0];
 			sp->data[sp->dataSize++] = param.values[1];
 			sp->data[sp->dataSize++] = z;
+			
+			/******** Now, calculate the normal vector at x, y, z **************/
+			if(df != NULL) {
+				dparam0.t = df[0];
+				dparam0.variables[0] = variables[0];
+				dparam0.variables[1] = variables[1];
+				dparam0.error = 0;
+				dparam0.values[0] = param.values[0];
+				dparam0.values[1] = param.values[1];
+				calcF_t((void*)&dparam0);
+				
+				dparam1.t = df[1];
+				dparam1.variables[0] = variables[0];
+				dparam1.variables[1] = variables[1];
+				dparam1.error = 0;
+				dparam1.values[0] = param.values[0];
+				dparam1.values[1] = param.values[1];
+				calcF_t((void*)&dparam1);
+				
+				sp->data[sp->dataSize++] = dparam0.retv;
+				sp->data[sp->dataSize++] = dparam1.retv;
+				sp->data[sp->dataSize++] = -1;
+			}
+			/*******************************************/
+			
 			elementOnRow++;
 			param.values[1] += epsilon;
 		}
@@ -278,20 +321,23 @@ FData* NFunction::getSpaceFor2WithANDComposite(int prefixIndex, const float *inp
 	return sp;
 }
 
-ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, float epsilon) {
+ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, float epsilon, bool needNormalVector) {
 	ListFData *lstData = NULL;
 	FData **tempList;
 	FData *sp;
-	float *tmpP;
-	int *rowInfoTemp;
 	DParamF param;
 	CompositeCriteria *outCriteria;
 	SimpleCriteria *sc;
-	float min[2];
-	float max[2];
-	float z;
-	int i, j, k, t, elementOnRow;
-	char currentVar;
+	int i, j;
+	NMAST *df[2];
+	
+	CompositeCriteria cc;
+	cc.setOperator(AND);
+	sc = new SimpleCriteria(GTE_LTE, variables[0], inputInterval[0], inputInterval[1], false, false);
+	cc.add(sc);
+	sc = new SimpleCriteria(GTE_LTE, variables[1], inputInterval[2], inputInterval[3], false, false);
+	cc.add(sc);
+	sc = NULL;
 
 	lstData = new ListFData;
 	lstData->size = 0;
@@ -299,55 +345,23 @@ ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, f
 	lstData->list = (FData**)malloc(sizeof(FData*) * lstData->loggedSize);
 
 	for(i=0; i<prefix.size; i++) {
+		if(needNormalVector) {
+			df[0] = getDerivativeByVariable(i, 0);
+			df[1] = getDerivativeByVariable(i, 1);
+		}
+		
 		if(criteria.list[i] == NULL) {
-			sp = (FData*)malloc(sizeof(FData));
-			sp->dimension = 3;
-			sp->loggedSize = 20;
-			sp->dataSize = 0;
-			sp->data = (float*)malloc(sizeof(float) * sp->loggedSize);
-			sp->loggedRowCount = 0;
-			sp->rowCount = 0;
-			sp->rowInfo= NULL;
-
-			param.t = prefix.list[i];
-			param.variables[0] = variables[0];
-			param.variables[1] = variables[1];
-			param.error = 0;
-		
-			max[0] = inputInterval[1];
-			max[1] = inputInterval[3];
-
-			param.values[0] = inputInterval[0];
-			while(param.values[0] < max[0] ) {
-				elementOnRow = 0;
-				param.values[1] = inputInterval[2];
-				while(param.values[1] < max[1]) {
-					calcF_t((void*)&param);
-					z = param.retv;
-					if(sp->dataSize >= sp->loggedSize - 3){
-						sp->loggedSize += 20;
-						tmpP = (float*)realloc(sp->data, sizeof(float) * sp->loggedSize);
-						if(tmpP != NULL)
-							sp->data = tmpP;
-					}
-					sp->data[sp->dataSize++] = param.values[0];
-					sp->data[sp->dataSize++] = param.values[1];
-					sp->data[sp->dataSize++] = z;
-					elementOnRow++;
-					param.values[1] += epsilon;
-				}
-
-				if(sp->rowCount >= sp->loggedRowCount){
-					sp->loggedRowCount += 10;
-					rowInfoTemp = (int*)realloc(sp->rowInfo, sizeof(int) * sp->loggedRowCount);
-					if(rowInfoTemp != NULL)
-						sp->rowInfo = rowInfoTemp;
-				}
-		
-				sp->rowInfo[sp->rowCount++] = elementOnRow;
-				param.values[0] += epsilon;
+			if (needNormalVector)
+				sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, &cc, df);
+			else
+				sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, &cc, 0);
+				
+			if(lstData->size >= lstData->loggedSize) {
+				lstData->loggedSize += 2;
+				tempList = (FData**)realloc(lstData->list, sizeof(FData*) * lstData->loggedSize);
+				if(tempList != NULL)
+					lstData->list = tempList;
 			}
-
 			lstData->list[lstData->size++] = sp;
 		} else {
 			outCriteria = (CompositeCriteria*)criteria.list[i]->getIntervalF(inputInterval, this->variables, valLen);
@@ -357,14 +371,27 @@ ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, f
 #endif
 			switch(outCriteria->logicOperator()) {
 				case AND:
-					sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria);
+					if (needNormalVector)
+						sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria, df);
+					else
+						sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria, 0);
+						
+					if(lstData->size >= lstData->loggedSize) {
+						lstData->loggedSize += 2;
+						tempList = (FData**)realloc(lstData->list, sizeof(FData*) * lstData->loggedSize);
+						if(tempList != NULL)
+							lstData->list = tempList;
+					}
 					lstData->list[lstData->size++] = sp;
 				break;
 				
 				case OR:
-					for(t=0; t<outCriteria->size(); t++) {
-						sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, (CompositeCriteria*)(outCriteria->get(t)));
-						if(lstData->size >= lstData->loggedSize){
+					for(j=0; j<outCriteria->size(); j++) {
+						if(needNormalVector)
+							sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, (CompositeCriteria*)(outCriteria->get(j)), df);
+						else 
+							sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, (CompositeCriteria*)(outCriteria->get(j)), 0);
+						if(lstData->size >= lstData->loggedSize) {
 							lstData->loggedSize += 2;
 							tempList = (FData**)realloc(lstData->list, sizeof(FData*) * lstData->loggedSize);
 							if(tempList != NULL)
@@ -374,14 +401,23 @@ ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, f
 					}
 				break;
 			}
-			
 		}
-	}
+		
+		//free derivative trees
+		if(df[0] != 0) {
+			clearTree(df);
+		}
+		
+		if(df[1] != 0) {
+			clearTree(df + 1);
+		}
+		
+	} //end for
 
 	return lstData;
 }
 
-ListFData* NFunction::getSpace(const float *inputInterval, float epsilon) {
+ListFData* NFunction::getSpace(const float *inputInterval, float epsilon, bool needNormalVector) {
 	ListFData *lstData = NULL;
 	FData *sp;
 	DParamF param;
@@ -585,7 +621,7 @@ ListFData* NFunction::getSpace(const float *inputInterval, float epsilon) {
 			break;
 
 		case 2:
-			lstData = getSpaceFor2UnknownVariables(inputInterval, epsilon);
+			lstData = getSpaceFor2UnknownVariables(inputInterval, epsilon, needNormalVector);
 			break;
 
 		case 3:

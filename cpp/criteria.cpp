@@ -22,7 +22,7 @@ void copyCombinedCriteria(CombinedCriteria *from, CombinedCriteria *target){
 	target->loggedSize = from->loggedSize;
 	target->size = from->size;
 	target->list = (Criteria**)malloc(sizeof(Criteria*) * target->loggedSize);
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 	for(i=0; i<target->size; i++){
@@ -47,7 +47,7 @@ Criteria *newCriteria(int type, char var, float lval, float rval,
 	result->rightVal = rval;
 	result->fcheck = isInInterval;
 	result->fgetInterval = getInterval;
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 	return result;
@@ -61,7 +61,7 @@ CombinedCriteria *newCombinedInterval() {
 	result->list = NULL;
 	result->loggedSize = 0;
 	result->size = 0;
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 	return result;
@@ -75,7 +75,7 @@ CompositeCriteria *newCompositeInterval() {
 	result->list = NULL;
 	result->loggedSize = 0;
 	result->size = 0;
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 	return result;
@@ -519,7 +519,7 @@ int andTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteri
 		c1->fgetInterval(c1, d, 1, (void*)interval);
 		if( (interval->flag & AVAILABLE) != AVAILABLE){
 			free(interval);
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObject();
 #endif
 			return FALSE;
@@ -528,7 +528,7 @@ int andTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteri
 	}else{
 		out->cr = newCombinedInterval();
 		((CombinedCriteria*)(out->cr))->list = (Criteria**)malloc(sizeof(Criteria*)*2);
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 		((CombinedCriteria*)(out->cr))->loggedSize = 2;
@@ -595,7 +595,7 @@ int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out){
 		comb1->loggedSize = cb->loggedSize + 1;
 		comb1->size = 0;
 		comb1->list = (Criteria**)malloc(sizeof(Criteria*) * comb1->loggedSize);
-#ifdef DEBUG
+#ifdef _DEBUG
 		incNumberOfDynamicObject();
 #endif
 		for(i=0; i<cb->size; i++){
@@ -673,7 +673,7 @@ int andTwoCriteria(const void *c1, const void *c2, OutBuiltCriteria *out){
 		comb1->loggedSize = cb->loggedSize + 1;
 		comb1->size = 0;
 		comb1->list = (Criteria**)malloc(sizeof(Criteria*) * comb1->loggedSize);
-#ifdef DEBUG
+#ifdef _DEBUG
 		incNumberOfDynamicObject();
 #endif
 		for(i=0; i<cb->size; i++){
@@ -809,7 +809,7 @@ int orTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria
 		c1->fgetInterval(c1, d, 1, (void*)interval);
 		if( (interval->flag & AVAILABLE) == 0){
 			free(interval);
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObject();
 #endif
 			out->cr = newCompositeInterval();
@@ -847,7 +847,7 @@ int orTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria
 			//set available bit, unset left and right infinity
 			((CompositeCriteria*)(out->cr))->list[1]->list[0]->flag = AVAILABLE | (c2->flag | 0xfc);
 			
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 	incNumberOfDynamicObject();
 	incNumberOfDynamicObject();
@@ -895,7 +895,7 @@ int orTwoSimpleCriteria(const Criteria *c1, const Criteria *c2, OutBuiltCriteria
 		//set available bit, unset left and right infinity
 		((CompositeCriteria*)(out->cr))->list[1]->list[0]->flag = AVAILABLE | (c2->flag | 0xfc);
 
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 	incNumberOfDynamicObject();
 	incNumberOfDynamicObject();
@@ -1054,7 +1054,7 @@ FData* generateTwoUnknowsFromCombinedCriteria(NMAST* exp, const char *variables,
 	mesh->loggedRowCount = 0;
 	mesh->rowCount = 0;
 	mesh->rowInfo= NULL;
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 	incNumberOfDynamicObject();
 #endif
@@ -1137,7 +1137,7 @@ ListFData *getSpaces(Function *f, const float *bd, int bdlen, float epsilon) {
 	switch(f->valLen){
 		case 1:
 			lst = (ListFData*)malloc(sizeof(ListFData));
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 			if(f->domain == NULL){
@@ -1155,7 +1155,7 @@ ListFData *getSpaces(Function *f, const float *bd, int bdlen, float epsilon) {
 					lst->loggedSize = 1;
 					lst->size = 1;
 					lst->list = (FData**)malloc(sizeof(FData*));
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 					lst->list[0] = sp;
@@ -1171,12 +1171,12 @@ ListFData *getSpaces(Function *f, const float *bd, int bdlen, float epsilon) {
 							lst->size = 1;
 							lst->list = (FData**)malloc(sizeof(FData*));
 							lst->list[0] = sp;
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 						}
 						free(outCriteria.cr);
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObject();
 #endif
 					break;
@@ -1189,7 +1189,7 @@ ListFData *getSpaces(Function *f, const float *bd, int bdlen, float epsilon) {
 						lst->list = (FData**)malloc(sizeof(FData*) * composite->size );
 						lst->loggedSize = composite->size;
 						lst->size = 0;
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 						for(i=0; i<composite->size; i++){
@@ -1203,13 +1203,13 @@ ListFData *getSpaces(Function *f, const float *bd, int bdlen, float epsilon) {
 							}
 							free(comb->list);
 							free(comb);
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObjectBy(j+1+2);
 #endif
 						}
 						free(composite->list);
 						free(composite);
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObjectBy(2);
 #endif
 					break;
@@ -1219,7 +1219,7 @@ ListFData *getSpaces(Function *f, const float *bd, int bdlen, float epsilon) {
 		
 		case 2:
 			lst = (ListFData*)malloc(sizeof(ListFData));
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 			if(f->domain == NULL){
@@ -1227,7 +1227,7 @@ ListFData *getSpaces(Function *f, const float *bd, int bdlen, float epsilon) {
 				comb->loggedSize = 2;
 				comb->size = 2;
 				comb->list = (Criteria **)malloc(sizeof(Criteria *) * comb->loggedSize);
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 				comb->list[0] = newCriteria(GT_LT, f->variable[0], bd[0], bd[1], TRUE, TRUE);
@@ -1244,7 +1244,7 @@ ListFData *getSpaces(Function *f, const float *bd, int bdlen, float epsilon) {
 				}
 				free(comb->list);
 				free(comb);
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObjectBy(i+1+2);
 #endif
 			} else {
@@ -1253,7 +1253,7 @@ ListFData *getSpaces(Function *f, const float *bd, int bdlen, float epsilon) {
 				switch(outCriteriaType){
 					case SIMPLE_CRITERIA:
 						free(outCriteria.cr);
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObject();
 #endif
 					break;
@@ -1265,7 +1265,7 @@ ListFData *getSpaces(Function *f, const float *bd, int bdlen, float epsilon) {
 							lst->loggedSize = 1;
 							lst->size = 1;
 							lst->list = (FData**)malloc(sizeof(FData*));
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 							lst->list[0] = sp;
@@ -1275,7 +1275,7 @@ ListFData *getSpaces(Function *f, const float *bd, int bdlen, float epsilon) {
 						}
 						free(comb->list);
 						free(comb);
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObjectBy(i+1+2);
 #endif
 					break;
@@ -1285,7 +1285,7 @@ ListFData *getSpaces(Function *f, const float *bd, int bdlen, float epsilon) {
 						lst->list = (FData**)malloc(sizeof(FData*) * composite->size );
 						lst->loggedSize = composite->size;
 						lst->size = 0;
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 						for(i=0; i<composite->size; i++){
@@ -1298,13 +1298,13 @@ ListFData *getSpaces(Function *f, const float *bd, int bdlen, float epsilon) {
 							}
 							free(comb->list);
 							free(comb);
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObjectBy(j+1+2);
 #endif
 						}
 						free(composite->list);
 						free(composite);
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObjectBy(2);
 #endif
 					break;
@@ -1334,7 +1334,7 @@ ListFData *getSpaces2(Function *f, const float *bd, int bdlen, float epsilon){
 	switch(f->valLen){
 		case 1:
 			lst = (ListFData*)malloc(sizeof(ListFData));
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 			if(f->domain == NULL){
@@ -1352,7 +1352,7 @@ ListFData *getSpaces2(Function *f, const float *bd, int bdlen, float epsilon){
 					lst->loggedSize = 1;
 					lst->size = 1;
 					lst->list = (FData**)malloc(sizeof(FData*));
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 					lst->list[0] = sp;
@@ -1368,12 +1368,12 @@ ListFData *getSpaces2(Function *f, const float *bd, int bdlen, float epsilon){
 							lst->size = 1;
 							lst->list = (FData**)malloc(sizeof(FData*));
 							lst->list[0] = sp;
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 						}
 						free(outCriteria.cr);
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObject();
 #endif
 					break;
@@ -1386,7 +1386,7 @@ ListFData *getSpaces2(Function *f, const float *bd, int bdlen, float epsilon){
 						lst->list = (FData**)malloc(sizeof(FData*) * composite->size );
 						lst->loggedSize = composite->size;
 						lst->size = 0;
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 						for(i=0; i<composite->size; i++){
@@ -1400,13 +1400,13 @@ ListFData *getSpaces2(Function *f, const float *bd, int bdlen, float epsilon){
 							}
 							free(comb->list);
 							free(comb);
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObjectBy(j+1+2);
 #endif
 						}
 						free(composite->list);
 						free(composite);
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObjectBy(2);
 #endif
 					break;
@@ -1416,7 +1416,7 @@ ListFData *getSpaces2(Function *f, const float *bd, int bdlen, float epsilon){
 		
 		case 2:
 			lst = (ListFData*)malloc(sizeof(ListFData));
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 			if(f->domain == NULL){
@@ -1424,7 +1424,7 @@ ListFData *getSpaces2(Function *f, const float *bd, int bdlen, float epsilon){
 				comb->loggedSize = 2;
 				comb->size = 2;
 				comb->list = (Criteria **)malloc(sizeof(Criteria *) * comb->loggedSize);
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 				comb->list[0] = newCriteria(GT_LT, f->variable[0], bd[0], bd[1], TRUE, TRUE);
@@ -1441,7 +1441,7 @@ ListFData *getSpaces2(Function *f, const float *bd, int bdlen, float epsilon){
 				}
 				free(comb->list);
 				free(comb);
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObjectBy(i+1+2);
 #endif
 			} else {
@@ -1450,7 +1450,7 @@ ListFData *getSpaces2(Function *f, const float *bd, int bdlen, float epsilon){
 				switch(outCriteriaType){
 					case SIMPLE_CRITERIA:
 						free(outCriteria.cr);
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObject();
 #endif
 					break;
@@ -1462,7 +1462,7 @@ ListFData *getSpaces2(Function *f, const float *bd, int bdlen, float epsilon){
 							lst->loggedSize = 1;
 							lst->size = 1;
 							lst->list = (FData**)malloc(sizeof(FData*));
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 							lst->list[0] = sp;
@@ -1472,7 +1472,7 @@ ListFData *getSpaces2(Function *f, const float *bd, int bdlen, float epsilon){
 						}
 						free(comb->list);
 						free(comb);
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObjectBy(i+1+2);
 #endif
 					break;
@@ -1482,7 +1482,7 @@ ListFData *getSpaces2(Function *f, const float *bd, int bdlen, float epsilon){
 						lst->list = (FData**)malloc(sizeof(FData*) * composite->size );
 						lst->loggedSize = composite->size;
 						lst->size = 0;
-#ifdef DEBUG
+#ifdef _DEBUG
 	incNumberOfDynamicObject();
 #endif
 						for(i=0; i<composite->size; i++){
@@ -1495,13 +1495,13 @@ ListFData *getSpaces2(Function *f, const float *bd, int bdlen, float epsilon){
 							}
 							free(comb->list);
 							free(comb);
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObjectBy(j+1+2);
 #endif
 						}
 						free(composite->list);
 						free(composite);
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObjectBy(2);
 #endif
 					break;
