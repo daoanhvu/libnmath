@@ -3,8 +3,9 @@
 
 #include <vector>
 #include <nmath.h>
-#include <criteria.h>
 #include "Camera.h"
+
+using namespace nmath;
 
 class ModelGL {
 	private:
@@ -34,8 +35,7 @@ class ModelGL {
 		unsigned char* frameBuffer;                     // framebuffer to store RGBA color
 		int bufferSize;                                 // framebuffer size in bytes
 
-		Function *mFunction;
-		ListFData *data; 
+		NFunction *mFunction;
 
 	protected:
 
