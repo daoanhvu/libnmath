@@ -329,7 +329,7 @@ ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, f
 	CompositeCriteria *outCriteria;
 	SimpleCriteria *sc;
 	int i, j;
-	NMAST *df[2];
+	NMAST *df[2] = {0, 0};
 	
 	CompositeCriteria cc;
 	cc.setOperator(AND);
@@ -409,7 +409,7 @@ ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, f
 		}
 		
 		if(df[1] != 0) {
-			clearTree(df + 1);
+			clearTree(df+1);
 		}
 		
 	} //end for

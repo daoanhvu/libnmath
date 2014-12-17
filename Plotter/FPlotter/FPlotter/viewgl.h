@@ -13,10 +13,7 @@ namespace Win {
 			int mWidth;
 			int mHeight;
 			PAINTSTRUCT mPS;
-			HBRUSH mPaintBrush;
-			HBRUSH mBackgroundBrush;
 			RECT mClientRect;
-			ModelGL *mModel;
 
 			//static bool setPixelFormat(HDC hdc, int colorBits, int depthBits, int tencilBits);
 
@@ -25,7 +22,7 @@ namespace Win {
 			~ViewGL(void);
 
 			void releaseBuffer();
-			void paint(HWND handle);
+			void paint(HWND handle, ModelGL *model);
 			HDC getDC() const { return mHdc; };
 			void updateBuffer(HWND handle, int w, int h);
 	};

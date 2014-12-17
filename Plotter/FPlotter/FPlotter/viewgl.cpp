@@ -4,8 +4,6 @@
 using namespace Win;
 
 ViewGL::ViewGL(void): mHdc(0), hMemoryBitmap(0) {
-	mBackgroundBrush = ::CreateSolidBrush(RGB(123,195,113));
-	mPaintBrush = ::CreateSolidBrush(RGB(203,106,3));
 }
 
 
@@ -54,15 +52,14 @@ void ViewGL::updateBuffer(HWND handle, int w, int h) {
 	memoryDC = ::CreateCompatibleDC(mHdc);
 	hMemoryBitmap = CreateCompatibleBitmap(mHdc, w, h);
 
-	SelectObject(memoryDC, hMemoryBitmap);
-	SelectObject(memoryDC, mPaintBrush);
+	SelectObject(memoryDC, hMemoryBitmap);	
 	::GetClientRect(handle, &mClientRect);
 	::ReleaseDC(handle, mHdc);
 }
 
-void ViewGL::paint(HWND handle){
+void ViewGL::paint(HWND handle, ModelGL* model){
 	mHdc = BeginPaint(handle, &mPS);
-	FillRect(memoryDC, &mClientRect, mBackgroundBrush);
+	model->draw(memoryDC);
 	BitBlt(mHdc, 0, 0, mWidth, mHeight, memoryDC, 0, 0, SRCCOPY);
 	EndPaint(handle, &mPS);
 }

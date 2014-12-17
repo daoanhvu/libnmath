@@ -30,12 +30,13 @@ int GLController::create() {
 }
 
 int GLController::paint() {
-	mView->paint(mHandle);
+	mView->paint(mHandle, mModel);
 	return 0;
 }
 
 int GLController::size(int w, int h, WPARAM wParam) {
 	mModel->resizeWindow(w, h);
+	mModel->setCamera(0, 0, -4.0f, 0, 0, 0);
 	mView->updateBuffer(mHandle, w, h);
     return 0;
 }
@@ -67,7 +68,7 @@ int GLController::mouseMove(WPARAM state, int x, int y) {
 void GLController::runThread() {
 	while(mLoopFlag) {
 		Sleep(1);		//yield to other processes or threads
-		mModel->draw();
+		mModel->draw(mView->getDC());
 	}
 	
 	::CloseHandle(mThreadHandle);

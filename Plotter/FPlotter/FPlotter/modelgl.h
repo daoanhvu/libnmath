@@ -1,6 +1,7 @@
 #ifndef _MODELGL_H
 #define _MODELGL_H
 
+#include <Windows.h>
 #include <vector>
 #include <nmath.h>
 #include "Camera.h"
@@ -8,6 +9,12 @@
 using namespace nmath;
 
 class ModelGL {
+
+	typedef struct tIndex {
+		int *indice;
+		int size;
+	} TIndex;
+	
 	private:
 		void initLights();
 		void createObject();
@@ -16,6 +23,8 @@ class ModelGL {
 		// members
 		int windowWidth;
 		int windowHeight;
+		RECT mClientRect;
+		bool windowResized;
 		Camera camera;
 
 		bool animateFlag;                               // on/off animation
@@ -31,11 +40,16 @@ class ModelGL {
 		float cameraDistance;
 		BYTE bgColor[4];
 		bool bgFlag;
-		bool windowResized;
 		unsigned char* frameBuffer;                     // framebuffer to store RGBA color
 		int bufferSize;                                 // framebuffer size in bytes
 
 		NFunction *mFunction;
+		
+		ListFData *mVertexData;
+		TIndex *mIndice;
+		int numOfIndice;
+		
+		HBRUSH mBackgroundBrush;
 
 	protected:
 
@@ -48,7 +62,7 @@ class ModelGL {
 		void setCamera(float posX, float posY, float posZ, float targetX, float targetY, float targetZ);
 		void setViewport(int width, int height);
 		void resizeWindow(int width, int height);
-		void draw();
+		void draw(HDC hdc);
 
 		void setMouseLeft(bool flag) { mouseLeftDown = flag; };
 		void setMouseRight(bool flag) { mouseRightDown = flag; };

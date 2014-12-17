@@ -92,6 +92,8 @@
 #define PI			3.14159265358979323846
 #define E			2.718281828
 
+#define D2R(x) x*(3.141592f/180.0f)
+
 #ifndef TRUE
 	#define TRUE -1
 	#define FALSE 0

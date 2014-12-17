@@ -1,4 +1,5 @@
 #define WIN32_LEAN_AND_MEAN             // exclude rarely-used stuff from Windows headers
+#define GLM_FORCE_RADIANS
 
 #include <stdlib.h>
 #include <stdio.h>
