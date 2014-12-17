@@ -38,8 +38,8 @@ void ModelGL::release() {
 void ModelGL::initLights() {
 }
 
-void ModelGL::createObject() {
-	float bd[4] = {-2, 2, -2, 2};
+void ModelGL::init() {
+	float bd[4] = { -2, 2, -2, 2 };
 	mFunction = (Function*)malloc(sizeof(Function));
 	mFunction->prefix = NULL;
 	mFunction->domain = NULL;
@@ -51,16 +51,13 @@ void ModelGL::createObject() {
 	mFunction->valLen = 0;
 
 	parseFunction("f(x,y)=sin(x)+cos(y)", 20, mFunction);
-	if(getErrorCode() != NMATH_NO_ERROR) {
+	if (getErrorCode() != NMATH_NO_ERROR) {
 		releaseFunct(mFunction);
 		free(mFunction);
 		return;
-	} 
+	}
 
 	data = getSpaces(mFunction, bd, mFunction->valLen * 2, 0.1f);
-}
-
-void ModelGL::init() {
 }
 
 void ModelGL::setCamera(float posX, float posY, float posZ, float targetX, float targetY, float targetZ) {
