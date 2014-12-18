@@ -12,10 +12,13 @@
 using namespace std;
 using namespace nmath;
 
-ModelGL::ModelGL(): mFunction(NULL), mVertexData(0) {
+ModelGL::ModelGL() : mFunction(NULL), mVertexData(0) {
 	bgColor[0] = bgColor[1] = bgColor[2] = bgColor[3] = 255;
 	mBackgroundBrush = ::CreateSolidBrush(RGB(bgColor[0], bgColor[1], bgColor[2]));
 	//mBackgroundBrush = ::CreateSolidBrush(RGB(100, 40, 250));
+
+	mIndice = 0;
+	numOfIndice = 0;
 
 	//For testing
 	createObject();
@@ -42,6 +45,13 @@ void ModelGL::release() {
 		mVertexData = NULL;
 	}
 
+	if (mIndice != NULL) {
+		for (i = 0; i<numOfIndice; i++)
+			delete mIndice[i].indice;
+
+		delete mIndice;
+	}
+
 	if (mBackgroundBrush)
 		::DeleteObject(mBackgroundBrush);
 }
@@ -51,6 +61,8 @@ void ModelGL::initLights() {
 
 void ModelGL::createObject() {
 	float bd[4] = {-2, 2, -2, 2};
+	int i;
+
 	mFunction = new NFunction();
 	
 	mFunction->parse("f(x,y)=x+cos(y)", 15);
@@ -60,11 +72,20 @@ void ModelGL::createObject() {
 	}
 
 	mVertexData = mFunction->getSpace(bd, 0.2f, false);
+	if (mVertexData != NULL) {
+		numOfIndice = mVertexData->size;
+		mIndice = new TIndex[numOfIndice];
+
+		for (i = 0; i < mVertexData->size; i++) {
+			mIndice[i].indice = camera.buildIndicesForTriangleStrip(mVertexData->list[i]->dataSize / mVertexData->list[i]->dimension,
+				mVertexData->list[i]->rowInfo, mVertexData->list[i]->rowCount, &(mIndice[i].size));
+		}
+	}
 }
 
 void ModelGL::setCamera(float posX, float posY, float posZ, float targetX, float targetY, float targetZ) {
 	camera.setup(posX, posY, posZ, targetX, targetY, targetZ, 0, 1, 0);
-	camera.setPerspective(D2R(30), 0.2f, 10);
+	//camera.setPerspective(D2R(30), 0.2f, 10);
 }
 
 void ModelGL::setViewport(int width, int height) {
@@ -78,6 +99,7 @@ void ModelGL::resizeWindow(int width, int height) {
 	windowHeight = height;
 	windowResized = true;
 	camera.setViewport(0, 0, width, height);
+	camera.setPerspective(D2R(30), 0.2f, 10);
 	mClientRect.left = 0;
 	mClientRect.top = 0;
 	mClientRect.right = width;
@@ -85,12 +107,13 @@ void ModelGL::resizeWindow(int width, int height) {
 }
 
 void ModelGL::draw(HDC hdc) {
+	/*
 	if(windowResized) {
 		setViewport(windowWidth, windowHeight);
 		windowResized = false;
 	}
-	int *indice;
-	int indiceSize;
+	*/
+	
 	FillRect(hdc, &mClientRect, mBackgroundBrush);
 	HBRUSH brush = CreateSolidBrush(RGB(200,170,20));
 	HBRUSH oldPaintRush = (HBRUSH)::SelectObject(hdc, brush);
@@ -110,11 +133,7 @@ void ModelGL::draw(HDC hdc) {
 	
 	if(mVertexData != 0) {
 		for(int i=0; i<mVertexData->size; i++) {
-			indice = camera.buildIndicesForTriangleStrip(mVertexData->list[i]->dataSize / mVertexData->list[i]->dimension, 
-				mVertexData->list[i]->rowInfo, mVertexData->list[i]->rowCount, &indiceSize);
-			camera.drawTriangleTrip(hdc, mVertexData->list[i]->data, indice, indiceSize);
-			if (indice != NULL)
-				delete[] indice;
+			camera.drawTriangleTrip(hdc, mVertexData->list[i]->data, mIndice[i].indice, mIndice[i].size);
 		}
 	}
 

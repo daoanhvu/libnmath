@@ -20,6 +20,7 @@ int GLController::command(int id, int cmd, LPARAM msg) {
 }
 
 int GLController::create() {
+	mModel->setCamera(0, 0, -8.0f, 0, 0, 0);
 	/*
 	mThreadHandle = (HANDLE)_beginthreadex(0, 0, (unsigned (__stdcall *)(void*))threadFunction, this, 0, &mThreadId);
 	if(mThreadHandle) {
@@ -35,9 +36,9 @@ int GLController::paint() {
 }
 
 int GLController::size(int w, int h, WPARAM wParam) {
-	mModel->resizeWindow(w, h);
-	mModel->setCamera(0, 0, -4.0f, 0, 0, 0);
 	mView->updateBuffer(mHandle, w, h);
+	mModel->resizeWindow(w, h);
+	mView->invalidate(mHandle, NULL, TRUE);
     return 0;
 }
 

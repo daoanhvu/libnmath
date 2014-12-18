@@ -24,6 +24,10 @@ void ViewGL::releaseBuffer() {
 	}
 }
 
+void ViewGL::invalidate(HWND handle, const RECT* rect, BOOL erase) {
+	::InvalidateRect(handle, rect, erase);
+}
+
 /*
 bool ViewGL::setPixelFormat(HDC hdc, int colorBits, int depthBits, int tencilBits) {
 	PIXELFORMATDESCRIPTOR pfd;

@@ -25,6 +25,8 @@ namespace Win {
 			void paint(HWND handle, ModelGL *model);
 			HDC getDC() const { return mHdc; };
 			void updateBuffer(HWND handle, int w, int h);
+
+			void invalidate(HWND handle, const RECT* rect, BOOL erase);
 	};
 }
 
