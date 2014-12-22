@@ -48,6 +48,8 @@ class ModelGL {
 		ListFData *mVertexData;
 		TIndex *mIndice;
 		int numOfIndice;
+
+		int mStatus;
 		
 		HBRUSH mBackgroundBrush;
 
@@ -70,8 +72,12 @@ class ModelGL {
 		void setDrawMode(int mode);
 		void animate(bool flag) { animateFlag = flag; };
 
-		void rotateCamera(int x, int y);
+		void onMouseMove();
+		void rotateCamera(float beta);
 		void zoomCamera(int dist);
+
+		void setRotateMode(int mode) { mStatus = mode; }
+		bool isRotating() { return mStatus;}
 
 		void setBackgroundColor(BYTE red, BYTE green, BYTE, BYTE blue);             // change background colour
 };

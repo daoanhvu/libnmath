@@ -38,6 +38,8 @@ namespace Win {
 			virtual int paint();
 			virtual int size(int w, int h, WPARAM wparam);
 			virtual int timer(WPARAM id, LPARAM lparam);
+
+			virtual int onOtherMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	};
 
 	inline void Controller::setHandle(HWND handle) { mHandle = handle; }
@@ -66,6 +68,8 @@ namespace Win {
     inline int Controller::size(int w, int h, WPARAM type) { return 0; }
     inline int Controller::timer(WPARAM id, LPARAM lParam) { return 0; }
     inline int Controller::vScroll(WPARAM wParam, LPARAM lParam) { return 0; }
+	inline int Controller::onOtherMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) { return 0; }
+
 }
 
 #endif

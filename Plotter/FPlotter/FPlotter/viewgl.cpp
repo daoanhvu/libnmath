@@ -14,19 +14,7 @@ ViewGL::~ViewGL(void) {
 	}
 }
 
-void ViewGL::releaseBuffer() {
-	if(hMemoryBitmap != 0) {
-		DeleteObject(hMemoryBitmap);
-		DeleteDC(memoryDC);
 
-		hMemoryBitmap = NULL;
-		memoryDC = NULL;
-	}
-}
-
-void ViewGL::invalidate(HWND handle, const RECT* rect, BOOL erase) {
-	::InvalidateRect(handle, rect, erase);
-}
 
 /*
 bool ViewGL::setPixelFormat(HDC hdc, int colorBits, int depthBits, int tencilBits) {
@@ -61,9 +49,3 @@ void ViewGL::updateBuffer(HWND handle, int w, int h) {
 	::ReleaseDC(handle, mHdc);
 }
 
-void ViewGL::paint(HWND handle, ModelGL* model){
-	mHdc = BeginPaint(handle, &mPS);
-	model->draw(memoryDC);
-	BitBlt(mHdc, 0, 0, mWidth, mHeight, memoryDC, 0, 0, SRCCOPY);
-	EndPaint(handle, &mPS);
-}

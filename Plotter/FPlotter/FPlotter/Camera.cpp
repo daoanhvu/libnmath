@@ -1,8 +1,13 @@
 #include "Camera.h"
 
-
+#include <common.h>
 #include <vector>
+#include <glm\ext.hpp>
+#include <glm\gtx\matrix_cross_product.hpp>
+#include <glm\gtx\quaternion.hpp>
 #include <glm\gtc\matrix_transform.hpp>
+
+using namespace glm;
 
 Camera::Camera(void) {
 	mvp = glm::mat4();
@@ -30,6 +35,29 @@ void Camera::setOrtho(float left, float top, float right, float bottom) {
 
 void Camera::setViewport(int left, int top, int right, int bottom) {
 	viewport = glm::vec4(left, top, right, bottom);
+}
+
+/*
+	yaw: rotate around right vector
+	pitch: rotate around up vector
+*/
+void Camera::rotate(float yawR, float pitchDegrees) {
+
+	// Rotate the camera about the world Y axis
+	// N.B. 'angleAxis' method takes angle in degrees (not in radians)
+	
+	glm::quat rotation = glm::angleAxis(yawR, glm::vec3(0, 1, 0));
+
+	// Concatenate quaterions ('*' operator concatenates)
+	// C#: Quaternion.Concatenate(ref rotation, ref orientation)
+	orientation = orientation * rotation;
+
+	// Rotate the camera about the world X axis
+	rotation = glm::angleAxis(pitchDegrees, glm::vec3(1.0f, 0.0f, 0.0f));
+
+	// Concatenate quaterions ('*' operator concatenates)
+	// C#: Quaternion.Concatenate(ref orientation, ref rotation)
+	orientation = rotation * orientation;
 }
 
 /*

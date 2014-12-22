@@ -12,7 +12,7 @@
 using namespace std;
 using namespace nmath;
 
-ModelGL::ModelGL() : mFunction(NULL), mVertexData(0) {
+ModelGL::ModelGL() : mFunction(NULL), mVertexData(0),mStatus(0) {
 	bgColor[0] = bgColor[1] = bgColor[2] = bgColor[3] = 255;
 	mBackgroundBrush = ::CreateSolidBrush(RGB(bgColor[0], bgColor[1], bgColor[2]));
 	//mBackgroundBrush = ::CreateSolidBrush(RGB(100, 40, 250));
@@ -107,6 +107,9 @@ void ModelGL::resizeWindow(int width, int height) {
 }
 
 void ModelGL::draw(HDC hdc) {
+	HPEN hEllipsePen, hPenOld;
+	COLORREF qEllipseColor;
+	qEllipseColor = RGB(0, 0, 255);
 	/*
 	if(windowResized) {
 		setViewport(windowWidth, windowHeight);
@@ -115,8 +118,8 @@ void ModelGL::draw(HDC hdc) {
 	*/
 	
 	FillRect(hdc, &mClientRect, mBackgroundBrush);
-	HBRUSH brush = CreateSolidBrush(RGB(200,170,20));
-	HBRUSH oldPaintRush = (HBRUSH)::SelectObject(hdc, brush);
+	//HBRUSH brush = CreateSolidBrush(RGB(200,170,20));
+	//HBRUSH oldPaintRush = (HBRUSH)::SelectObject(hdc, brush);
 	
 	if(changeDrawMode) {
 		switch (drawMode) {
@@ -137,13 +140,23 @@ void ModelGL::draw(HDC hdc) {
 		}
 	}
 
+	if(mStatus == 1) {
+		hEllipsePen = CreatePen(PS_SOLID, 2, qEllipseColor);
+		hPenOld = (HPEN)SelectObject(hdc, hEllipsePen);
+		//Ellipse(hdc, windowWidth/2-15, windowHeight/2 - 60, windowWidth/2+15, windowHeight/2+60);
+		Arc(hdc, windowWidth/2-15, windowHeight/2 - 100, windowWidth/2+15, windowHeight/2+100, 0, 0, 0, 0);
+		Arc(hdc, windowWidth/2-100, windowHeight/2 - 15, windowWidth/2+100, windowHeight/2+15, 0, 0, 0, 0);
+		SelectObject(hdc, hPenOld);
+		DeleteObject(hEllipsePen);
+	}
+
 	//Check if background was changing
 	if(bgFlag) {
         bgFlag = false;
 	}
 	
-	::SelectObject(hdc, oldPaintRush);
-	::DeleteObject(brush);
+	//::SelectObject(hdc, oldPaintRush);
+	//::DeleteObject(brush);
 }
 
 void ModelGL::setDrawMode(int mode) {
@@ -153,7 +166,8 @@ void ModelGL::setDrawMode(int mode) {
 	}
 }
 		
-void ModelGL::rotateCamera(int x, int y) {
+void ModelGL::rotateCamera(float beta) {
+	camera.rotate(beta);
 }
 
 void ModelGL::zoomCamera(int dist) {

@@ -52,6 +52,9 @@ namespace Win {
 		void setSize(int w, int h)				{ width = w; height = h; }
 		void setParent(HWND hwnd)				{ parentHandle = hwnd; }
 		void setMenu(HMENU menu)				{ menuHandle = menu; }
+
+		HINSTANCE getInstance()					{ return instance; }
+		Controller* getController()			{ return controller; }
 	};
 }
 

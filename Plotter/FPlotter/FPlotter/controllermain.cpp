@@ -2,6 +2,8 @@
 #include <CommCtrl.h>
 #include <sstream>
 #include "controllermain.h"
+#include "NewFunctionDlgCtrl.h"
+#include "messages.h"
 #include "resource.h"
 
 using namespace Win;
@@ -12,16 +14,47 @@ using namespace Win;
 bool CALLBACK enumerateChildren(HWND childHandle, LPARAM lParam);
 
 
-ControllerMain::ControllerMain():glHandle(0), consolePaneHandle(0) {
+ControllerMain::ControllerMain():mDrawingHandle(0), consolePaneHandle(0), dialog(0), mBttRotateStatus(false) {
+}
+
+ControllerMain::~ControllerMain() {
+	Controller *ctrl;
+	if(dialog != NULL) {
+		ctrl = dialog->getController();
+		delete ctrl;
+		delete dialog;
+	}
 }
 
 int ControllerMain::command(int id, int cmd, LPARAM msg) {   // for WM_COMMAND
 	
 	/* Should use switch struct here if you have many case of command id */
+	Win::NewFunctionDlgCtrl* consolePaneCtrl;
 
-	if(id == ID_FILE_EXIT) {
-		::PostMessage(mHandle, WM_CLOSE, 0, 0);
+	switch(id) {
+	case ID_FILE_EXIT:
+			::PostMessage(mHandle, WM_CLOSE, 0, 0);
 		return 0;
+
+		case ID_TBB_ADD_F1:
+			if(dialog == NULL) {
+				consolePaneCtrl = new NewFunctionDlgCtrl();
+				dialog = new DialogWindow(mWindow->getInstance(), IDD_INPUT_FUNCTION1, NULL, consolePaneCtrl);
+				dialog->create();
+				dialog->show();
+			}
+		return 0;
+
+		case ID_TBB_BACKGROUND:
+		
+		return 0;
+
+		case ID_TBB_ROTATE:
+			mBttRotateStatus = !mBttRotateStatus;
+			WPARAM wParam = MAKEWPARAM( FPLOTTER_SET_ROTATE, (mBttRotateStatus?1:0) );
+			BOOL bval = ::PostMessage(mDrawingHandle, WM_COMMAND, wParam, (LPARAM)0);
+			//::SendMessage(mDrawingHandle, FPLOTTER_SET_ROTATE, 0, (LPARAM)(mBttRotateStatus?1:0));
+			break;
 	}
 
 	return 0;
@@ -57,7 +90,7 @@ int ControllerMain::size(int width, int height, WPARAM wParam) {      // for WM_
 	
 	//Resize the height of glWin
 	glHeight = height - consolePaneHeight - statusHeight;
-	::SetWindowPos(glHandle, 0, 0, 0, width, glHeight, SWP_NOZORDER);
+	::SetWindowPos(mDrawingHandle, 0, 0, 0, width, glHeight, SWP_NOZORDER);
 	::SetWindowPos(consolePaneHandle, 0, 0, glHeight, width, consolePaneHeight, SWP_NOZORDER);
 	::InvalidateRect(consolePaneHandle, 0, TRUE);
 	::SendMessage(statusHandle, WM_SIZE, 0, 0); //automatically resize width so send 0s

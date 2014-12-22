@@ -5,8 +5,7 @@
 #include "controller.h"
 
 namespace Win {
-	class DialogWindow
-	{
+	class DialogWindow	{
 		private:
 			HWND mHandle;
 			HWND mParentHandle;
@@ -16,7 +15,7 @@ namespace Win {
 			int mWidth;
 			int mHeight;
 			HINSTANCE mInstance;
-			Win::Controller *mController;
+			Controller *mController;
 
 		public:
 			DialogWindow(HINSTANCE inst, WORD id, HWND parent, Controller *ctrl);
@@ -27,10 +26,10 @@ namespace Win {
 			HWND getHandle()	{ return mHandle; }
 
 			// setters
-			void setPosition(int x, int y)          { this->mX = x; this->mY = y; };
-			void setWidth(int w)                    { mWidth = w; };
-			void setHeight(int h)                   { mHeight = h; };
-
+			void setPosition(int x, int y)          { this->mX = x; this->mY = y; }
+			void setWidth(int w)                    { mWidth = w; }
+			void setHeight(int h)                   { mHeight = h; }
+			Controller* getController()			{ return mController; }
 	};
 }
 
