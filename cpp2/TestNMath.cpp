@@ -10,6 +10,7 @@
 #include <string>
 #include <StringUtil.h>
 #include <nmath.h>
+#include <glm\glm.hpp>
 
 using namespace nmath;
 
@@ -267,8 +268,20 @@ void testCriteria(){
 	}
 }
 
+void printMat4(glm::mat4 *m) {
+	int i, j;
+	cout << "\n";
+	for(i=0; i<4; i++) {
+		for(j=0; j<4; j++) {
+			cout << m->operator[](i)[j] << "\t";
+		}
+		cout << "\n";
+	}
+	cout << "\n";
+}
+
 int _tmain(int argc, _TCHAR* argv[]) {
-	int command;
+	int command, i, j;
 
 	do {
 		printMenu();
@@ -292,6 +305,16 @@ int _tmain(int argc, _TCHAR* argv[]) {
 
 		case 4:
 			testCalculate();
+			break;
+
+		case 5:
+			glm::mat4 m = glm::mat4();
+			for(i=0; i<4; i++)
+				for(j=0; j<4; j++)
+					m[i][j] = i*4+j;
+
+			printMat4(&m);
+
 			break;
 		}
 
