@@ -332,19 +332,18 @@ Token checkParenthesePrackets(char c){
 		return tk;
 	}
 	
-	private boolean isNumericOperatorOREQ(char c){
-		switch(c){
-			case '+':
-			case '-':
-			case '*':
-			case '/':
-			case '^':
-			case '=':
-				return true;
-		}
-		
-		return false;
+private boolean isNumericOperatorOREQ(char c){
+	switch(c){
+		case '+':
+		case '-':
+		case '*':
+		case '/':
+		case '^':
+		case '=':
+			return true;
 	}
+	return false;
+}
 	/***********************************************************************/
 
 /**

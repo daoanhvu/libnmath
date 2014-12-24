@@ -5,3 +5,18 @@ https://github.com/asmCode/taxibynight/blob/master/BunniesView/WinMain.cpp
 http://www.3dcpptutorials.sk/index.php?id=29
 
 https://code.google.com/p/begui/wiki/GettingStartedPart1
+
+Lighting:
+http://www.falloutsoftware.com/tutorials/gl/gl8.htm
+
+Rotation:
+http://www.gamedev.net/page/resources/_/technical/math-and-physics/a-simple-quaternion-based-camera-r1997
+http://www.gamasutra.com/view/feature/131686/rotating_objects_using_quaternions.php?page=1
+
+http://fossies.org/linux/privat/gfsview-snapshot-121130.tar.gz:a/gfsview-snapshot-121130/gl/trackball.c
+http://fossies.org/linux/privat/gfsview-snapshot-121130.tar.gz:a/gfsview-snapshot-121130/gl/trackball.h
+
+http://answers.unity3d.com/questions/10443/how-to-rotate-an-objects-x-y-z-based-on-mouse-move.html
+http://answers.unity3d.com/questions/332494/how-can-i-rotate-around-the-local-z-axis-based-off.html
+http://stackoverflow.com/questions/107413/best-way-to-translate-mouse-drag-motion-into-3d-rotation-of-an-object
+http://www.sjbaker.org/steve/omniv/eulers_are_evil.html
