@@ -167,7 +167,7 @@ void ModelGL::setDrawMode(int mode) {
 }
 		
 void ModelGL::rotateCamera(float yaw, float pitch) {
-	camera.rotate(yaw, pitch);
+	camera.rotate(yaw, pitch, 0);
 }
 
 void ModelGL::zoomCamera(int dist) {

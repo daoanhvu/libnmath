@@ -94,9 +94,14 @@ int GLController::mouseMove(WPARAM state, int x, int y) {
 	int dy = y - mMouseY;
 	float yaw, pitch;
 	if(state == MK_LBUTTON && mModel->isRotating()) {
-		yaw = angle2DVector(dx, dy, 1, 0);
-		pitch = angle2DVector(dx, dy, 0, 1);
-		mModel->rotateCamera(yaw, pitch);
+		/*
+			We need to get the normal vector of the movement vector
+			n = (dy, -dx)
+		*/
+		//yaw = angle2DVector(dx, dy, 1, 0);
+		//pitch = angle2DVector(dx, dy, 0, 1);
+		//mModel->rotateCamera(yaw, pitch);
+		mModel->rotateCamera(dx, dy);
 		invalidate(NULL, true);
 	}
 
@@ -145,9 +150,18 @@ int GLController::onOtherMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	return 0;
 }
 
+/*
+	Return in radian unit.
+
+*/
 float Win::angle2DVector(float x1, float y1, float x2, float y2) {
-	float d = (x1 * x2) + (y1 * y2);
-	float cs = d/(sqrt(x1*x1 + y1*y1) * sqrt(x2*x2 + y2*y2) );
+	float d, cs, phi;
+	
+	if ((x1 == y1 && x1 == 0) || (x2 == y2 && x2 == 0))
+		return 0;
+
+	d = (x1 * x2) + (y1 * y2);
+	cs = d / (sqrt(x1*x1 + y1*y1) * sqrt(x2*x2 + y2*y2));
 	return acos(cs);
 }
 

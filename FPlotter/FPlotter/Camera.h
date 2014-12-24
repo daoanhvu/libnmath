@@ -17,6 +17,7 @@ class Camera {
 
 		float pitchAccum;
 		float yawAccum;
+		float rollAccum;
 
 	public:
 		Camera(void);
@@ -27,7 +28,7 @@ class Camera {
 		void setPerspective(float fov, float nearPlane, float farPlane);
 		void setOrtho(float left, float top, float right, float bottom);
 
-		void Camera::rotate(float yaw, float pitch);
+		void Camera::rotate(float yaw, float pitch, float roll);
 
 		void setViewport(int left, int top, int right, int bottom);
 		void world2Screen(float *out, const float *inPoint, char projectionUsed);

@@ -17,6 +17,7 @@ Camera::Camera(void) {
 
 	pitchAccum = 0;
 	yawAccum = 0;
+	rollAccum = 0;
 }
 
 Camera::~Camera(void) {
@@ -44,18 +45,20 @@ void Camera::setViewport(int left, int top, int right, int bottom) {
 	yaw: rotate around right vector
 	pitch: rotate around up vector
 */
-void Camera::rotate(float yawR, float pitchR) {
+void Camera::rotate(float yawR, float pitchR, float roll) {
 
-	yawR *= 0.1f;
-	pitchR *= 0.1f;
+	yawR *= 0.05f;
+	pitchR *= 0.05f;
+	roll *= 0.05f;
 
 	pitchAccum += pitchR;
 	yawAccum += yawR;
+	rollAccum += roll;
 
 	// Rotate the camera about the world Y axis
 	// N.B. 'angleAxis' method takes angle in degrees (not in radians)
-	glm::quat rotation = glm::angleAxis(pitchAccum, glm::vec3(1, 0, 0)) * 
-		glm::angleAxis(yawAccum, glm::vec3(0, 1, 0));
+	glm::quat rotation = glm::angleAxis(pitchAccum, glm::vec3(1, 0, 0)) * glm::angleAxis(yawAccum, glm::vec3(0, 1, 0))
+		* glm::angleAxis(rollAccum, glm::vec3(0, 0, 1));
 	model = glm::toMat4(rotation);
 }
 
