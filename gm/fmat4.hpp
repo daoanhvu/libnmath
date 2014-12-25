@@ -41,6 +41,11 @@ namespace gm {
 		friend FVec4<T> operator *(FVec4<T> const &v1,  FVec4<T> const &v2) {
 			
 		}
+
+		//DOT product
+		friend FVec4<T> operator *(FVec4<T> const &v1,  T a) {
+			return FVec4<T>(v1[0] * a, v1[1] * a, v1[2] * a, v1[3] * a);
+		}
 	};
 
 	template <typename T>
@@ -109,9 +114,19 @@ namespace gm {
 
 		friend FMat4<T> operator *(FMat4<T> &m1,  FMat4<T> &m2) {
 			FMat4<T> result;
+			int i, j, k;
+			float s;
 
-			result[0][0] = 1;
+			for(i=0; i<4; i++) {
+				for(j=0; j<4; j++) {
+					s = 0;
+					for(k=0; k<4; k++){
+						s += m1[k][j] * m2[j][k];
+					}
 
+					result[i][j] = s;
+				}
+			}
 			return result;
 		}
 	};
