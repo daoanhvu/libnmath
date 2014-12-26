@@ -12,7 +12,10 @@ namespace gm {
 	public:
 
 		FVec4() {
-
+			data[0] = 0;
+			data[1] = 0;
+			data[2] = 0;
+			data[3] = 0;
 		}
 
 		FVec4(T v0, T v1, T v2, T v3) {
@@ -30,21 +33,33 @@ namespace gm {
 			return *this;
 		}
 
-		friend FVec4<T> operator +(FVec4<T> const &v1, FVec4<T> const &v2) {
-			return FVec4<T>(v1[0] + v2[0],
-				v1[1] + v2[1],
-				v1[2] + v2[2],
-				v1[3] + v2[3]);
+		FVec4<T> operator +(FVec4<T> &v2) {
+			return FVec4<T>(data[0] + v2[0],
+				data[1] + v2[1],
+				data[2] + v2[2],
+				data[3] + v2[3]);
 		}
 
 		//DOT product
-		friend FVec4<T> operator *(FVec4<T> const &v1,  FVec4<T> const &v2) {
-			
+		FVec4<T> operator *(FVec4<T> &v2) {
+			return FVec4<T>();
 		}
 
-		//DOT product
-		friend FVec4<T> operator *(FVec4<T> const &v1,  T a) {
-			return FVec4<T>(v1[0] * a, v1[1] * a, v1[2] * a, v1[3] * a);
+		FVec4<T> operator +(T a) {
+			return FVec4<T>(data[0] + a, data[1] + a, data[2] + a, data[3] + a);
+		}
+
+		FVec4<T> operator *(T a) {
+			return FVec4<T>(data[0] * a, data[1] * a, data[2] * a, data[3] * a);
+		}
+
+		FVec4<T>& operator /=(T a) {
+			data[0] /= a;
+			data[1] /= a;
+			data[2] /= a;
+			data[3] /= a;
+
+			return *this;
 		}
 	};
 
@@ -100,7 +115,7 @@ namespace gm {
 			data[3][3] = 1;
 		}
 
-		FVec4<T> operator [](int index)	{ return data[index]; }
+		FVec4<T>& operator [](int index)	{ return data[index]; }
 
 		FMat4<T>& operator =(FMat4<T> const &m) {
 			//memcpy could be faster
@@ -112,21 +127,36 @@ namespace gm {
 			return *this;
 		}
 
-		friend FMat4<T> operator *(FMat4<T> &m1,  FMat4<T> &m2) {
+		FMat4<T> operator *(FMat4<T> &m2) {
 			FMat4<T> result;
 			int i, j, k;
-			float s;
+			T s;
 
 			for(i=0; i<4; i++) {
 				for(j=0; j<4; j++) {
 					s = 0;
 					for(k=0; k<4; k++){
-						s += m1[k][j] * m2[j][k];
+						s += data[k][j] * m2[j][k];
 					}
 
 					result[i][j] = s;
 				}
 			}
+			return result;
+		}
+
+		FVec4<T> operator *(FVec4<T> &v) {
+			FVec4<T> result;
+			int i, j, k;
+			T s;
+			for(i=0; i<4; i++) {
+				s = 0;
+				for(j=0; j<4; j++)
+					s += data[i][j] * v[j];
+				
+				result[i] = s;
+			}
+			
 			return result;
 		}
 	};

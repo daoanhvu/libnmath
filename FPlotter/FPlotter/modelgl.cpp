@@ -141,7 +141,7 @@ void ModelGL::draw(HDC hdc) {
 	}
 
 	if(mStatus == 1) {
-		hEllipsePen = CreatePen(PS_SOLID, 2, qEllipseColor);
+		hEllipsePen = CreatePen(PS_SOLID, 1, qEllipseColor);
 		hPenOld = (HPEN)SelectObject(hdc, hEllipsePen);
 		//Ellipse(hdc, windowWidth/2-15, windowHeight/2 - 60, windowWidth/2+15, windowHeight/2+60);
 		Arc(hdc, windowWidth/2-15, windowHeight/2 - 100, windowWidth/2+15, windowHeight/2+100, 0, 0, 0, 0);
