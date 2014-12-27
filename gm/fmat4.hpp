@@ -2,71 +2,13 @@
 #define _FMAT4_H
 
 #include <stdlib.h>
+#include "vec4.hpp"
 
 namespace gm {
-
-	template <typename T>
-	struct FVec4{
-	private:
-		T data[4];
-	public:
-
-		FVec4() {
-			data[0] = 0;
-			data[1] = 0;
-			data[2] = 0;
-			data[3] = 0;
-		}
-
-		FVec4(T v0, T v1, T v2, T v3) {
-			data[0] = v0;
-			data[1] = v1;
-			data[2] = v2;
-			data[3] = v3;
-		}
-
-		T& operator [](int index)	{ return data[index]; }
-
-		FVec4<T>& operator =(FVec4<T> const &m) {
-			//memcpy could be faster
-			memcpy(&data, &m.data, 4 * sizeof(T));
-			return *this;
-		}
-
-		FVec4<T> operator +(FVec4<T> &v2) {
-			return FVec4<T>(data[0] + v2[0],
-				data[1] + v2[1],
-				data[2] + v2[2],
-				data[3] + v2[3]);
-		}
-
-		//DOT product
-		FVec4<T> operator *(FVec4<T> &v2) {
-			return FVec4<T>();
-		}
-
-		FVec4<T> operator +(T a) {
-			return FVec4<T>(data[0] + a, data[1] + a, data[2] + a, data[3] + a);
-		}
-
-		FVec4<T> operator *(T a) {
-			return FVec4<T>(data[0] * a, data[1] * a, data[2] * a, data[3] * a);
-		}
-
-		FVec4<T>& operator /=(T a) {
-			data[0] /= a;
-			data[1] /= a;
-			data[2] /= a;
-			data[3] /= a;
-
-			return *this;
-		}
-	};
-
 	template <typename T>
 	struct FMat4 {
 	private:
-		FVec4<T> data[4];
+		Vec4<T> data[4];
 
 	public:
 		FMat4() {
@@ -89,6 +31,15 @@ namespace gm {
 			data[3][1] = 0;
 			data[3][2] = 0;
 			data[3][3] = 1;
+		}
+
+		FMat4(T value) {
+			int i, j;
+
+			//could use memset
+			for(i=0; i<4; i++)
+				for(j=0; j<4; j++)
+					data[i][j] = value;
 		}
 
 		~FMat4() {}
@@ -115,7 +66,7 @@ namespace gm {
 			data[3][3] = 1;
 		}
 
-		FVec4<T>& operator [](int index)	{ return data[index]; }
+		Vec4<T>& operator [](int index)	{ return data[index]; }
 
 		FMat4<T>& operator =(FMat4<T> const &m) {
 			//memcpy could be faster
@@ -145,8 +96,8 @@ namespace gm {
 			return result;
 		}
 
-		FVec4<T> operator *(FVec4<T> &v) {
-			FVec4<T> result;
+		Vec4<T> operator *(Vec4<T> &v) {
+			Vec4<T> result;
 			int i, j, k;
 			T s;
 			for(i=0; i<4; i++) {
