@@ -2,6 +2,9 @@
 #define _FMAT4_H
 
 #include <stdlib.h>
+#ifdef _WIN32
+#include <memory.h>
+#endif
 #include "vec4.hpp"
 
 namespace gm {
@@ -87,7 +90,7 @@ namespace gm {
 				for(j=0; j<4; j++) {
 					s = 0;
 					for(k=0; k<4; k++){
-						s += data[k][j] * m2[j][k];
+						s += data[i][k] * m2[k][j];
 					}
 
 					result[i][j] = s;
@@ -98,7 +101,7 @@ namespace gm {
 
 		Vec4<T> operator *(Vec4<T> &v) {
 			Vec4<T> result;
-			int i, j, k;
+			int i, j;
 			T s;
 			for(i=0; i<4; i++) {
 				s = 0;

@@ -1,5 +1,6 @@
 // TestNMath.cpp : Defines the entry point for the console application.
 //
+#define GLM_FORCE_RADIANS
 
 #include <SDKDDKVer.h>
 #include <stdio.h>
@@ -11,6 +12,12 @@
 #include <StringUtil.h>
 #include <nmath.h>
 #include <glm\glm.hpp>
+#include <glm\ext.hpp>
+#include <glm\gtx\matrix_cross_product.hpp>
+#include <glm\gtx\quaternion.hpp>
+#include <glm\gtc\matrix_transform.hpp>
+#include <gm.hpp>
+#include <camera.h>
 
 using namespace nmath;
 
@@ -280,8 +287,62 @@ void printMat4(glm::mat4 *m) {
 	cout << "\n";
 }
 
+void printMat4(gm::mat4 *m) {
+	int i, j;
+	cout << "\n";
+	for(i=0; i<4; i++) {
+		for(j=0; j<4; j++) {
+			cout << m->operator[](i)[j] << "\t";
+		}
+		cout << "\n";
+	}
+	cout << "\n";
+}
+
+
+void testGM() {
+	int i, j;
+	glm::mat4 view1;
+	glm::mat4 pers1;
+	glm::mat4 pvm1;
+	float fovy = D2R(35);
+	float nearPlane = 0.5f;
+	float farPlane = 9.5f;
+	float aspect = 800.0f/600;
+
+	fp::Camera camera;
+
+	/* USE GLM */
+	view1 = glm::lookAt(glm::vec3(0,0,-4), glm::vec3(0,0,0),glm::vec3(0,1,0));
+	pers1 = glm::perspective(fovy, aspect, nearPlane, farPlane);
+	cout << "GLM: \n";
+	cout << "Aspect: " << aspect << "\n";
+	cout <<"View: \n";
+	printMat4(&view1);
+	cout <<"Perspective: \n";
+	printMat4(&pers1);
+	cout <<"Multiply: \n";
+	glm::mat4 mm1 = view1 * pers1;
+	printMat4(&mm1);
+	cout << "\n************************* \n";
+
+	/* USE GM */
+	cout << "GM: \n";
+	cout <<"View: \n";
+	camera.lookAt(0, 0, -4, 0, 0, 0, 0, 1, 0);
+	camera.setViewport(0, 0, 800, 600);
+	camera.setPerspective(fovy, nearPlane, farPlane);
+	gm::mat4 view2 = camera.getView();
+	gm::mat4 pers2 = camera.getPerspective();
+	printMat4(&view2);
+	printMat4(&pers2);
+	cout <<"Multiply: \n";
+	gm::mat4 mm2 = pers2 * view2;
+	printMat4(&mm2);
+}
+
 int _tmain(int argc, _TCHAR* argv[]) {
-	int command, i, j;
+	int command;
 
 	do {
 		printMenu();
@@ -308,13 +369,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			break;
 
 		case 5:
-			glm::mat4 m = glm::mat4();
-			for(i=0; i<4; i++)
-				for(j=0; j<4; j++)
-					m[i][j] = i*4+j;
-
-			printMat4(&m);
-
+			testGM();
 			break;
 		}
 
