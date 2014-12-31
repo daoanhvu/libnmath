@@ -55,6 +55,9 @@ namespace nmath {
 		int getErrorColumn() { return errorColumn; }
 		
 		int parse(const char *str, int len);
+		int parse();
+		int resetTokens(int size);
+		int addToken(int type, int column, int priority, const char* txt, int textLen);
 		void release();
 		int reduce();
 		double dcalc(double *values, int numOfValue);
