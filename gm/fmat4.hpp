@@ -106,7 +106,8 @@ namespace gm {
 			for(i=0; i<4; i++) {
 				s = 0;
 				for(j=0; j<4; j++)
-					s += data[i][j] * v[j];
+					//s += data[i][j] * v[j];
+					s += data[j][i] * v[j];
 				
 				result[i] = s;
 			}
