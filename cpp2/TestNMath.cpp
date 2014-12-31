@@ -11,6 +11,10 @@
 #include <StringUtil.h>
 #include <nmath.h>
 #include <glm\glm.hpp>
+#include <glm\ext.hpp>
+#include <glm\gtx\matrix_cross_product.hpp>
+#include <glm\gtx\quaternion.hpp>
+#include <glm\gtc\matrix_transform.hpp>
 
 using namespace nmath;
 
@@ -270,7 +274,6 @@ void testCriteria(){
 
 void printMat4(glm::mat4 *m) {
 	int i, j;
-	cout << "\n";
 	for(i=0; i<4; i++) {
 		for(j=0; j<4; j++) {
 			cout << m->operator[](i)[j] << "\t";
@@ -278,6 +281,12 @@ void printMat4(glm::mat4 *m) {
 		cout << "\n";
 	}
 	cout << "\n";
+}
+
+float angle2DVector(float x1, float y1, float x2, float y2) {
+	float d = (x1 * x2) + (y1 * y2);
+	float cs = d / (sqrt(x1*x1 + y1*y1) * sqrt(x2*x2 + y2*y2));
+	return acos(cs);
 }
 
 int _tmain(int argc, _TCHAR* argv[]) {
@@ -308,12 +317,20 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			break;
 
 		case 5:
-			glm::mat4 m = glm::mat4();
-			for(i=0; i<4; i++)
-				for(j=0; j<4; j++)
-					m[i][j] = i*4+j;
+			glm::vec4 viewport = glm::vec4(0, 0, 800, 650);
+			glm::mat4 v = glm::mat4();
+			glm::mat4 p = glm::perspective(D2R(30), 650.0f/800,0.2f, 10.0f);
+			
+			cout << "Perspective matrix: \n";
+			printMat4(&p);
 
-			printMat4(&m);
+			v = glm::lookAt(glm::vec3(0, 0, -0.8f), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+			cout << "View matrix: \n";
+			printMat4(&v);
+
+			float beta = angle2DVector(1, -1, 1, 0);
+			cout << "angle(1, -1, 1, 0) = " << beta << " (rad)";
+
 
 			break;
 		}
