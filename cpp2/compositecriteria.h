@@ -34,15 +34,15 @@ namespace nmath {
 			CompositeCriteria& normalize(const char* vars, int varcount);
 			
 			bool containsVar(char var);
-
+#ifdef _WIN32
 			istream& operator >>(istream& is);
 			ostream& operator <<(ostream& os);
-
+#endif
 			Criteria* andSelf(Criteria& c);
-			CompositeCriteria* and(SimpleCriteria& c);
-			CompositeCriteria* and(CompositeCriteria& c);
-			CompositeCriteria* or(SimpleCriteria& c);
-			CompositeCriteria* or(CompositeCriteria& c);
+			CompositeCriteria* andCriteria(SimpleCriteria& c);
+			CompositeCriteria* andCriteria(CompositeCriteria& c);
+			CompositeCriteria* orCriteria(SimpleCriteria& c);
+			CompositeCriteria* orCriteria(CompositeCriteria& c);
 			
 			Criteria* operator [](int index) const;
 			Criteria* get(int index) const { return list[index]; }
@@ -53,8 +53,22 @@ namespace nmath {
 			CompositeCriteria& operator &=(Criteria &);
 			CompositeCriteria& operator =(CompositeCriteria &);
 
-			Criteria* getInterval(const double *values, const char* var, int varCount);
-			Criteria* getIntervalF(const float *values, const char* var, int varCount);
+			template <typename T>
+			Criteria* getInterval(const T *values, const char* var, int varCount) {
+				Criteria *listIn;
+				int i;
+				CompositeCriteria *out = new CompositeCriteria();
+				out->setOperator(logicOp);
+				
+				for (i = 0; i<mSize; i++) {
+					listIn = list[i]->getInterval(values, var, varCount);
+					if (listIn != NULL) {
+						out->add(listIn);
+					}
+				}
+
+				return out;
+			}
 	};
 }
 

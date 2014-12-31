@@ -315,7 +315,7 @@ NMAST* getFromPool();
 void putIntoPool(NMAST *ast);
 void clearPool();
 
-#ifdef DEBUG
+#ifdef _DEBUG
 int numberOfDynamicObject();
 void incNumberOfDynamicObject();
 void descNumberOfDynamicObject();

@@ -46,6 +46,7 @@ void SimpleCriteria::copyFrom(SimpleCriteria& c) {
 	this->available = c.isAvailable();
 }
 
+#ifdef _WIN32
 istream& SimpleCriteria::operator >>(istream& is) {
 
 	/** GT_LT, GTE_LT, GT_LTE, GTE_LTE */
@@ -88,6 +89,7 @@ ostream& operator <<(ostream& os, const SimpleCriteria &c) {
 	}
 	return os;
 }
+#endif
 
 Criteria* SimpleCriteria::clone() {
 	SimpleCriteria *out;
@@ -136,6 +138,7 @@ bool SimpleCriteria::isOverlapped(const SimpleCriteria& c) {
 	return false;
 }
 
+/*
 Criteria* SimpleCriteria::getIntervalF(const float *values, const char* var, int varCount) {
 	Criteria* out;
 	int i;
@@ -160,7 +163,7 @@ Criteria* SimpleCriteria::getInterval(const double *values, const char* var, int
 
 	return NULL;
 }
-
+*/
 bool SimpleCriteria::check(const double* values) {
 	bool result = false;
 	
@@ -283,7 +286,7 @@ Criteria* SimpleCriteria::andSimpleSelf(SimpleCriteria& c) {
 	if(this->variable == c.variable) {	
 		if( !(this->leftInfinity) && !(this->rightInfinity)) { /* If this interval is closed*/
 			if( !(c.leftInfinity) && !(c.rightInfinity) ) { //c is closed
-				tmp = this->and(d);
+				tmp = this->andValue(d);
 				if(tmp != NULL) {
 					copyFrom(*tmp);
 					delete tmp;
@@ -440,14 +443,14 @@ Criteria* SimpleCriteria::andSimpleSelf(SimpleCriteria& c) {
 	return out;
 }
 
-Criteria* SimpleCriteria::and(SimpleCriteria& c) {
+Criteria* SimpleCriteria::andCriteria(SimpleCriteria& c) {
 	Criteria* out = NULL;
 	double d[2] = {c.leftVal, c.rightVal};
 
 	if(this->variable == c.variable) {	
 		if( !(this->leftInfinity) && !(this->rightInfinity)) { /* If this interval is closed*/
 			if( !(c.leftInfinity) && !(c.rightInfinity) ) { //c is closed
-				out = this->and(d);
+				out = this->andValue(d);
 			} else if( !(c.leftInfinity) && (c.rightInfinity) ) { //c is close on left and open on right 101
 				if(this->leftVal >= c.leftVal) {
 					/*
@@ -596,7 +599,7 @@ Criteria* SimpleCriteria::and(SimpleCriteria& c) {
 	return out;
 }
 
-Criteria* SimpleCriteria::and(CompositeCriteria& c) {
+Criteria* SimpleCriteria::andCriteria(CompositeCriteria& c) {
 	int i;
 	Criteria *out, *outItem;
 	Criteria *itm;
@@ -615,11 +618,11 @@ Criteria* SimpleCriteria::and(CompositeCriteria& c) {
 			outItem = 0;
 			switch(itm->getCClassType()) {
 				case SIMPLE:
-					outItem = this->and((SimpleCriteria&)*itm);
+					outItem = this->andCriteria((SimpleCriteria&)*itm);
 				break;
 				
 				case COMPOSITE:
-					outItem = this->and((CompositeCriteria&)*itm);
+					outItem = this->andCriteria((CompositeCriteria&)*itm);
 				break;
 			}
 			if(outItem != 0)
@@ -633,17 +636,17 @@ Criteria* SimpleCriteria::operator &(Criteria& c) {
 	Criteria *out;
 	switch (c.getCClassType()){
 		case SIMPLE:
-			out = and((SimpleCriteria&)c);
+			out = andCriteria((SimpleCriteria&)c);
 			break;
 
 		case COMPOSITE:
-			out = and((CompositeCriteria&)c);
+			out = andCriteria((CompositeCriteria&)c);
 			break;
 	}
 	return out;
 }
 
-Criteria* SimpleCriteria::or(SimpleCriteria& c) {
+Criteria* SimpleCriteria::orCriteria(SimpleCriteria& c) {
 	Criteria* out;
 	bool usedComposite = false;
 
@@ -747,7 +750,7 @@ Criteria* SimpleCriteria::or(SimpleCriteria& c) {
 	return out;
 }
 
-CompositeCriteria* SimpleCriteria::or(CompositeCriteria& c) {
+CompositeCriteria* SimpleCriteria::orCriteria(CompositeCriteria& c) {
 	CompositeCriteria* out = (CompositeCriteria*)c.clone();
 	out->add(clone());
 
@@ -761,10 +764,10 @@ Criteria* SimpleCriteria::operator |(Criteria &c) {
 	Criteria* out;
 	switch (c.getCClassType()) {
 		case SIMPLE:
-			out = or((SimpleCriteria&)c);
+			out = orCriteria((SimpleCriteria&)c);
 			break;
 		case COMPOSITE:
-			out = or((CompositeCriteria&)c);
+			out = orCriteria((CompositeCriteria&)c);
 			break;
 	}
 	return out;

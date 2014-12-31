@@ -44,7 +44,7 @@ bool CompositeCriteria::containsVar(char var) {
 	
 	return false;
 }
-
+#ifdef _WIN32
 istream& CompositeCriteria::operator >>(istream& is) {
 	return is;
 }
@@ -66,6 +66,7 @@ ostream& CompositeCriteria::operator <<(ostream& os) {
 
 	return os;
 }
+#endif
 
 Criteria* CompositeCriteria::clone() {
 	int i;
@@ -197,7 +198,7 @@ Criteria* CompositeCriteria::andSimpleSelf(SimpleCriteria& c) {
 	return this;
 }
 
-CompositeCriteria* CompositeCriteria::and(SimpleCriteria& c) {
+CompositeCriteria* CompositeCriteria::andCriteria(SimpleCriteria& c) {
 	Criteria *tmp;
 	CompositeCriteria* out;
 	int i;
@@ -223,7 +224,7 @@ CompositeCriteria* CompositeCriteria::and(SimpleCriteria& c) {
 	return out;
 }
 
-CompositeCriteria* CompositeCriteria::and(CompositeCriteria& c) {
+CompositeCriteria* CompositeCriteria::andCriteria(CompositeCriteria& c) {
 	CompositeCriteria* out;
 	Criteria *tmp;
 	int i, size;
@@ -274,18 +275,18 @@ Criteria* CompositeCriteria::operator &(Criteria& c) {
 	Criteria* out = 0;
 	switch(c.getCClassType()) {
 		case SIMPLE:
-			out = this->and((SimpleCriteria&)c);
+			out = this->andCriteria((SimpleCriteria&)c);
 			break;
 
 		case COMPOSITE:
-			out = this->and((CompositeCriteria&)c);
+			out = this->andCriteria((CompositeCriteria&)c);
 			break;
 	}
 
 	return out;
 }
 
-CompositeCriteria* CompositeCriteria::or(SimpleCriteria& c) {
+CompositeCriteria* CompositeCriteria::orCriteria(SimpleCriteria& c) {
 	CompositeCriteria* out;
 
 	if (this->logicOp == AND) {
@@ -304,7 +305,7 @@ CompositeCriteria* CompositeCriteria::or(SimpleCriteria& c) {
 	return out;
 }
 
-CompositeCriteria* CompositeCriteria::or(CompositeCriteria& c) {
+CompositeCriteria* CompositeCriteria::orCriteria(CompositeCriteria& c) {
 	int i;
 	CompositeCriteria *out;
 	if (this->logicOp == AND) {
@@ -341,11 +342,11 @@ Criteria* CompositeCriteria::operator |(Criteria& c) {
 	Criteria* out;
 	switch(c.getCClassType()){
 		case SIMPLE:
-			out = and((SimpleCriteria&)c);
+			out = andCriteria((SimpleCriteria&)c);
 		break;
 		
 		case COMPOSITE:
-			out = and((CompositeCriteria&)c);
+			out = andCriteria((CompositeCriteria&)c);
 		break;
 	}
 	return out;
@@ -359,6 +360,7 @@ This is a matrix N rows x 2 columns which N equals varCount
 This output parameter, it's a matrix N row and M columns which each row is for each continuous space for the expression
 It means that each row will hold a combined-interval for n-tule variables and M equal varCount * 2
 */
+/*
 Criteria* CompositeCriteria::getIntervalF(const float *values, const char* var, int varCount) {
 	Criteria *listIn;
 	int i;
@@ -376,11 +378,11 @@ Criteria* CompositeCriteria::getIntervalF(const float *values, const char* var, 
 }
 
 Criteria* CompositeCriteria::getInterval(const double *values, const char* var, int varCount) {
-	CompositeCriteria *out = new CompositeCriteria();
 	Criteria *listIn;
 	int i;
-
+	CompositeCriteria *out = new CompositeCriteria();
 	out->setOperator(logicOp);
+	
 	for (i = 0; i<mSize; i++) {
 		listIn = list[i]->getInterval(values, var, varCount);
 		if (listIn != NULL) {
@@ -390,7 +392,7 @@ Criteria* CompositeCriteria::getInterval(const double *values, const char* var, 
 
 	return out;
 }
-
+*/
 CompositeCriteria& CompositeCriteria::normalize(const char* vars, int varcount) {
 	bool orFlag = false;
 	int k, i;

@@ -1,5 +1,6 @@
 // TestNMath.cpp : Defines the entry point for the console application.
 //
+#define GLM_FORCE_RADIANS
 
 #include <SDKDDKVer.h>
 #include <stdio.h>
@@ -15,6 +16,8 @@
 #include <glm\gtx\matrix_cross_product.hpp>
 #include <glm\gtx\quaternion.hpp>
 #include <glm\gtc\matrix_transform.hpp>
+#include <gm.hpp>
+#include <camera.h>
 
 using namespace nmath;
 
@@ -289,8 +292,157 @@ float angle2DVector(float x1, float y1, float x2, float y2) {
 	return acos(cs);
 }
 
+void printMat4(gm::mat4 *m) {
+	int i, j;
+	cout << "\n";
+	for(i=0; i<4; i++) {
+		for(j=0; j<4; j++) {
+			cout << m->operator[](i)[j] << "\t";
+		}
+		cout << "\n";
+	}
+	cout << "\n";
+}
+
+
+void testGM() {
+	int i, j;
+	glm::mat4 view1;
+	glm::mat4 pers1;
+	glm::mat4 pvm1;
+	float fovy = D2R(35);
+	float nearPlane = 0.5f;
+	float farPlane = 9.5f;
+	float aspect = 800.0f/600;
+
+	fp::Camera camera;
+
+	/* USE GLM */
+	view1 = glm::lookAt(glm::vec3(0,0,-4), glm::vec3(0,0,0),glm::vec3(0,1,0));
+	pers1 = glm::perspective(fovy, aspect, nearPlane, farPlane);
+	cout << "GLM: \n";
+	cout << "Aspect: " << aspect << "\n";
+	cout <<"View: \n";
+	printMat4(&view1);
+	cout <<"Perspective: \n";
+	printMat4(&pers1);
+	cout <<"Multiply: \n";
+	glm::mat4 mm1 = view1 * pers1;
+	printMat4(&mm1);
+	cout << "\n************************* \n";
+
+	/* USE GM */
+	cout << "GM: \n";
+	cout <<"View: \n";
+	camera.lookAt(0, 0, -4, 0, 0, 0, 0, 1, 0);
+	camera.setViewport(0, 0, 800, 600);
+	camera.setPerspective(fovy, nearPlane, farPlane);
+	gm::mat4 view2 = camera.getView();
+	gm::mat4 pers2 = camera.getPerspective();
+	printMat4(&view2);
+	printMat4(&pers2);
+	cout <<"Multiply: \n";
+	gm::mat4 mm2 = pers2 * view2;
+	printMat4(&mm2);
+}
+
+void testProject() {
+	int i, j;
+	glm::mat4 view1;
+	glm::mat4 pers1;
+	glm::mat4 pvm1;
+	float fovy = D2R(35);
+	float nearPlane = 0.5f;
+	float farPlane = 9.5f;
+	float aspect = 800.0f/600;
+
+	fp::Camera camera;
+
+	/* USE GLM */
+	view1 = glm::lookAt(glm::vec3(0,0,-4), glm::vec3(0,0,0),glm::vec3(0,1,0));
+	pers1 = glm::perspective(fovy, aspect, nearPlane, farPlane);
+	glm::vec3 obj(1.2f, 0.75, 0.03);
+	glm::vec3 a = glm::project(obj, view1, pers1, glm::vec4(0, 0, 800, 600));
+	cout << "GLM: \n";
+	cout << "Aspect: " << aspect << "\n";
+	cout <<"View: \n";
+	printMat4(&view1);
+	cout <<"Perspective: \n";
+	printMat4(&pers1);
+	cout << "Out: (" << a[0] << ", " << a[1] << ", " << a[2] << ")\n";
+	cout << "\n************************* \n";
+
+	/* USE GM */
+	cout << "GM: \n";
+	cout <<"View: \n";
+	float a1[3];
+	camera.lookAt(0, 0, -4, 0, 0, 0, 0, 1, 0);
+	camera.setViewport(0, 0, 800, 600);
+	camera.setPerspective(fovy, nearPlane, farPlane);
+	gm::mat4 view2 = camera.getView();
+	gm::mat4 pers2 = camera.getPerspective();
+	camera.project(a1, 1.2f, 0.75, 0.03);
+	printMat4(&view2);
+	printMat4(&pers2);
+	
+	cout << "Out: (" << a1[0] << ", " << a1[1] << ", " << a1[2] << ")";
+}
+
+void testMultiply() {
+	int i, j;
+	glm::mat4 view1;
+	fp::Camera camera;
+
+	/* USE GLM */
+	view1 = glm::lookAt(glm::vec3(0,0,-4), glm::vec3(0,0,0),glm::vec3(0,1,0));
+	glm::vec4 obj(1.2f, 0.75, 0.03, 2);
+	glm::vec4 a = view1 * obj;
+	cout << "GLM: \n";
+	
+	cout <<"View: \n";
+	printMat4(&view1);
+	cout << "(" << obj[0] << ", " << obj[1] << ", " << obj[2] << ", " << obj[3] << ")\n";
+	cout <<"Result: (" << a[0] << ", " << a[1] << ", " << a[2] << ", " << a[3] << ")\n";
+	cout << "\n************************* \n";
+
+	/* USE GM */
+	cout << "GM: \n";
+	cout <<"View: \n";
+	camera.lookAt(0, 0, -4, 0, 0, 0, 0, 1, 0);
+	camera.setViewport(0, 0, 800, 600);
+	gm::mat4 view2 = camera.getView();
+	printMat4(&view2);
+	cout << "(" << obj[0] << ", " << obj[1] << ", " << obj[2] << ", " << obj[3] << ")\n";
+	gm::vec4 tmp(obj[0], obj[1], obj[2], obj[3]);
+	gm::vec4 a1 = view2 * tmp;
+	cout << "Out: (" << a1[0] << ", " << a1[1] << ", " << a1[2] << ", " << a1[3] << ")";
+}
+
+void testCamera() {
+	int i, j;
+	fp::Camera camera;
+	float a1[3];
+
+	/* USE GM */
+	cout << "GM: \n";
+	cout <<"View: \n";
+	camera.lookAt(0, 0, -6.5f, 0, 0, 0, 0, 1, 0);
+	camera.setViewport(0, 0, 600, 886);
+	camera.setPerspective(D2R(35), 0.1f, 9.0f);
+	gm::mat4 view2 = camera.getView();
+	gm::mat4 pers2 = camera.getPerspective();
+
+	printMat4(&view2);
+	printMat4(&pers2);
+
+	//camera.project(a1, 1.0f, 0.0f, 0.0f);
+	camera.project(a1, 0.0f, 0.0f, 0.0f);
+	cout << "Out: (" << a1[0] << ", " << a1[1] << ", " << a1[2] << ")";
+}
+
+
 int _tmain(int argc, _TCHAR* argv[]) {
-	int command, i, j;
+	int command;
 
 	do {
 		printMenu();
@@ -317,21 +469,19 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			break;
 
 		case 5:
-			glm::vec4 viewport = glm::vec4(0, 0, 800, 650);
-			glm::mat4 v = glm::mat4();
-			glm::mat4 p = glm::perspective(D2R(30), 650.0f/800,0.2f, 10.0f);
-			
-			cout << "Perspective matrix: \n";
-			printMat4(&p);
+			testGM();
+			break;
 
-			v = glm::lookAt(glm::vec3(0, 0, -0.8f), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
-			cout << "View matrix: \n";
-			printMat4(&v);
+		case 6:
+			testProject();
+			break;
 
-			float beta = angle2DVector(1, -1, 1, 0);
-			cout << "angle(1, -1, 1, 0) = " << beta << " (rad)";
+		case 7:
+			testMultiply();
+			break;
 
-
+			case 8:
+				testCamera();
 			break;
 		}
 

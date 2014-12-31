@@ -41,7 +41,7 @@ NFunction::NFunction(): text(0), valLen(0) {
 NFunction::~NFunction() {
 	release();
 }
-
+#ifdef _WIN32
 std::ostream& nmath::operator <<(std::ostream& os, const NFunction& f) {
 	int i;
 	os << "\n Function: " << f.getText() << "\n";
@@ -59,6 +59,81 @@ std::ostream& nmath::operator <<(std::ostream& os, const NFunction& f) {
 	}
 
 	return os;
+}
+#endif
+int NFunction::resetTokens(int size) {
+	if(mTokens==NULL) {
+		mTokens = new Token[size];
+		this->mTokenCapability = size;
+	} else {
+		if(size > mTokenCapability) {
+			delete mTokens;
+
+			this->mTokeSize = 0;
+			this->mTokenCapability = size;
+			mTokens = new Token[size];
+		} else {
+			this->mTokeSize = 0;
+		}
+	}
+	return 0;
+}
+
+int NFunction::addToken(int _type, int _col, int priority, const char* _text, int txtlen) {
+	if(mTokeSize >= mTokenCapability) {
+		return E_NOT_ENOUGH_PLACE;
+	}
+
+	mTokens[mTokeSize].type = _type;
+	mTokens[mTokeSize].column = _col;
+
+	/*
+		IMPORTANT: If you want to change this, PLEASE change function common:getPriorityOfType(int type) also
+	*/
+	switch(_type){
+		case OR:
+			mTokens[mTokeSize].priority = 1;
+		break;
+		
+		case AND:
+			mTokens[mTokeSize].priority = 2;
+		break;
+		
+		case LT:
+		case GT:
+		case LTE:
+		case GTE:
+			mTokens[mTokeSize].priority = 3;
+		break;
+		
+		case PLUS:
+		case MINUS:
+			mTokens[mTokeSize].priority = 4;
+		break;
+		
+		case MULTIPLY:
+		case DIVIDE:
+			mTokens[mTokeSize].priority = 5;
+		break;
+		
+		case POWER:
+			mTokens[mTokeSize].priority = 6;
+		break;
+		
+		case NE:
+			mTokens[mTokeSize].priority = 7;
+		break;
+		
+		default:
+			mTokens[mTokeSize].priority = 0;
+	}
+	
+	mTokens[mTokeSize].textLength = (char)((MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen);
+	memcpy(mTokens[mTokeSize].text, _text, mTokens[mTokeSize].textLength);
+
+	mTokeSize++;
+
+	return NMATH_NO_ERROR;
 }
 
 /*
@@ -104,7 +179,7 @@ int NFunction::parse(const char *str, int len) {
 			criteria.list = (Criteria**)malloc(sizeof(Criteria*) * domain.size);
 			criteria.loggedSize = domain.size;
 			criteria.size = domain.size;
-			memset(criteria.list, NULL, criteria.loggedSize);
+			memset(criteria.list, 0, criteria.loggedSize* sizeof(int));
 
 			for (i = 0; i < domain.size; i++) {
 				c = NULL;
@@ -132,7 +207,60 @@ int NFunction::parse(const char *str, int len) {
 	return errorCode;
 }
 
+/*
+Parse the input string in object f to NMAST tree
+*/
+int NFunction::parse() {
+	int i, k;
+	Criteria *c;
+	CompositeCriteria *cc;
+	NMASTList domain;
+	
+	domain.list = 0;
+	domain.loggedSize = 0;
+	domain.size = 0;
 		
+	//TODO: Need to release prefix and domain before call parseFunctionExpression from NLabParser
+	errorCode = mParser->parseFunctionExpression(mTokens, mTokeSize, &prefix, &domain);
+	errorColumn = mParser->getErrorColumn();
+	if (errorCode == NMATH_NO_ERROR) {
+		valLen = mParser->variableCount();
+		if (valLen > 0)
+			memcpy(variables, mParser->variables(), valLen);
+
+		if (domain.list != NULL) {
+			criteria.list = (Criteria**)malloc(sizeof(Criteria*) * domain.size);
+			criteria.loggedSize = domain.size;
+			criteria.size = domain.size;
+
+			memset(criteria.list, 0, criteria.loggedSize*sizeof(int));
+
+			for (i = 0; i < domain.size; i++) {
+				c = NULL;
+				if (domain.list[i] != NULL) {
+					c = nmath::buildCriteria(domain.list[i]);
+					//atemp to normalize criteria so that it hold criteria for all variable in every it's element
+					if ( (c!=NULL) && c->getCClassType() == COMPOSITE &&
+						((CompositeCriteria*)c)->logicOperator() == OR) {
+						cc = (CompositeCriteria*)c;
+						cc->normalize(variables, valLen);
+					}
+				}
+				criteria.list[i] = c;
+			}
+		}
+	}
+	
+	if(domain.list != NULL) {
+		for(i=0; i<domain.size; i++)
+			::clearTree(&(domain.list[i]));
+		free(domain.list);
+		domain.list = NULL;
+	}
+
+	return errorCode;
+}
+
 void NFunction::release() {
 	int i;
 	if (text != NULL) {
@@ -191,10 +319,21 @@ double NFunction::dcalc(double *values, int numOfValue) {
 
 int NFunction::reduce() {
 	DParam dp;
-	dp.t = *(prefix.list);
-	dp.error = 0;
-	nmath::reduce_t(&dp);
+	int i;
+
+	for(i=0; i<prefix.size; i++) {
+		dp.t = prefix.list[i];
+		dp.error = 0;
+		nmath::reduce_t(&dp);
+		prefix.list[i] = dp.t;
+	}
 	return 0;
+}
+
+int NFunction::toString(char *str, int buflen) {
+	int start = 0;
+	nmath::toString(prefix.list[0], str, &start, buflen);
+	return start;
 }
 
 /*

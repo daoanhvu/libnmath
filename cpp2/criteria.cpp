@@ -22,7 +22,7 @@ Criteria* nmath::buildSameVariableCriteria(const NMAST *left, const NMAST *right
 	return out;
 }
 */
-
+#ifdef _WIN32
 istream& operator >>(istream& is, const Criteria& c) {
 	return is;
 }
@@ -77,6 +77,7 @@ ostream& nmath::operator <<(ostream& os, const Criteria& c) {
 	}
 	return os;
 }
+#endif
 
 Criteria* nmath::buildCriteria(const NMAST *ast) {
 	Criteria *out = 0;
@@ -164,8 +165,8 @@ Criteria* nmath::buildCriteria(const NMAST *ast) {
 				}
 			}
 			
-			left = buildCriteria(ast->left);
-			right = buildCriteria(ast->right);
+			left = nmath::buildCriteria(ast->left);
+			right = nmath::buildCriteria(ast->right);
 
 			if( (left->getCClassType() == COMPOSITE && right->getCClassType() == SIMPLE) || 
 				(right->getCClassType() == COMPOSITE && left->getCClassType() == SIMPLE )) {
@@ -194,9 +195,9 @@ Criteria* nmath::buildCriteria(const NMAST *ast) {
 		case OR:
 			out = new CompositeCriteria();
 			((CompositeCriteria*)out)->setOperator(ast->type);
-			left = buildCriteria(ast->left);
+			left = nmath::buildCriteria(ast->left);
 			((CompositeCriteria*)out)->add(left);
-			right = buildCriteria(ast->right);
+			right = nmath::buildCriteria(ast->right);
 			((CompositeCriteria*)out)->add(right);
 			break;
 

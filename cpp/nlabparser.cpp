@@ -233,6 +233,7 @@ int parseFunctionExpression(TokenList *tokens, Function *outF) {
 				/*
 					Parse expression
 				*/
+				LOGI(3, "[NativeParser] GOT HERE - token size: %d", tokens->size);
 				parseExpression(tokens, &k, outF);
 				/** after parseExpression, we may get error, so MUST check if it's OK here */
 				if( (gErrorCode!=NMATH_NO_ERROR) || (k >= tokens->size) ) break;
@@ -389,10 +390,10 @@ void parseExpression(TokenList *tokens, int *start, Function *f) {
 	
 	f->numVarNode = 0;
 	i = (*start);
-	// LOGI(2, "[parseExpression] Before while loop i=%d", i);
+	LOGI(2, "[parseExpression] Before while loop i=%d", i);
 	while( (i < tokens->size) && !isEndExp) {
 		tk = &(tokens->list[i]);
-		// LOGI(2, "token %d type:%d", i, tk->type);
+		LOGI(2, "token %d type:%d", i, tk->type);
 		switch(tk->type) {
 			case NUMBER:
 				val = parseDouble(tk->text, 0, tk->textLength, &error);

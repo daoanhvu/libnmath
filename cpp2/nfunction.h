@@ -53,21 +53,28 @@ namespace nmath {
 		
 		int getErrorCode() { return errorCode; }
 		int getErrorColumn() { return errorColumn; }
+
+		int toString(char *str, int buflen);
 		
 		int parse(const char *str, int len);
+		int parse();
+		int resetTokens(int size);
+		int addToken(int type, int column, int priority, const char* txt, int textLen);
 		void release();
 		int reduce();
 		double dcalc(double *values, int numOfValue);
 		ListFData* getSpace(const float *inputInterval, float epsilon, bool needNormalVector);
+		char getVariable(int index) { return variables[index]; }
 		char* getText() const { return text; }
-		char getVarCount() const { return valLen; }
+		int getVarCount() const { return valLen; }
 		
 		NMASTList* getPrefixList() const { return (NMASTList*)&prefix; }
 		NMAST* getPrefix(int index) const { return prefix.list[index]; }
 		ListCriteria* getCriteriaList() const { return (ListCriteria*)&criteria; }
 		Criteria* getCriteria(int index) const { return criteria.list[index]; }
-
+#ifdef _WIN32
 		friend std::ostream& operator<< (std::ostream& os, const NFunction& f);
+#endif
 	};
 
 	void releaseNMATree(NMASTList **t);

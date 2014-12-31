@@ -5,3 +5,9 @@ https://github.com/asmCode/taxibynight/blob/master/BunniesView/WinMain.cpp
 http://www.3dcpptutorials.sk/index.php?id=29
 
 https://code.google.com/p/begui/wiki/GettingStartedPart1
+http://www.learnopengl.com/#!Getting-started/Camera
+http://gamedev.stackexchange.com/questions/67955/determine-required-camera-pitch-yaw-change-based-on-mouse-movement-and-roll
+http://jaanga.github.io/gestification/cookbook/pitch-roll-yaw/readme-reader.html
+http://andersmalmgren.github.io/FreePIE/samples.html
+http://planning.cs.uiuc.edu/node102.html
+http://stackoverflow.com/questions/16859727/how-to-use-glm-in-android-ndk-application

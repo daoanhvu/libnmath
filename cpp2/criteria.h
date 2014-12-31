@@ -1,7 +1,9 @@
 #ifndef __INTERVAL_H_
 #define __INTERVAL_H_
 
+#ifdef _WIN32
 #include <iostream>
+#endif
 #include "common.h"
 
 using namespace std;
@@ -29,10 +31,10 @@ namespace nmath {
 
 			virtual Criteria* operator &(Criteria& c) { return this; }
 			virtual Criteria* operator |(Criteria& c)	{ return this; }
-
+#ifdef _WIN32
 			friend istream& operator >>(istream& is, const Criteria& c);
 			friend ostream& operator <<(ostream& os, const Criteria& c);
-
+#endif
 			/* check if value does belong to this interval */
 			virtual bool check(const double *value) { return false; }
 			virtual Criteria* clone() { return 0; }
@@ -41,9 +43,9 @@ namespace nmath {
 
 			virtual Criteria* getInterval(const double *values, const char* var, int varCount) { return 0; }
 			virtual Criteria* getIntervalF(const float *values, const char* var, int varCount) { return 0; }
-
-			friend Criteria* buildCriteria(const NMAST *ast);
 	};
+
+	Criteria* buildCriteria(const NMAST *ast);
 }
 
 #endif
