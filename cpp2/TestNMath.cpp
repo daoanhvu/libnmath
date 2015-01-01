@@ -215,6 +215,42 @@ void testCalculate() {
 
 }
 
+void testReduce() {
+	NFunction f;
+	float interval[] = { -1, 2, 0, 1 };
+	int i, j, vcount, error, lineCount = 0;
+	ifstream dataFile("D:\\data\\expression.txt");
+	string line;
+	char dstr[128];
+	int l = 0;
+
+	if (dataFile.is_open()) {
+		while (getline(dataFile, line)) {
+			error = f.parse(line.c_str(), line.length());
+			if (error != NMATH_NO_ERROR) {
+				std::cout << "Expression " << lineCount << " Parsing ERROR = " << error << "\n";
+			}
+			else {
+				std::cout << f;
+				if (f.reduce() == NMATH_NO_ERROR) {
+					nmath::toString(f.getPrefix(0), dstr, &l, 128);
+					dstr[l] = '\0';
+					cout << "f' = " << dstr << "\n";
+				}
+				else {
+					cout << "Expression " << lineCount << " reduce Failed \n";
+				}
+				cout << "\Expression Parsing OK\n";
+			}
+			cout << "\n******************************************************\n";
+			lineCount++;
+		}
+
+		dataFile.close();
+	}
+	f.release();
+}
+
 void testCriteria(){
 	NLabLexer lexer;
 	NLabParser parser;
@@ -480,8 +516,12 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			testMultiply();
 			break;
 
-			case 8:
+		case 8:
 				testCamera();
+			break;
+
+		case 9:
+			testReduce();
 			break;
 		}
 
