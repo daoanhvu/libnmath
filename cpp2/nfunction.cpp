@@ -11,6 +11,14 @@
 #include <process.h>
 #endif
 
+#ifdef _ADEBUG
+#include <android/log.h>
+#define LOG_TAG "NFunction"
+#define LOG_LEVEL 10
+#define LOGI(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__);}
+#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
+#endif
+
 #include "StringUtil.h"
 #include "nfunction.h"
 #include "nlablexer.h"
@@ -21,14 +29,6 @@
 using namespace nmath;
 
 NFunction::NFunction(): text(0), valLen(0) {
-	mLexer = new NLabLexer();
-	mParser = new NLabParser();
-
-	//Hard code to test
-	mTokenCapability = 50;
-	mTokens = new Token[mTokenCapability];
-	mTokeSize = 0;
-
 	prefix.list = 0;
 	prefix.loggedSize = 0;
 	prefix.size = 0;
@@ -61,89 +61,16 @@ std::ostream& nmath::operator <<(std::ostream& os, const NFunction& f) {
 	return os;
 }
 #endif
-int NFunction::resetTokens(int size) {
-	if(mTokens==NULL) {
-		mTokens = new Token[size];
-		this->mTokenCapability = size;
-	} else {
-		if(size > mTokenCapability) {
-			delete mTokens;
-
-			this->mTokeSize = 0;
-			this->mTokenCapability = size;
-			mTokens = new Token[size];
-		} else {
-			this->mTokeSize = 0;
-		}
-	}
-	return 0;
-}
-
-int NFunction::addToken(int _type, int _col, int priority, const char* _text, int txtlen) {
-	if(mTokeSize >= mTokenCapability) {
-		return E_NOT_ENOUGH_PLACE;
-	}
-
-	mTokens[mTokeSize].type = _type;
-	mTokens[mTokeSize].column = _col;
-
-	/*
-		IMPORTANT: If you want to change this, PLEASE change function common:getPriorityOfType(int type) also
-	*/
-	switch(_type){
-		case OR:
-			mTokens[mTokeSize].priority = 1;
-		break;
-		
-		case AND:
-			mTokens[mTokeSize].priority = 2;
-		break;
-		
-		case LT:
-		case GT:
-		case LTE:
-		case GTE:
-			mTokens[mTokeSize].priority = 3;
-		break;
-		
-		case PLUS:
-		case MINUS:
-			mTokens[mTokeSize].priority = 4;
-		break;
-		
-		case MULTIPLY:
-		case DIVIDE:
-			mTokens[mTokeSize].priority = 5;
-		break;
-		
-		case POWER:
-			mTokens[mTokeSize].priority = 6;
-		break;
-		
-		case NE:
-			mTokens[mTokeSize].priority = 7;
-		break;
-		
-		default:
-			mTokens[mTokeSize].priority = 0;
-	}
-	
-	mTokens[mTokeSize].textLength = (char)((MAXTEXTLEN < txtlen)?MAXTEXTLEN:txtlen);
-	memcpy(mTokens[mTokeSize].text, _text, mTokens[mTokeSize].textLength);
-
-	mTokeSize++;
-
-	return NMATH_NO_ERROR;
-}
 
 /*
 Parse the input string in object f to NMAST tree
 */
-int NFunction::parse(const char *str, int len) {
-	int i, k;
+int NFunction::parse(const char *str, int len, NLabLexer *mLexer, NLabParser *mParser) {
+	int i, k, mTokeSize;
 	Criteria *c;
 	CompositeCriteria *cc;
 	NMASTList domain;
+	Token mTokens[100];
 	
 	domain.list = 0;
 	domain.loggedSize = 0;
@@ -160,7 +87,7 @@ int NFunction::parse(const char *str, int len) {
 	textLen = len;
 	text[len] = '\0';
 
-	mTokeSize = mLexer->lexicalAnalysis(text, textLen, 0, mTokens, mTokenCapability, 0);
+	mTokeSize = mLexer->lexicalAnalysis(text, textLen, 0, mTokens, 100/*capacity of mTokens*/, 0);
 	errorColumn = mLexer->getErrorColumn();
 	errorCode = mLexer->getErrorCode();
 	if (errorCode != NMATH_NO_ERROR) {
@@ -210,7 +137,7 @@ int NFunction::parse(const char *str, int len) {
 /*
 Parse the input string in object f to NMAST tree
 */
-int NFunction::parse() {
+int NFunction::parse(Token *mTokens, int mTokeSize, NLabParser *mParser) {
 	int i, k;
 	Criteria *c;
 	CompositeCriteria *cc;
@@ -221,13 +148,18 @@ int NFunction::parse() {
 	domain.size = 0;
 		
 	//TODO: Need to release prefix and domain before call parseFunctionExpression from NLabParser
+#ifdef _ADEBUG
+	LOGI(1, "Number of token: %d", mTokeSize);
+#endif
 	errorCode = mParser->parseFunctionExpression(mTokens, mTokeSize, &prefix, &domain);
 	errorColumn = mParser->getErrorColumn();
 	if (errorCode == NMATH_NO_ERROR) {
 		valLen = mParser->variableCount();
 		if (valLen > 0)
 			memcpy(variables, mParser->variables(), valLen);
-
+#ifdef _ADEBUG
+	LOGI(1, "Variable on left: %c; variable on right: %c", prefix.list[0]->left->right->variable, prefix.list[0]->right->right->variable);
+#endif		
 		if (domain.list != NULL) {
 			criteria.list = (Criteria**)malloc(sizeof(Criteria*) * domain.size);
 			criteria.loggedSize = domain.size;
@@ -269,16 +201,6 @@ void NFunction::release() {
 		textLen = 0;
 	}
 
-	if (mLexer != NULL) {
-		delete mLexer;
-		mLexer = NULL;
-	}
-
-	if (mParser != NULL) {
-		delete mParser;
-		mParser = NULL;
-	}
-
 	if(prefix.list != NULL) {
 		for(i=0; i<prefix.size; i++)
 			::clearTree(&(prefix.list[i]));
@@ -298,13 +220,6 @@ void NFunction::release() {
 		criteria.loggedSize = 0;
 		criteria.size = 0;
 	}
-
-	if(mTokens != NULL) {
-		delete[] mTokens;
-		mTokens = NULL;
-	}
-	mTokenCapability = 0;
-	mTokeSize = 0;
 }
 
 double NFunction::dcalc(double *values, int numOfValue) {
@@ -408,6 +323,9 @@ FData* NFunction::getSpaceFor2WithANDComposite(int prefixIndex, const float *inp
 		while(param.values[1] < max[1]) {
 			calcF_t((void*)&param);
 			z = param.retv;
+//#ifdef _ADEBUG
+//			LOGI(1, "x = %f, y=%f, z=%f", param.values[0], param.values[1], z);
+//#endif
 			if( sp->dataSize >= sp->loggedSize - (sp->dimension) ){
 				sp->loggedSize += 20;
 				dataTemp = (float*)realloc(sp->data, sizeof(float) * sp->loggedSize);
@@ -1626,7 +1544,9 @@ void* nmath::calcF_t(void *param){
 	dp->error = this_param_right.error;
 	return dp->error;
 	}*/
-	//LOGI(2, "sign: %d, operand1= %f, operand2=%f, operator: %d", t->sign, this_param_left.retv, this_param_right.retv, t->type);	
+#ifdef _ADEBUG
+	LOGI(2, "sign: %d, operand1= %f, operand2=%f, operator: %d", t->sign, this_param_left.retv, this_param_right.retv, t->type);	
+#endif
 	dp->retv = t->sign * doCalculateF(this_param_left.retv, this_param_right.retv, t->type, &(dp->error));
 #ifdef _WIN32
 	return dp->error;

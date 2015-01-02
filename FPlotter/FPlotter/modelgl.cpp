@@ -62,10 +62,11 @@ void ModelGL::initLights() {
 void ModelGL::createObject() {
 	float bd[4] = {-2, 2, -2, 2};
 	int i;
-
+	NLabLexer lexer;
+	NLabParser parser;
 	mFunction = new NFunction();
 	
-	mFunction->parse("f(x,y)=x+cos(y)", 15);
+	mFunction->parse("f(x,y)=sin(x)+cos(y)", 20, &lexer, &parser);
 	if(mFunction->getErrorCode() != NMATH_NO_ERROR) {
 		delete mFunction;
 		return;

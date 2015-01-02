@@ -9,7 +9,7 @@
 #include "nlabparser.h"
 
 
-#ifdef _TARGET_HOST_ANDROID
+#ifdef _ADEBUG
 	#include <jni.h>
 	#include <android/log.h>
 	#define LOG_TAG "NLABPARSER"
@@ -173,7 +173,7 @@ int NLabParser::parseFunctionExpression(Token* tokens, int tokenCount, NMASTList
 	NMAST *item;
 	NMAST **tempList;
 	
-	// LOGI(3, "[NativeParser] GOT HERE - token size: %d", tokens->size);
+	//LOGI(3, "[NativeParser] GOT HERE - token size: %d", tokens->size);
 	/** This array will hold the variables of the function */
 	mVarCount = 0;
 	if ((k = functionNotation(tokens, tokenCount, idx)) > idx){
@@ -183,9 +183,12 @@ int NLabParser::parseFunctionExpression(Token* tokens, int tokenCount, NMASTList
 				if(tokens[i].type == NAME) {
 					for(l=0; l<mVarCount; l++) {
 						if(tokens[i].text[0]==mVariables[l] && tokens[i].textLength==1)
-							tokens[i].type = VARIABLE;
+							//tokens[i].type = VARIABLE;
+							tokens[i].type = 65540;
+							LOGI(3, "Token %d change to Variable (type=%d)", i, tokens[i].type);
 					}
 				}
+				LOGI(3, "Type of token %d = %d", i, tokens[i].type);
 			}
 			
 			k++;
@@ -322,7 +325,9 @@ NMAST* NLabParser::parseExpression(Token* tokens, int size, int *start) {
 	// LOGI(2, "[parseExpression] Before while loop i=%d", i);
 	while( (i < size) && !isEndExp) {
 		tk = &(tokens[i]);
-		// LOGI(2, "token %d type:%d", i, tk->type);
+#ifdef _ADEBUG
+		LOGI(2, "token %d type:%d", i, tk->type);
+#endif
 		switch(tk->type) {
 			case NUMBER:
 				val = parseDouble(tk->text, 0, tk->textLength, &error);

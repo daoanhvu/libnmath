@@ -22,15 +22,8 @@ namespace nmath {
 		char variables[4];
 		char valLen;
 
-		NLabLexer *mLexer;
-		NLabParser *mParser;
-
 		NMASTList prefix;		
 		ListCriteria criteria;
-
-		Token *mTokens;
-		int mTokenCapability;
-		int mTokeSize;
 
 		NMAST **variableNode;
 		int numVarNode;
@@ -56,10 +49,8 @@ namespace nmath {
 
 		int toString(char *str, int buflen);
 		
-		int parse(const char *str, int len);
-		int parse();
-		int resetTokens(int size);
-		int addToken(int type, int column, int priority, const char* txt, int textLen);
+		int parse(const char *str, int len, NLabLexer *mLexer, NLabParser *mParser);
+		int parse(Token *mTokens, int mTokeSize, NLabParser *mParser);
 		void release();
 		int reduce();
 		double dcalc(double *values, int numOfValue);
