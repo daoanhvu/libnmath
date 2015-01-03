@@ -146,7 +146,7 @@ int NFunction::parse(Token *mTokens, int mTokeSize, NLabParser *mParser) {
 	domain.list = 0;
 	domain.loggedSize = 0;
 	domain.size = 0;
-		
+	
 	//TODO: Need to release prefix and domain before call parseFunctionExpression from NLabParser
 #ifdef _ADEBUG
 	LOGI(1, "Number of token: %d", mTokeSize);
@@ -1545,7 +1545,7 @@ void* nmath::calcF_t(void *param){
 	return dp->error;
 	}*/
 #ifdef _ADEBUG
-	LOGI(2, "sign: %d, operand1= %f, operand2=%f, operator: %d", t->sign, this_param_left.retv, this_param_right.retv, t->type);	
+	//LOGI(2, "sign: %d, operand1= %f, operand2=%f, operator: %d", t->sign, this_param_left.retv, this_param_right.retv, t->type);	
 #endif
 	dp->retv = t->sign * doCalculateF(this_param_left.retv, this_param_right.retv, t->type, &(dp->error));
 #ifdef _WIN32
