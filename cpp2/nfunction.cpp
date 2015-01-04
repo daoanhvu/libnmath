@@ -1,5 +1,6 @@
 #include <string>
 #include <cstdlib>
+#include <math.h>
 
 #ifdef _DEBUG
 #include <stdio.h>
@@ -282,6 +283,9 @@ FData* NFunction::getSpaceFor2WithANDComposite(int prefixIndex, const float *inp
 	int i, j, k, elementOnRow;
 	SimpleCriteria *sc;
 	char currentVar;
+
+	//used for normalizing nv
+	float mod;
 	
 	for(k=0; k<valLen; k++) {
 		currentVar = variables[k];
@@ -353,10 +357,12 @@ FData* NFunction::getSpaceFor2WithANDComposite(int prefixIndex, const float *inp
 				dparam1.values[0] = param.values[0];
 				dparam1.values[1] = param.values[1];
 				calcF_t((void*)&dparam1);
+
+				mod = sqrt(dparam0.retv*dparam0.retv + dparam1.retv*dparam1.retv + 1);
 				
-				sp->data[sp->dataSize++] = dparam0.retv;
-				sp->data[sp->dataSize++] = dparam1.retv;
-				sp->data[sp->dataSize++] = -1;
+				sp->data[sp->dataSize++] = dparam0.retv/mod;
+				sp->data[sp->dataSize++] = dparam1.retv/mod;
+				sp->data[sp->dataSize++] = -1/mod;
 			}
 			/*******************************************/
 			

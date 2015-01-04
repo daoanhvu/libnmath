@@ -53,8 +53,7 @@ namespace nmath {
 			CompositeCriteria& operator &=(Criteria &);
 			CompositeCriteria& operator =(CompositeCriteria &);
 
-			template <typename T>
-			Criteria* getInterval(const T *values, const char* var, int varCount) {
+			Criteria* getInterval(const double *values, const char* var, int varCount) {
 				Criteria *listIn;
 				int i;
 				CompositeCriteria *out = new CompositeCriteria();
@@ -62,6 +61,22 @@ namespace nmath {
 				
 				for (i = 0; i<mSize; i++) {
 					listIn = list[i]->getInterval(values, var, varCount);
+					if (listIn != NULL) {
+						out->add(listIn);
+					}
+				}
+
+				return out;
+			}
+
+			Criteria* getIntervalF(const float *values, const char* var, int varCount) {
+				Criteria *listIn;
+				int i;
+				CompositeCriteria *out = new CompositeCriteria();
+				out->setOperator(logicOp);
+
+				for (i = 0; i<mSize; i++) {
+					listIn = list[i]->getIntervalF(values, var, varCount);
 					if (listIn != NULL) {
 						out->add(listIn);
 					}

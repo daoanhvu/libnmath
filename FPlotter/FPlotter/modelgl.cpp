@@ -66,7 +66,7 @@ void ModelGL::createObject() {
 	NLabParser parser;
 	mFunction = new NFunction();
 	
-	mFunction->parse("f(x,y)=sin(x)+cos(y)", 20, &lexer, &parser);
+	mFunction->parse("f(x,y)=sin(x)*cos(y)", 20, &lexer, &parser);
 	if(mFunction->getErrorCode() != NMATH_NO_ERROR) {
 		delete mFunction;
 		return;

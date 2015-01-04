@@ -112,12 +112,14 @@ void testDerivative() {
 	char dstr[128];
 	int l = 0;
 	NFunction f;
+	NLabLexer lexer;
+	NLabParser parser;
 	string str;
 
 	cout << "Input function: ";
 	cin >> str;	
 	
-	error = f.parse(str.c_str(), str.length());
+	error = f.parse(str.c_str(), str.length(), &lexer, &parser);
 	if(error != NMATH_NO_ERROR) {
 		printError(f.getErrorColumn(), error);
 		return;
@@ -147,6 +149,9 @@ void testDerivative() {
 
 void testFunction() {
 	NFunction f;
+	NLabLexer lexer;
+	NLabParser parser;
+
 	ListFData *data;
 	float interval[] = {-1, 2, 0, 1};
 	int i, j, vcount, error, lineCount = 0;
@@ -155,7 +160,7 @@ void testFunction() {
 
 	if(dataFile.is_open()) {
 		while( getline(dataFile, line) ) {
-			error = f.parse(line.c_str(), line.length());
+			error = f.parse(line.c_str(), line.length(), &lexer, &parser);
 			if (error != NMATH_NO_ERROR) {
 				std::cout << "Function " << lineCount << " Parsing ERROR = " << error << "\n";
 			}
@@ -217,6 +222,9 @@ void testCalculate() {
 
 void testReduce() {
 	NFunction f;
+	NLabLexer lexer;
+	NLabParser parser;
+
 	float interval[] = { -1, 2, 0, 1 };
 	int i, j, vcount, error, lineCount = 0;
 	ifstream dataFile("D:\\data\\expression.txt");
@@ -226,7 +234,7 @@ void testReduce() {
 
 	if (dataFile.is_open()) {
 		while (getline(dataFile, line)) {
-			error = f.parse(line.c_str(), line.length());
+			error = f.parse(line.c_str(), line.length(), &lexer, &parser);
 			if (error != NMATH_NO_ERROR) {
 				std::cout << "Expression " << lineCount << " Parsing ERROR = " << error << "\n";
 			}

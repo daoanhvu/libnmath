@@ -46,8 +46,20 @@ namespace nmath {
 			
 			bool isOverlapped(const SimpleCriteria& c);
 
-			template <typename T>
-			Criteria* getInterval(const T *values, const char* var, int varCount) {
+			Criteria* getInterval(const double *values, const char* var, int varCount) {
+				Criteria* out;
+				int i;
+				for (i = 0; i<varCount; i++){
+					if (variable == var[i]) {
+						out = andValue(values + (i * 2));
+						return out;
+					}
+				}
+
+				return NULL;
+			}
+
+			Criteria* getIntervalF(const float *values, const char* var, int varCount) {
 				Criteria* out;
 				int i;
 				for (i = 0; i<varCount; i++){
