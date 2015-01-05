@@ -358,11 +358,14 @@ FData* NFunction::getSpaceFor2WithANDComposite(int prefixIndex, const float *inp
 				dparam1.values[1] = param.values[1];
 				calcF_t((void*)&dparam1);
 
-				mod = sqrt(dparam0.retv*dparam0.retv + dparam1.retv*dparam1.retv + 1);
-				
-				sp->data[sp->dataSize++] = dparam0.retv/mod;
-				sp->data[sp->dataSize++] = dparam1.retv/mod;
-				sp->data[sp->dataSize++] = -1/mod;
+				//mod = sqrt(dparam0.retv*dparam0.retv + dparam1.retv*dparam1.retv + 1);
+				//sp->data[sp->dataSize++] = dparam0.retv/mod;
+				//sp->data[sp->dataSize++] = dparam1.retv/mod;
+				//sp->data[sp->dataSize++] = -1/mod;
+
+				sp->data[sp->dataSize++] = dparam0.retv;
+				sp->data[sp->dataSize++] = dparam1.retv;
+				sp->data[sp->dataSize++] = -1.0f;
 			}
 			/*******************************************/
 			
@@ -389,6 +392,7 @@ ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, f
 	FData **tempList;
 	FData *sp;
 	DParamF param;
+	DParam reduceParam;
 	CompositeCriteria *outCriteria;
 	SimpleCriteria *sc;
 	int i, j;
@@ -410,7 +414,14 @@ ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, f
 	for(i=0; i<prefix.size; i++) {
 		if(needNormalVector) {
 			df[0] = getDerivativeByVariable(i, 0);
+			reduceParam.t = df[0];
+			reduce_t((void*)&reduceParam);
+			df[0] = reduceParam.t;
+
 			df[1] = getDerivativeByVariable(i, 1);
+			reduceParam.t = df[1];
+			reduce_t((void*)&reduceParam);
+			df[1] = reduceParam.t;
 #ifdef _DEBUG
 			std::cout << "dx/df: \n";
 			printNMAST(df[0], 0, std::cout);
@@ -1588,6 +1599,7 @@ void* nmath::derivative(void *p){
 
 	if (t->type == NUMBER || t->type == PI_TYPE || t->type == E_TYPE){
 		u = (NMAST*)malloc(sizeof(NMAST));
+		u->sign = 1;
 		u->type = NUMBER;
 		u->value = 0.0;
 		u->parent = NULL;
@@ -1609,6 +1621,7 @@ void* nmath::derivative(void *p){
 	if (t->type == VARIABLE){
 		u = (NMAST*)malloc(sizeof(NMAST));
 		u->type = NUMBER;
+		u->sign = 1;
 		u->value = 1.0;
 		u->parent = NULL;
 		u->left = u->right = NULL;
@@ -1788,48 +1801,73 @@ void* nmath::derivative(void *p){
 /* (u.v) = u'v + uv' */
 NMAST* nmath::d_product(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 	NMAST *r = NULL;
-
-	r = (NMAST *)malloc(sizeof(NMAST));
-	
 	if (dv == NULL && du != NULL) {
-		r->variable = 0;
-		r->type = MULTIPLY;
-		r->parent = NULL;
-		r->left = du;
-		du->parent = r;
-		r->right = cloneTree(v, r);
+		if(du->type == NUMBER && du->value == 0.0) {
+			r = du;			
+		} else {
+			r = (NMAST *)malloc(sizeof(NMAST));
+			r->sign = 1;
+			r->variable = 0;
+			r->type = MULTIPLY;
+			r->parent = NULL;
+			r->left = du;
+			du->parent = r;
+			r->right = cloneTree(v, r);
+		}
 		return r;
 	}
 	
 	if(dv != NULL && du == NULL) {
-		r->variable = 0;
-		r->type = MULTIPLY;
-		r->left = cloneTree(u, r);
-		r->right = dv;
-		dv->parent = r;
+		if(dv->type==NUMBER && dv->value == 0.0) {
+			r = dv;
+		} else {
+			r = (NMAST *)malloc(sizeof(NMAST));
+			r->sign = 1;
+			r->variable = 0;
+			r->type = MULTIPLY;
+			r->left = cloneTree(u, r);
+			r->right = dv;
+			dv->parent = r;
+		}
+		
 		return r;
 	}
 	
+	r = (NMAST *)malloc(sizeof(NMAST));
+	r->sign = 1;
 	r->variable = 0;
 	r->type = PLUS;
 	r->parent = NULL;
 		
-	r->left = (NMAST *)malloc(sizeof(NMAST));
-	r->left->variable = 0;
-	r->left->type = MULTIPLY;
-	r->left->parent = r;
-	r->left->left = cloneTree(u, r->left);
-	r->left->right = dv;
-	dv->parent = r->left;
-
-	r->right = (NMAST *)malloc(sizeof(NMAST));
-	r->right->variable = 0;
-	r->right->type = MULTIPLY;
-	r->right->parent = r;
-	r->right->left = du;
-	du->parent = r->right;
-	r->right->right = cloneTree(v, r->right);
-
+	
+	if(dv->type == NUMBER && dv->value == 0.0) {
+		r->left = dv;
+		dv->parent = r;
+	} else {
+		r->left = (NMAST *)malloc(sizeof(NMAST));
+		r->left->sign = 1;
+		r->left->variable = 0;
+		r->left->type = MULTIPLY;
+		r->left->parent = r;
+		r->left->left = cloneTree(u, r->left);
+		r->left->right = dv;
+		dv->parent = r->left;
+	}
+	
+	if(du->type==NUMBER && du->value == 0.0) {
+		r->right = du;
+		du->parent = r;
+	}else {
+		r->right = (NMAST *)malloc(sizeof(NMAST));
+		r->right->sign = 1;
+		r->right->variable = 0;
+		r->right->type = MULTIPLY;
+		r->right->parent = r;
+		r->right->left = du;
+		du->parent = r->right;
+		r->right->right = cloneTree(v, r->right);
+	}
+	
 	return r;
 }
 
@@ -2208,7 +2246,15 @@ NMAST* nmath::d_quotient(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, cha
 NMAST* nmath::d_sum_subtract(NMAST *t, int type, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 	NMAST *r;
 
+	if(dv == 0 && du != 0) {
+		return du;
+	}
+
+	if(dv != 0 && du == 0)
+		return dv;
+
 	r = (NMAST *)malloc(sizeof(NMAST));
+	r->sign = 1;
 	r->type = type;
 	r->value = 0.0;
 	r->parent = NULL;
@@ -2233,6 +2279,7 @@ NMAST* nmath::d_pow_exp(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char
 	/* power: (u^a)' = au^(a-1)*u' */
 	if (isXLeft != 0 && isXRight == 0){
 		r = (NMAST *)malloc(sizeof(NMAST));
+		r->sign = 1;
 		r->type = MULTIPLY;
 		r->value = 0.0;
 		r->parent = NULL;
