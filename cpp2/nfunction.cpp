@@ -1,5 +1,6 @@
 #include <string>
 #include <cstdlib>
+#include <math.h>
 
 #ifdef _DEBUG
 #include <stdio.h>
@@ -9,6 +10,14 @@
 #ifdef _WIN32
 #include <Windows.h>
 #include <process.h>
+#endif
+
+#ifdef _ADEBUG
+#include <android/log.h>
+#define LOG_TAG "NFunction"
+#define LOG_LEVEL 10
+#define LOGI(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__);}
+#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
 #endif
 
 #include "StringUtil.h"
@@ -21,14 +30,6 @@
 using namespace nmath;
 
 NFunction::NFunction(): text(0), valLen(0) {
-	mLexer = new NLabLexer();
-	mParser = new NLabParser();
-
-	//Hard code to test
-	mTokenCapability = 50;
-	mTokens = new Token[mTokenCapability];
-	mTokeSize = 0;
-
 	prefix.list = 0;
 	prefix.loggedSize = 0;
 	prefix.size = 0;
@@ -41,7 +42,7 @@ NFunction::NFunction(): text(0), valLen(0) {
 NFunction::~NFunction() {
 	release();
 }
-
+#ifdef _WIN32
 std::ostream& nmath::operator <<(std::ostream& os, const NFunction& f) {
 	int i;
 	os << "\n Function: " << f.getText() << "\n";
@@ -60,15 +61,17 @@ std::ostream& nmath::operator <<(std::ostream& os, const NFunction& f) {
 
 	return os;
 }
+#endif
 
 /*
 Parse the input string in object f to NMAST tree
 */
-int NFunction::parse(const char *str, int len) {
-	int i, k;
+int NFunction::parse(const char *str, int len, NLabLexer *mLexer, NLabParser *mParser) {
+	int i, k, mTokeSize;
 	Criteria *c;
 	CompositeCriteria *cc;
 	NMASTList domain;
+	Token mTokens[100];
 	
 	domain.list = 0;
 	domain.loggedSize = 0;
@@ -85,7 +88,7 @@ int NFunction::parse(const char *str, int len) {
 	textLen = len;
 	text[len] = '\0';
 
-	mTokeSize = mLexer->lexicalAnalysis(text, textLen, 0, mTokens, mTokenCapability, 0);
+	mTokeSize = mLexer->lexicalAnalysis(text, textLen, 0, mTokens, 100/*capacity of mTokens*/, 0);
 	errorColumn = mLexer->getErrorColumn();
 	errorCode = mLexer->getErrorCode();
 	if (errorCode != NMATH_NO_ERROR) {
@@ -104,7 +107,7 @@ int NFunction::parse(const char *str, int len) {
 			criteria.list = (Criteria**)malloc(sizeof(Criteria*) * domain.size);
 			criteria.loggedSize = domain.size;
 			criteria.size = domain.size;
-			memset(criteria.list, NULL, criteria.loggedSize);
+			memset(criteria.list, 0, criteria.loggedSize* sizeof(int));
 
 			for (i = 0; i < domain.size; i++) {
 				c = NULL;
@@ -132,23 +135,71 @@ int NFunction::parse(const char *str, int len) {
 	return errorCode;
 }
 
-		
+/*
+Parse the input string in object f to NMAST tree
+*/
+int NFunction::parse(Token *mTokens, int mTokeSize, NLabParser *mParser) {
+	int i, k;
+	Criteria *c;
+	CompositeCriteria *cc;
+	NMASTList domain;
+	
+	domain.list = 0;
+	domain.loggedSize = 0;
+	domain.size = 0;
+	
+	//TODO: Need to release prefix and domain before call parseFunctionExpression from NLabParser
+#ifdef _ADEBUG
+	//LOGI(1, "Number of token: %d", mTokeSize);
+#endif
+	errorCode = mParser->parseFunctionExpression(mTokens, mTokeSize, &prefix, &domain);
+	errorColumn = mParser->getErrorColumn();
+	if (errorCode == NMATH_NO_ERROR) {
+		valLen = mParser->variableCount();
+		if (valLen > 0)
+			memcpy(variables, mParser->variables(), valLen);
+#ifdef _ADEBUG
+	//LOGI(1, "Variable on left: %c; variable on right: %c", prefix.list[0]->left->right->variable, prefix.list[0]->right->right->variable);
+#endif		
+		if (domain.list != NULL) {
+			criteria.list = (Criteria**)malloc(sizeof(Criteria*) * domain.size);
+			criteria.loggedSize = domain.size;
+			criteria.size = domain.size;
+
+			memset(criteria.list, 0, criteria.loggedSize*sizeof(int));
+
+			for (i = 0; i < domain.size; i++) {
+				c = NULL;
+				if (domain.list[i] != NULL) {
+					c = nmath::buildCriteria(domain.list[i]);
+					//atemp to normalize criteria so that it hold criteria for all variable in every it's element
+					if ( (c!=NULL) && c->getCClassType() == COMPOSITE &&
+						((CompositeCriteria*)c)->logicOperator() == OR) {
+						cc = (CompositeCriteria*)c;
+						cc->normalize(variables, valLen);
+					}
+				}
+				criteria.list[i] = c;
+			}
+		}
+	}
+	
+	if(domain.list != NULL) {
+		for(i=0; i<domain.size; i++)
+			::clearTree(&(domain.list[i]));
+		free(domain.list);
+		domain.list = NULL;
+	}
+
+	return errorCode;
+}
+
 void NFunction::release() {
 	int i;
 	if (text != NULL) {
 		delete[] text;
 		text = 0;
 		textLen = 0;
-	}
-
-	if (mLexer != NULL) {
-		delete mLexer;
-		mLexer = NULL;
-	}
-
-	if (mParser != NULL) {
-		delete mParser;
-		mParser = NULL;
 	}
 
 	if(prefix.list != NULL) {
@@ -170,13 +221,6 @@ void NFunction::release() {
 		criteria.loggedSize = 0;
 		criteria.size = 0;
 	}
-
-	if(mTokens != NULL) {
-		delete[] mTokens;
-		mTokens = NULL;
-	}
-	mTokenCapability = 0;
-	mTokeSize = 0;
 }
 
 double NFunction::dcalc(double *values, int numOfValue) {
@@ -191,10 +235,21 @@ double NFunction::dcalc(double *values, int numOfValue) {
 
 int NFunction::reduce() {
 	DParam dp;
-	dp.t = *(prefix.list);
-	dp.error = 0;
-	nmath::reduce_t(&dp);
+	int i;
+
+	for(i=0; i<prefix.size; i++) {
+		dp.t = prefix.list[i];
+		dp.error = 0;
+		nmath::reduce_t(&dp);
+		prefix.list[i] = dp.t;
+	}
 	return 0;
+}
+
+int NFunction::toString(char *str, int buflen) {
+	int start = 0;
+	nmath::toString(prefix.list[0], str, &start, buflen);
+	return start;
 }
 
 /*
@@ -228,6 +283,9 @@ FData* NFunction::getSpaceFor2WithANDComposite(int prefixIndex, const float *inp
 	int i, j, k, elementOnRow;
 	SimpleCriteria *sc;
 	char currentVar;
+
+	//used for normalizing nv
+	float mod;
 	
 	for(k=0; k<valLen; k++) {
 		currentVar = variables[k];
@@ -269,6 +327,9 @@ FData* NFunction::getSpaceFor2WithANDComposite(int prefixIndex, const float *inp
 		while(param.values[1] < max[1]) {
 			calcF_t((void*)&param);
 			z = param.retv;
+//#ifdef _ADEBUG
+//			LOGI(1, "x = %f, y=%f, z=%f", param.values[0], param.values[1], z);
+//#endif
 			if( sp->dataSize >= sp->loggedSize - (sp->dimension) ){
 				sp->loggedSize += 20;
 				dataTemp = (float*)realloc(sp->data, sizeof(float) * sp->loggedSize);
@@ -296,10 +357,12 @@ FData* NFunction::getSpaceFor2WithANDComposite(int prefixIndex, const float *inp
 				dparam1.values[0] = param.values[0];
 				dparam1.values[1] = param.values[1];
 				calcF_t((void*)&dparam1);
+
+				mod = sqrt(dparam0.retv*dparam0.retv + dparam1.retv*dparam1.retv + 1);
 				
-				sp->data[sp->dataSize++] = dparam0.retv;
-				sp->data[sp->dataSize++] = dparam1.retv;
-				sp->data[sp->dataSize++] = -1;
+				sp->data[sp->dataSize++] = dparam0.retv/mod;
+				sp->data[sp->dataSize++] = dparam1.retv/mod;
+				sp->data[sp->dataSize++] = -1/mod;
 			}
 			/*******************************************/
 			
@@ -348,6 +411,12 @@ ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, f
 		if(needNormalVector) {
 			df[0] = getDerivativeByVariable(i, 0);
 			df[1] = getDerivativeByVariable(i, 1);
+#ifdef _DEBUG
+			std::cout << "dx/df: \n";
+			printNMAST(df[0], 0, std::cout);
+			std::cout << "dy/df: \n";
+			printNMAST(df[1], 0, std::cout);
+#endif
 		}
 		
 		if(criteria.list[i] == NULL) {
@@ -1487,7 +1556,9 @@ void* nmath::calcF_t(void *param){
 	dp->error = this_param_right.error;
 	return dp->error;
 	}*/
+#ifdef _ADEBUG
 	//LOGI(2, "sign: %d, operand1= %f, operand2=%f, operator: %d", t->sign, this_param_left.retv, this_param_right.retv, t->type);	
+#endif
 	dp->retv = t->sign * doCalculateF(this_param_left.retv, this_param_right.retv, t->type, &(dp->error));
 #ifdef _WIN32
 	return dp->error;
@@ -1546,12 +1617,16 @@ void* nmath::derivative(void *p){
 			u->value = 1.0;
 			dp->returnValue = u;
 #ifdef _WIN32
-		}
-		return 0;
+			return 0;
 #else
 			return u;
+#endif
 		}
 		u->value = 0.0;
+		
+#ifdef _WIN32
+		return 0;
+#else
 		return u;
 #endif
 }
@@ -1715,26 +1790,44 @@ NMAST* nmath::d_product(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char
 	NMAST *r = NULL;
 
 	r = (NMAST *)malloc(sizeof(NMAST));
+	
+	if (dv == NULL && du != NULL) {
+		r->variable = 0;
+		r->type = MULTIPLY;
+		r->parent = NULL;
+		r->left = du;
+		du->parent = r;
+		r->right = cloneTree(v, r);
+		return r;
+	}
+	
+	if(dv != NULL && du == NULL) {
+		r->variable = 0;
+		r->type = MULTIPLY;
+		r->left = cloneTree(u, r);
+		r->right = dv;
+		dv->parent = r;
+		return r;
+	}
+	
 	r->variable = 0;
 	r->type = PLUS;
 	r->parent = NULL;
-
+		
 	r->left = (NMAST *)malloc(sizeof(NMAST));
 	r->left->variable = 0;
 	r->left->type = MULTIPLY;
 	r->left->parent = r;
 	r->left->left = cloneTree(u, r->left);
 	r->left->right = dv;
-	if (dv != NULL)
-		dv->parent = r->left;
+	dv->parent = r->left;
 
 	r->right = (NMAST *)malloc(sizeof(NMAST));
 	r->right->variable = 0;
 	r->right->type = MULTIPLY;
 	r->right->parent = r;
 	r->right->left = du;
-	if (du != NULL)
-		du->parent = r->right;
+	du->parent = r->right;
 	r->right->right = cloneTree(v, r->right);
 
 	return r;
@@ -1745,17 +1838,11 @@ NMAST* nmath::d_sin(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 	NMAST *r;
 	/* (cos(v))' = -sin(v)*dv */
 	r = (NMAST *)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
 	r->type = MULTIPLY;
 	r->sign = 1;
 	r->parent = NULL;
 
 	r->left = (NMAST *)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
 	r->left->type = COS;
 	r->left->sign = 1;
 	r->left->parent = r;

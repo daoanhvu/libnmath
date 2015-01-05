@@ -4,6 +4,14 @@
 
 #define POOL_CAPACITY 32
 
+#ifdef _ADEBUG
+#include <android/log.h>
+#define LOG_TAG "NMATH_COMMON"
+#define LOG_LEVEL 10
+#define LOGI(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__);}
+#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
+#endif
+
 const int FUNCTIONS[] = {SIN, COS, TAN, COTAN, ASIN, ACOS, ATAN, LOG, LN, SQRT};
 const int FUNCTION_COUNT = 10;
 
@@ -339,6 +347,9 @@ double doCalculate(double val1, double val2, int type, int *error) {
 
 float doCalculateF(float val1, float val2, int type, int *error) {
 	(*error) = 0;
+#ifdef _ADEBUG
+	float f;
+#endif
 	switch(type){
 		case PLUS:
 			/*printf("%lf+%lf=%lf\n", val1, val2, val1 + val2);*/
@@ -615,7 +626,7 @@ std::ostream& printNMAST(const NMAST *ast, int level, std::ostream& os) {
 		break;
 
 	case POWER:
-		os << "^";
+		os << "^ \n";
 		break;
 
 	default:

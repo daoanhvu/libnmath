@@ -1,5 +1,6 @@
 // TestNMath.cpp : Defines the entry point for the console application.
 //
+#define GLM_FORCE_RADIANS
 
 #include <SDKDDKVer.h>
 #include <stdio.h>
@@ -7,9 +8,17 @@
 #include <tchar.h>
 #include <iostream>
 #include <fstream>
+#include <iomanip>
 #include <string>
 #include <StringUtil.h>
 #include <nmath.h>
+#include <glm\glm.hpp>
+#include <glm\ext.hpp>
+#include <glm\gtx\matrix_cross_product.hpp>
+#include <glm\gtx\quaternion.hpp>
+#include <glm\gtc\matrix_transform.hpp>
+#include <gm.hpp>
+#include <camera.h>
 
 using namespace nmath;
 
@@ -104,12 +113,14 @@ void testDerivative() {
 	char dstr[128];
 	int l = 0;
 	NFunction f;
+	NLabLexer lexer;
+	NLabParser parser;
 	string str;
 
 	cout << "Input function: ";
 	cin >> str;	
 	
-	error = f.parse(str.c_str(), str.length());
+	error = f.parse(str.c_str(), str.length(), &lexer, &parser);
 	if(error != NMATH_NO_ERROR) {
 		printError(f.getErrorColumn(), error);
 		return;
@@ -137,23 +148,42 @@ void testDerivative() {
 	clearPool();
 }
 
-void testFunction() {
+void testFunction1() {
 	NFunction f;
+	NLabLexer lexer;
+	NLabParser parser;
+	NMAST *df;
+	int error;
+	
+	error = f.parse("f(x,y)=2*x^3+y^2", 16, &lexer, &parser);
+	
+	if (error == NMATH_NO_ERROR) {
+		df = f.getDerivativeByVariable(0, 1);
+		printNMAST(df, 0, std::cout);
+		clearTree(&df);
+	}
+}
+
+void testFunction2() {
+	NFunction f;
+	NLabLexer lexer;
+	NLabParser parser;
+
 	ListFData *data;
-	float interval[] = {-1, 2, 0, 1};
+	float interval[] = {0.5, 1.5, 1, 2};
 	int i, j, vcount, error, lineCount = 0;
 	ifstream dataFile("D:\\data\\data.txt");
 	string line;
 
 	if(dataFile.is_open()) {
 		while( getline(dataFile, line) ) {
-			error = f.parse(line.c_str(), line.length());
+			error = f.parse(line.c_str(), line.length(), &lexer, &parser);
 			if (error != NMATH_NO_ERROR) {
 				std::cout << "Function " << lineCount << " Parsing ERROR = " << error << "\n";
 			}
 			else {
-				std::cout << f;
-				data = f.getSpace(interval, 0.2f, true);
+				//std::cout << f;
+				data = f.getSpace(interval, 0.5f, true);
 
 				if (data != NULL) {
 					for (i = 0; i<data->size; i++) {
@@ -176,7 +206,7 @@ void testFunction() {
 							}
 
 							if((data->list[i]->dimension) >=6 ) {
-								cout << ", nz = " << data->list[i]->data[j * data->list[i]->dimension + 5];
+								cout << ", nz = " << std::setw(10) << std::setprecision(6) << data->list[i]->data[j * data->list[i]->dimension + 5];
 							}
 
 							cout << "\n";
@@ -205,6 +235,45 @@ void testFunction() {
 
 void testCalculate() {
 
+}
+
+void testReduce() {
+	NFunction f;
+	NLabLexer lexer;
+	NLabParser parser;
+
+	float interval[] = { -1, 2, 0, 1 };
+	int i, j, vcount, error, lineCount = 0;
+	ifstream dataFile("D:\\data\\expression.txt");
+	string line;
+	char dstr[128];
+	int l = 0;
+
+	if (dataFile.is_open()) {
+		while (getline(dataFile, line)) {
+			error = f.parse(line.c_str(), line.length(), &lexer, &parser);
+			if (error != NMATH_NO_ERROR) {
+				std::cout << "Expression " << lineCount << " Parsing ERROR = " << error << "\n";
+			}
+			else {
+				std::cout << f;
+				if (f.reduce() == NMATH_NO_ERROR) {
+					nmath::toString(f.getPrefix(0), dstr, &l, 128);
+					dstr[l] = '\0';
+					cout << "f' = " << dstr << "\n";
+				}
+				else {
+					cout << "Expression " << lineCount << " reduce Failed \n";
+				}
+				cout << "\Expression Parsing OK\n";
+			}
+			cout << "\n******************************************************\n";
+			lineCount++;
+		}
+
+		dataFile.close();
+	}
+	f.release();
 }
 
 void testCriteria(){
@@ -246,6 +315,7 @@ void testCriteria(){
 
 				o = c->getInterval(value, "xy", 2);
 
+				std::cout << line << "\n";
 				std::cout << ((Criteria&)*c) << "\n";
 				std::cout << "\n Result: \n";
 				std::cout << ((Criteria&)*o) << "\n";
@@ -267,6 +337,172 @@ void testCriteria(){
 	}
 }
 
+void printMat4(glm::mat4 *m) {
+	int i, j;
+	for(i=0; i<4; i++) {
+		for(j=0; j<4; j++) {
+			cout << m->operator[](i)[j] << "\t";
+		}
+		cout << "\n";
+	}
+	cout << "\n";
+}
+
+float angle2DVector(float x1, float y1, float x2, float y2) {
+	float d = (x1 * x2) + (y1 * y2);
+	float cs = d / (sqrt(x1*x1 + y1*y1) * sqrt(x2*x2 + y2*y2));
+	return acos(cs);
+}
+
+void printMat4(gm::mat4 *m) {
+	int i, j;
+	cout << "\n";
+	for(i=0; i<4; i++) {
+		for(j=0; j<4; j++) {
+			cout << m->operator[](i)[j] << "\t";
+		}
+		cout << "\n";
+	}
+	cout << "\n";
+}
+
+
+void testGM() {
+	int i, j;
+	glm::mat4 view1;
+	glm::mat4 pers1;
+	glm::mat4 pvm1;
+	float fovy = D2R(35);
+	float nearPlane = 0.5f;
+	float farPlane = 9.5f;
+	float aspect = 800.0f/600;
+
+	fp::Camera camera;
+
+	/* USE GLM */
+	view1 = glm::lookAt(glm::vec3(0,0,-4), glm::vec3(0,0,0),glm::vec3(0,1,0));
+	pers1 = glm::perspective(fovy, aspect, nearPlane, farPlane);
+	cout << "GLM: \n";
+	cout << "Aspect: " << aspect << "\n";
+	cout <<"View: \n";
+	printMat4(&view1);
+	cout <<"Perspective: \n";
+	printMat4(&pers1);
+	cout <<"Multiply: \n";
+	glm::mat4 mm1 = view1 * pers1;
+	printMat4(&mm1);
+	cout << "\n************************* \n";
+
+	/* USE GM */
+	cout << "GM: \n";
+	cout <<"View: \n";
+	camera.lookAt(0, 0, -4, 0, 0, 0, 0, 1, 0);
+	camera.setViewport(0, 0, 800, 600);
+	camera.setPerspective(fovy, nearPlane, farPlane);
+	gm::mat4 view2 = camera.getView();
+	gm::mat4 pers2 = camera.getPerspective();
+	printMat4(&view2);
+	printMat4(&pers2);
+	cout <<"Multiply: \n";
+	gm::mat4 mm2 = pers2 * view2;
+	printMat4(&mm2);
+}
+
+void testProject() {
+	int i, j;
+	glm::mat4 view1;
+	glm::mat4 pers1;
+	glm::mat4 pvm1;
+	float fovy = D2R(35);
+	float nearPlane = 0.5f;
+	float farPlane = 9.5f;
+	float aspect = 800.0f/600;
+
+	fp::Camera camera;
+
+	/* USE GLM */
+	view1 = glm::lookAt(glm::vec3(0,0,-4), glm::vec3(0,0,0),glm::vec3(0,1,0));
+	pers1 = glm::perspective(fovy, aspect, nearPlane, farPlane);
+	glm::vec3 obj(1.2f, 0.75, 0.03);
+	glm::vec3 a = glm::project(obj, view1, pers1, glm::vec4(0, 0, 800, 600));
+	cout << "GLM: \n";
+	cout << "Aspect: " << aspect << "\n";
+	cout <<"View: \n";
+	printMat4(&view1);
+	cout <<"Perspective: \n";
+	printMat4(&pers1);
+	cout << "Out: (" << a[0] << ", " << a[1] << ", " << a[2] << ")\n";
+	cout << "\n************************* \n";
+
+	/* USE GM */
+	cout << "GM: \n";
+	cout <<"View: \n";
+	float a1[3];
+	camera.lookAt(0, 0, -4, 0, 0, 0, 0, 1, 0);
+	camera.setViewport(0, 0, 800, 600);
+	camera.setPerspective(fovy, nearPlane, farPlane);
+	gm::mat4 view2 = camera.getView();
+	gm::mat4 pers2 = camera.getPerspective();
+	camera.project(a1, 1.2f, 0.75, 0.03);
+	printMat4(&view2);
+	printMat4(&pers2);
+	
+	cout << "Out: (" << a1[0] << ", " << a1[1] << ", " << a1[2] << ")";
+}
+
+void testMultiply() {
+	int i, j;
+	glm::mat4 view1;
+	fp::Camera camera;
+
+	/* USE GLM */
+	view1 = glm::lookAt(glm::vec3(0,0,-4), glm::vec3(0,0,0),glm::vec3(0,1,0));
+	glm::vec4 obj(1.2f, 0.75, 0.03, 2);
+	glm::vec4 a = view1 * obj;
+	cout << "GLM: \n";
+	
+	cout <<"View: \n";
+	printMat4(&view1);
+	cout << "(" << obj[0] << ", " << obj[1] << ", " << obj[2] << ", " << obj[3] << ")\n";
+	cout <<"Result: (" << a[0] << ", " << a[1] << ", " << a[2] << ", " << a[3] << ")\n";
+	cout << "\n************************* \n";
+
+	/* USE GM */
+	cout << "GM: \n";
+	cout <<"View: \n";
+	camera.lookAt(0, 0, -4, 0, 0, 0, 0, 1, 0);
+	camera.setViewport(0, 0, 800, 600);
+	gm::mat4 view2 = camera.getView();
+	printMat4(&view2);
+	cout << "(" << obj[0] << ", " << obj[1] << ", " << obj[2] << ", " << obj[3] << ")\n";
+	gm::vec4 tmp(obj[0], obj[1], obj[2], obj[3]);
+	gm::vec4 a1 = view2 * tmp;
+	cout << "Out: (" << a1[0] << ", " << a1[1] << ", " << a1[2] << ", " << a1[3] << ")";
+}
+
+void testCamera() {
+	int i, j;
+	fp::Camera camera;
+	float a1[3];
+
+	/* USE GM */
+	cout << "GM: \n";
+	cout <<"View: \n";
+	camera.lookAt(0, 0, -6.5f, 0, 0, 0, 0, 1, 0);
+	camera.setViewport(0, 0, 600, 886);
+	camera.setPerspective(D2R(35), 0.1f, 9.0f);
+	gm::mat4 view2 = camera.getView();
+	gm::mat4 pers2 = camera.getPerspective();
+
+	printMat4(&view2);
+	printMat4(&pers2);
+
+	//camera.project(a1, 1.0f, 0.0f, 0.0f);
+	camera.project(a1, 0.0f, 0.0f, 0.0f);
+	cout << "Out: (" << a1[0] << ", " << a1[1] << ", " << a1[2] << ")";
+}
+
+
 int _tmain(int argc, _TCHAR* argv[]) {
 	int command;
 
@@ -281,7 +517,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			break;
 
 		case 2:
-			testFunction();
+			//testFunction1();
+			testFunction2();
 			break;
 
 		case 3:
@@ -292,6 +529,26 @@ int _tmain(int argc, _TCHAR* argv[]) {
 
 		case 4:
 			testCalculate();
+			break;
+
+		case 5:
+			testGM();
+			break;
+
+		case 6:
+			testProject();
+			break;
+
+		case 7:
+			testMultiply();
+			break;
+
+		case 8:
+				testCamera();
+			break;
+
+		case 9:
+			testReduce();
 			break;
 		}
 

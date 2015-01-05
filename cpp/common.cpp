@@ -19,7 +19,7 @@ int gErrorCode = 0;
 int gPoolSize = 0;
 NMAST* AST_POOL[POOL_CAPACITY];
 
-#ifdef DEBUG
+#ifdef _DEBUG
 int gNumberOfDynamicObject = 0;
 int numberOfDynamicObject(){
 	return gNumberOfDynamicObject;
@@ -38,7 +38,7 @@ void descNumberOfDynamicObjectBy(int k){
 /** internal use */
 void pushASTStack(NMASTList *sk, NMAST* ele) {
 	NMAST** tmpP;
-#ifdef DEBUG
+#ifdef _DEBUG
 	char isFirtTime = (sk==NULL || sk->loggedSize<=0)?TRUE:FALSE;
 #endif
 
@@ -57,7 +57,7 @@ void pushASTStack(NMASTList *sk, NMAST* ele) {
 			return;
 		}
 		sk->list = tmpP;
-#ifdef DEBUG
+#ifdef _DEBUG
 		if(isFirtTime)
 			incNumberOfDynamicObject();
 #endif
@@ -159,7 +159,7 @@ void clearTree(NMAST **prf){
 	free(*prf);
 	(*prf) = NULL;
 	
-#ifdef DEBUG
+#ifdef _DEBUG
 	descNumberOfDynamicObject();
 #endif
 	
@@ -490,7 +490,7 @@ NMAST* getFromPool() {
 		node->priority = 0;
 		node->frValue.numerator = 0;
 		node->frValue.denomerator = 1;
-#ifdef DEBUG
+#ifdef _DEBUG
 	gNumberOfDynamicObject++;
 #endif
 	}

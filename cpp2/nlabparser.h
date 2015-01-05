@@ -14,7 +14,9 @@ namespace nmath {
 			char mVariables[4];
 			int mVarCount;
 
-			int functionNotation(const Token* tokens, int count, int index);
+			int getType(const Token *t);
+			
+			int functionNotation(Token* tokens, int count, int index);
 			NMAST* buildIntervalTree(Token* valtk1, Token* o1, Token* variable, Token* o2, Token* valtk2);
 
 		public:

@@ -8,8 +8,7 @@
 #include "nlablexer.h"
 #include "nlabparser.h"
 
-
-#ifdef _TARGET_HOST_ANDROID
+#ifdef _ADEBUG
 	#include <jni.h>
 	#include <android/log.h>
 	#define LOG_TAG "NLABPARSER"
@@ -17,6 +16,8 @@
 	#define LOGI(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__);}
 	#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
 #endif
+
+
 
 using namespace nmath;
 
@@ -27,6 +28,19 @@ NLabParser::NLabParser(){
 }
 
 NLabParser::~NLabParser() {
+}
+
+int NLabParser::getType(const Token *t) {
+	int i;
+	for(i=0; i<mVarCount; i++) {
+#ifdef _ADEBUG
+		LOGI(2, "token_text=%s, token_text_length=%d, variable=%c, VARIABLE=%d", t->text, t->textLength, mVariables[i], VARIABLE);
+#endif
+		if((t->text[0] == mVariables[i]) && (t->textLength == 1)) {
+			return VARIABLE;
+		}
+	}
+	return t->type;
 }
 
 /******************************************************************************************/
@@ -173,20 +187,24 @@ int NLabParser::parseFunctionExpression(Token* tokens, int tokenCount, NMASTList
 	NMAST *item;
 	NMAST **tempList;
 	
-	// LOGI(3, "[NativeParser] GOT HERE - token size: %d", tokens->size);
+	//LOGI(3, "[NativeParser] GOT HERE - token size: %d", tokens->size);
 	/** This array will hold the variables of the function */
 	mVarCount = 0;
 	if ((k = functionNotation(tokens, tokenCount, idx)) > idx){
 		if(tokens[k].type == EQ){
 
+			/*
 			for(i=0; i<tokenCount; i++) {
 				if(tokens[i].type == NAME) {
 					for(l=0; l<mVarCount; l++) {
 						if(tokens[i].text[0]==mVariables[l] && tokens[i].textLength==1)
 							tokens[i].type = VARIABLE;
+							LOGI(3, "Token %d change to Variable (type=%d)", i, tokens[i].type);
 					}
 				}
+				LOGI(3, "Type of token %d = %d", i, tokens[i].type);
 			}
+			*/
 			
 			k++;
 			do {
@@ -262,7 +280,7 @@ int NLabParser::parseFunctionExpression(Token* tokens, int tokenCount, NMASTList
 	functionNotation: NAME LPAREN NAME (COMA NAME)* PRARENT;
 	@return if
 */
-int NLabParser::functionNotation(const Token* tokens, int tokenCount, int index) {
+int NLabParser::functionNotation(Token* tokens, int tokenCount, int index) {
 	int oldIndex = index;
 
 	if( (index < 0) || index >= tokenCount )
@@ -279,6 +297,9 @@ int NLabParser::functionNotation(const Token* tokens, int tokenCount, int index)
 			
 			if(tokens[index+2].type == NAME){
 				mVariables[mVarCount++] = tokens[index+2].text[0];
+#ifdef _ADEBUG
+		LOGI(2, "variable(%d)=%c", mVarCount-1, mVariables[mVarCount-1]);
+#endif
 				index += 3;
 				while( (index+1<tokenCount) && (tokens[index].type == COMMA)
 							&& (tokens[index+1].type == NAME ) ){
@@ -322,7 +343,6 @@ NMAST* NLabParser::parseExpression(Token* tokens, int size, int *start) {
 	// LOGI(2, "[parseExpression] Before while loop i=%d", i);
 	while( (i < size) && !isEndExp) {
 		tk = &(tokens[i]);
-		// LOGI(2, "token %d type:%d", i, tk->type);
 		switch(tk->type) {
 			case NUMBER:
 				val = parseDouble(tk->text, 0, tk->textLength, &error);
@@ -530,8 +550,12 @@ NMAST* NLabParser::parseExpression(Token* tokens, int size, int *start) {
 			case NAME:
 			case VARIABLE:
 				ast = getFromPool();
-				ast->type = tk->type;
+				//ast->type = tk->type;
+				ast->type = getType(tk);
 				ast->variable = tk->text[0];
+#ifdef _ADEBUG
+		//LOGI(2, "Node (type=%d, variable=%c, sign=%d, value=%lf)", ast->type, ast->variable, ast->sign, ast->value);
+#endif
 				pushASTStack(mPrefix, ast); //add this item to prefix
 
 				//I save variable node to speed up the process of calculating value of the function later

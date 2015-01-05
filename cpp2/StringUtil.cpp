@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef _WIN32
 #include <tchar.h>
+#endif
 #include "StringUtil.h"
 
 using namespace nmath;

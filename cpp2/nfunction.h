@@ -22,27 +22,14 @@ namespace nmath {
 		char variables[4];
 		char valLen;
 
-		NLabLexer *mLexer;
-		NLabParser *mParser;
-
 		NMASTList prefix;		
 		ListCriteria criteria;
-
-		Token *mTokens;
-		int mTokenCapability;
-		int mTokeSize;
 
 		NMAST **variableNode;
 		int numVarNode;
 
 		int errorCode;
 		int errorColumn;
-		
-		/*
-			fidx Function expression index (the index of prefix.list)
-			vidx variable index
-		*/
-		NMAST* getDerivativeByVariable(int fidx, int vidx);
 
 		ListFData* getSpaceFor2UnknownVariables(const float *inputInterval, float epsilon, bool needNormalVector);
 		FData* getSpaceFor2WithANDComposite(int prefixIndex, const float *inputInterval, float epsilon, const CompositeCriteria* c, NMAST **df);
@@ -53,21 +40,32 @@ namespace nmath {
 		
 		int getErrorCode() { return errorCode; }
 		int getErrorColumn() { return errorColumn; }
+
+		int toString(char *str, int buflen);
 		
-		int parse(const char *str, int len);
+		int parse(const char *str, int len, NLabLexer *mLexer, NLabParser *mParser);
+		int parse(Token *mTokens, int mTokeSize, NLabParser *mParser);
 		void release();
 		int reduce();
 		double dcalc(double *values, int numOfValue);
 		ListFData* getSpace(const float *inputInterval, float epsilon, bool needNormalVector);
+		char getVariable(int index) { return variables[index]; }
 		char* getText() const { return text; }
-		char getVarCount() const { return valLen; }
+		int getVarCount() const { return valLen; }
+
+		/*
+		fidx Function expression index (the index of prefix.list)
+		vidx variable index
+		*/
+		NMAST* getDerivativeByVariable(int fidx, int vidx);
 		
 		NMASTList* getPrefixList() const { return (NMASTList*)&prefix; }
 		NMAST* getPrefix(int index) const { return prefix.list[index]; }
 		ListCriteria* getCriteriaList() const { return (ListCriteria*)&criteria; }
 		Criteria* getCriteria(int index) const { return criteria.list[index]; }
-
+#ifdef _WIN32
 		friend std::ostream& operator<< (std::ostream& os, const NFunction& f);
+#endif
 	};
 
 	void releaseNMATree(NMASTList **t);

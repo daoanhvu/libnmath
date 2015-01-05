@@ -46,20 +46,42 @@ namespace nmath {
 			
 			bool isOverlapped(const SimpleCriteria& c);
 
-			
-			Criteria* getIntervalF(const float *values, const char* var, int varCount);
-			Criteria* getInterval(const double *values, const char* var, int varCount);
+			Criteria* getInterval(const double *values, const char* var, int varCount) {
+				Criteria* out;
+				int i;
+				for (i = 0; i<varCount; i++){
+					if (variable == var[i]) {
+						out = andValue(values + (i * 2));
+						return out;
+					}
+				}
+
+				return NULL;
+			}
+
+			Criteria* getIntervalF(const float *values, const char* var, int varCount) {
+				Criteria* out;
+				int i;
+				for (i = 0; i<varCount; i++){
+					if (variable == var[i]) {
+						out = andValue(values + (i * 2));
+						return out;
+					}
+				}
+
+				return NULL;
+			}
 
 			Criteria* andSelf(Criteria& c);
-			Criteria* and(SimpleCriteria& c);
-			Criteria* and(CompositeCriteria& c);
+			Criteria* andCriteria(SimpleCriteria& c);
+			Criteria* andCriteria(CompositeCriteria& c);
 
-			Criteria* or(SimpleCriteria& c);
-			CompositeCriteria* or(CompositeCriteria& c);
+			Criteria* orCriteria(SimpleCriteria& c);
+			CompositeCriteria* orCriteria(CompositeCriteria& c);
 
 			/* And this criteria with pair of values */
-			template <class VT>
-			SimpleCriteria* and(const VT *values) {
+			template <typename VT>
+			SimpleCriteria* andValue(const VT *values) {
 				SimpleCriteria *outInterval = 0;
 
 				if (this->leftInfinity && this->rightInfinity) {
@@ -266,10 +288,10 @@ namespace nmath {
 
 				return outInterval;
 			}
-
+#ifdef _WIN32
 			istream& operator >>(istream& is);
 			ostream& operator <<(ostream& os);
-
+#endif
 			Criteria* operator &(Criteria& c);
 			Criteria* operator |(Criteria& c);
 
