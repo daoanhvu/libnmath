@@ -107,96 +107,97 @@
 #ifdef __cplusplus
 	extern "C" {
 #endif
+namespace nmath {
+	typedef struct tagToken Token;
+	typedef struct tagTokenList TokenList;
+	typedef struct tagNMAST NMAST;
+	typedef struct tagNMASTList NMASTList;
 
-		typedef struct tagToken Token;
-		typedef struct tagTokenList TokenList;
-		typedef struct tagNMAST NMAST;
-		typedef struct tagNMASTList NMASTList;
+	struct tagToken {
+		int type;
+		char text[MAXTEXTLEN];
+		int column;
+		unsigned char textLength;
 
-		struct tagToken {
-			int type;
-			char text[MAXTEXTLEN];
-			int column;
-			unsigned char textLength;
+		/* This is used for operators & functions */
+		char priority;
+	};
 
-			/* This is used for operators & functions */
-			char priority;
-		};
+	struct tagNMAST {
+		int type;
+		char priority;
+		/*
+		TYPE_FLOATING_POINT OR TYPE_FRACTION
+		0: floating point value
+		1: Fraction value
+		* */
+		char valueType;
+		double value;
+		//Fraction frValue;
 
-		struct tagNMAST {
-			int type;
+		//if this ast is a VARIABLE and NAME
+		char variable;
 
-			char priority;
-			/*
-			TYPE_FLOATING_POINT OR TYPE_FRACTION
-			0: floating point value
-			1: Fraction value
-			* */
-			char valueType;
-			double value;
-			//Fraction frValue;
+		/* this flag is just used for function cause the function cannot express its sign itself */
+		/* MUST = 1 by default */
+		int sign;
+		struct tagNMAST *parent;
+		struct tagNMAST *left;
+		struct tagNMAST *right;
 
-			//if this ast is a VARIABLE and NAME
-			char variable;
+		char level;
+	};
 
-			/* this flag is just used for function cause the function cannot express its sign itself */
-			/* MUST = 1 by default */
-			int sign;
-			struct tagNMAST *parent;
-			struct tagNMAST *left;
-			struct tagNMAST *right;
-
-			char level;
-		};
-
-		struct tagNMASTList {
-			unsigned int loggedSize;
-			unsigned int size;
-			struct tagNMAST **list;
-		};
+	struct tagNMASTList {
+		unsigned int loggedSize;
+		unsigned int size;
+		struct tagNMAST **list;
+	};
 
 		/** ================================================================================================ */
 
-		typedef struct tagFData {
-			float *data;
-			unsigned int dataSize;
-			unsigned int loggedSize;
-			char dimension;
-			int *rowInfo;
-			unsigned int rowCount;
-			unsigned int loggedRowCount;
-		} FData;
+	typedef struct tagFData {
+		float *data;
+		unsigned int dataSize;
+		unsigned int loggedSize;
+		char dimension;
+		int *rowInfo;
+		unsigned int rowCount;
+		unsigned int loggedRowCount;
+	} FData;
 
-		typedef struct tagListFData {
-			FData **list;
-			unsigned int loggedSize;
-			unsigned int size;
-		} ListFData;
+	typedef struct tagListFData {
+		FData **list;
+		unsigned int loggedSize;
+		unsigned int size;
+	} ListFData;
 
-		typedef struct tagDParam {
-			NMAST *t;
-			char variables[4];
-			int error;
-			double values[8];
-			double retv;
-			NMAST *returnValue;
-		}DParam;
+	typedef struct tagDParam {
+		NMAST *t;
+		char variables[4];
+		int error;
+		double values[8];
+		double retv;
+		NMAST *returnValue;
+	}DParam;
 
-		typedef struct tagDParamF {
-			NMAST *t;
-			char variables[4];
-			int error;
-			float values[8];
-			float retv;
-			NMAST *returnValue;
-		}DParamF;
+	typedef struct tagDParamF {
+		NMAST *t;
+		char variables[4];
+		int error;
+		float values[8];
+		float retv;
+		NMAST *returnValue;
+	}DParamF;
 
 
 /* ====================================================================================================== */
 
+#ifdef _DEBUG
 std::ostream& printNMAST(const NMAST *ast, int level, std::ostream& os);
+#endif
 
-void pushASTStack(NMASTList *sk, NMAST* ele);
+int pushASTStack(NMASTList *sk, NMAST* ele);
 NMAST* popASTStack(NMASTList *sk);
 /* 
  * This do the primity test
@@ -227,20 +228,7 @@ int isComparationOperator(int type);
 int isConstant(int type);
 int isLetter(char c);
 
-/* 
-	I use a pool to store AST node to reuse them later 
-	this reduces the number of allocation operation so it speed up the app
-*/
-NMAST* getFromPool();
-void putIntoPool(NMAST *ast);
-void clearPool();
-
-#ifdef DEBUG
-int numberOfDynamicObject();
-void incNumberOfDynamicObject();
-void descNumberOfDynamicObject();
-void descNumberOfDynamicObjectBy(int k);
-#endif
+} //end namespace nmath
 
 #ifdef __cplusplus
 }

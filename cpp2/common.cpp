@@ -1,3 +1,6 @@
+#ifdef _WIN32
+//#include <Windows.h>
+#endif
 #include <stdlib.h>
 #include <math.h>
 #include "common.h"
@@ -12,6 +15,8 @@
 #define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
 #endif
 
+using namespace nmath;
+
 const int FUNCTIONS[] = {SIN, COS, TAN, COTAN, ASIN, ACOS, ATAN, LOG, LN, SQRT};
 const int FUNCTION_COUNT = 10;
 
@@ -20,12 +25,6 @@ const int OPERATOR_COUNT = 5;
 
 const int COMPARING_OPERATORS[] = {LT,LTE,EQ,GT,GTE};
 const int COMPARING_OPERATORS_COUNT = 5;
-
-int gErrorColumn = -1;
-int gErrorCode = 0;
-
-int gPoolSize = 0;
-NMAST* AST_POOL[POOL_CAPACITY];
 
 #ifdef DEBUG
 int gNumberOfDynamicObject = 0;
@@ -44,14 +43,11 @@ void descNumberOfDynamicObjectBy(int k){
 #endif
 
 /** internal use */
-void pushASTStack(NMASTList *sk, NMAST* ele) {
+int nmath::pushASTStack(NMASTList *sk, NMAST* ele) {
 	NMAST** tmpP;
-#ifdef DEBUG
-	char isFirtTime = (sk==NULL || sk->loggedSize<=0)?TRUE:FALSE;
-#endif
 
 	if(sk == NULL)
-		return;
+		return 0;
 		
 	if(sk->size >= sk->loggedSize){
 		sk->loggedSize += INCLEN;
@@ -61,23 +57,20 @@ void pushASTStack(NMASTList *sk, NMAST* ele) {
 		*/
 		tmpP = (NMAST**)realloc(sk->list, sizeof(NMAST*) * sk->loggedSize);
 		if(tmpP == NULL){
-			gErrorCode = E_NOT_ENOUGH_MEMORY;
-			return;
+			return E_NOT_ENOUGH_MEMORY;
 		}
 		sk->list = tmpP;
-#ifdef DEBUG
-		if(isFirtTime)
-			incNumberOfDynamicObject();
-#endif
 		//if(lst != NULL)
 		//	sk->list = lst;
 	}
 	sk->list[sk->size] = ele;
 	(sk->size)++;
+
+	return NMATH_NO_ERROR;
 }
 
 /** internal use */
-NMAST* popASTStack(NMASTList *sk){
+NMAST* nmath::popASTStack(NMASTList *sk){
 	NMAST* ele;
 	if(sk == NULL || sk->size == 0)
 		return NULL;
@@ -87,7 +80,7 @@ NMAST* popASTStack(NMASTList *sk){
 }
 
 
-int isPrime(long n){
+int nmath::isPrime(long n){
 	long i, sq;
 	if(n<2) return 0;
 	if(n==2) return 1;
@@ -99,7 +92,7 @@ int isPrime(long n){
 }
 
 /* Greatest Common Divisor*/
-long gcd(long a, long b){
+long nmath::gcd(long a, long b){
 	long c;
 	while(a !=0 ){
 		c = a;
@@ -109,11 +102,11 @@ long gcd(long a, long b){
 	return b;
 }
 
-long lcm(long a, long b){
-	return (a*b)/gcd(a, b);
+long nmath::lcm(long a, long b){
+	return (a*b)/nmath::gcd(a, b);
 }
 
-double parseDouble(const char *str, int start, int end, int *error){
+double nmath::parseDouble(const char *str, int start, int end, int *error){
 	int i;
 	double val = 0;
 	char isFloatingPoint = 0;
@@ -154,53 +147,48 @@ double parseDouble(const char *str, int start, int end, int *error){
 	return val*negative;
 }
 
-void clearTree(NMAST **prf){
+void nmath::clearTree(NMAST **prf){
 	
 	if((*prf) == NULL)
 		return;
 	
 	if((*prf)->left != NULL)
-		clearTree(&((*prf)->left));
+		nmath::clearTree(&((*prf)->left));
 	if((*prf)->right != NULL)
-		clearTree(&((*prf)->right));
+		nmath::clearTree(&((*prf)->right));
 		
 	free(*prf);
 	(*prf) = NULL;
-	
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
-	
 }
 
-void clearTreeContent(NMAST *prf){
+void nmath::clearTreeContent(NMAST *prf){
 	if(prf == NULL)
 		return;
 	
 	if(prf->left != NULL){
-		clearTreeContent(prf->left);
+		nmath::clearTreeContent(prf->left);
 		free(prf->left);
 		prf->left = NULL;
 	}
 
 	if(prf->right != NULL){
-		clearTreeContent(prf->right);
+		nmath::clearTreeContent(prf->right);
 		free(prf->right);
 		prf->right = NULL;
 	}
 }
 
-long l_cast(double val, double *fr){
+long nmath::l_cast(double val, double *fr){
 	(*fr) = val - (long)val;
 	return (long)val;
 }
 
-int l_castF(float val, float *fr){
+int nmath::l_castF(float val, float *fr){
 	(*fr) = val - (int)val;
 	return (int)val;
 }
 
-int contains(int type, const int *aset, int len){
+int nmath::contains(int type, const int *aset, int len){
 	int i;
 	for(i=0; i<len; i++)
 		if(type == aset[i])
@@ -208,7 +196,7 @@ int contains(int type, const int *aset, int len){
 	return FALSE;
 }
 
-double logab(double a, double b, int *error){
+double nmath::logab(double a, double b, int *error){
 	(*error) = 0;
 	if( (b > 0.0) && (a > 0.0) && (a != 1.0))
 		return log(b)/log(a);
@@ -218,7 +206,7 @@ double logab(double a, double b, int *error){
 }
 
 
-float logabF(float a, float b, int *error){
+float nmath::logabF(float a, float b, int *error){
 	(*error) = 0;
 	if( (b > 0.0f) && (a > 0.0f) && (a != 1.0f))
 		return log(b)/log(a);
@@ -228,7 +216,7 @@ float logabF(float a, float b, int *error){
 }
 
 
-char getPriorityOfType(int type) {
+char nmath::getPriorityOfType(int type) {
 	switch(type){
 		case OR:
 			return (char)1;
@@ -268,7 +256,7 @@ char getPriorityOfType(int type) {
 	}
 }
 
-double doCalculate(double val1, double val2, int type, int *error) {
+double nmath::doCalculate(double val1, double val2, int type, int *error) {
 	(*error) = 0;
 	switch(type){
 		case PLUS:
@@ -345,7 +333,7 @@ double doCalculate(double val1, double val2, int type, int *error) {
 	return 0;
 }
 
-float doCalculateF(float val1, float val2, int type, int *error) {
+float nmath::doCalculateF(float val1, float val2, int type, int *error) {
 	(*error) = 0;
 #ifdef _ADEBUG
 	float f;
@@ -425,15 +413,7 @@ float doCalculateF(float val1, float val2, int type, int *error) {
 	return 0;
 }
 
-int getErrorColumn(){
-	return gErrorColumn;
-}
-
-int getErrorCode(){
-	return gErrorCode;
-}
-
-int isAFunctionType(int type){
+int nmath::isAFunctionType(int type){
 	int i;
 	for(i=0; i<FUNCTION_COUNT; i++)
 		if(type == FUNCTIONS[i])
@@ -441,7 +421,7 @@ int isAFunctionType(int type){
 	return FALSE;
 }
 
-int isAnOperatorType(int type){
+int nmath::isAnOperatorType(int type){
 	int i;
 	for(i=0; i<OPERATOR_COUNT; i++)
 		if(type == OPERATORS[i])
@@ -449,7 +429,7 @@ int isAnOperatorType(int type){
 	return FALSE;
 }
 
-int isFunctionOROperator(int type){
+int nmath::isFunctionOROperator(int type){
 	int i;
 	for(i=0; i<FUNCTION_COUNT; i++)
 		if(type == FUNCTIONS[i])
@@ -462,7 +442,7 @@ int isFunctionOROperator(int type){
 	return FALSE;
 }
 
-int isComparationOperator(int type){
+int nmath::isComparationOperator(int type){
 	int i;
 	for(i=0; i<COMPARING_OPERATORS_COUNT; i++)
 		if(type == COMPARING_OPERATORS[i])
@@ -470,97 +450,20 @@ int isComparationOperator(int type){
 	return FALSE;
 }
 
-int isLetter(char c){
+int nmath::isLetter(char c){
 	if (( c>='a' && c<='z' ) || ( c>='A' && c<='Z' ))
 		return TRUE;
 	return FALSE;
 }
 
-int isConstant(int type){
+int nmath::isConstant(int type){
 	if(type == NUMBER || type == PI_TYPE || type == E_TYPE)
 		return TRUE;
 	return FALSE;
 }
 
-
-/** Pool operations */
-NMAST* getFromPool() {
-	NMAST *node;
-	if( gPoolSize>0 ) {
-		node = AST_POOL[gPoolSize-1];
-		AST_POOL[gPoolSize-1] = NULL;
-		gPoolSize--;
-	} else {
-		node = (NMAST*)malloc(sizeof(NMAST));
-		node->valueType = TYPE_FLOATING_POINT;
-		node->sign = 1;
-		node->variable = 0;
-		node->left = node->right = node->parent = NULL;
-		node->value = 0;
-		node->type = NUMBER;
-		node->priority = 0;
-		//node->frValue.numerator = 0;
-		//node->frValue.denomerator = 1;
-#ifdef DEBUG
-	gNumberOfDynamicObject++;
-#endif
-	}
-
-	return node;
-}
-
-void putIntoPool(NMAST *node) {
-	NMAST *p;
-
-	if(node == NULL) return;
-
-	if(node->left != NULL)
-		putIntoPool(node->left);
-
-	if(node->right != NULL)
-		putIntoPool(node->right);
-
-	if(node->parent != NULL) {
-		p = node->parent;
-		if(p->left == node)
-			p->left = NULL;
-		else if(p->right == node)
-			p->right = NULL;
-
-		node->parent = NULL;
-	}
-
-	node->valueType = TYPE_FLOATING_POINT;
-	node->sign = 1;
-	node->variable = 0;
-	node->left = node->right = node->parent = NULL;
-	node->value = 0;
-	node->type = NUMBER;
-	node->priority = 0;
-	//node->frValue.numerator = 0;
-	//node->frValue.denomerator = 1;
-
-	if( gPoolSize < POOL_CAPACITY ) {
-		AST_POOL[gPoolSize] = node;
-		gPoolSize++;
-		return;
-	}
-
-	free(node);
-}
-
-void clearPool() {
-	int i;
-	if(gPoolSize > 0) {
-		for(i=0; i<gPoolSize; i++) {
-			free(AST_POOL[i]);
-			AST_POOL[i] = NULL;
-		}
-		gPoolSize = 0;
-	}
-}
-
-std::ostream& printNMAST(const NMAST *ast, int level, std::ostream& os) {
+#ifdef _DEBUG
+std::ostream& nmath::printNMAST(const NMAST *ast, int level, std::ostream& os) {
 	int i;
 
 	if (ast == NULL) return os;
@@ -641,3 +544,4 @@ std::ostream& printNMAST(const NMAST *ast, int level, std::ostream& os) {
 
 	return os;
 }
+#endif

@@ -86,7 +86,7 @@ Criteria* nmath::buildCriteria(const NMAST *ast) {
 	//double v1, v2;
 	switch (ast->type) {
 		case AND:
-			if(isComparationOperator(ast->left->type) && isComparationOperator(ast->right->type)) {
+			if(nmath::isComparationOperator(ast->left->type) && nmath::isComparationOperator(ast->right->type)) {
 				if( ast->left->variable == ast->right->variable){
 					switch(ast->left->type) {
 						case LT:

@@ -5,8 +5,9 @@
 
 namespace StackUtil {
 	/*return errorCode*/
-	int pushItem2Stack(Token ***st, int *top, int *allocLen, Token *item);
-	Token* popFromStack(Token **st, int *top);
+	int pushItem2Stack(nmath::Token ***st, int *top, int *allocLen, nmath::Token *item);
+	nmath::Token* popFromStack(nmath::Token **st, int *top);
+	void addFunction2Tree(nmath::NMASTList *t, nmath::Token * stItm);
 }
 
 #endif

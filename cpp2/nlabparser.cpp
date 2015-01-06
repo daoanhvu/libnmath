@@ -7,6 +7,7 @@
 #include "StackUtil.h"
 #include "nlablexer.h"
 #include "nlabparser.h"
+#include "nmath_pool.h"
 
 #ifdef _ADEBUG
 	#include <jni.h>
@@ -71,111 +72,6 @@ int clearStackWithoutFreeItem(Token **ls, int len){
 		ls[i] = NULL;
 	}
 	return i;
-}
-
-void addFunction2Tree(NMASTList *t, Token * stItm){
-	NMAST *ast = NULL;
-	// LOGI(2, "Type: %d (%s)", stItm->type, stItm->text);
-	switch(stItm->type) {
-		case PLUS:
-			if(t->size > 1) {
-				ast = getFromPool();
-				ast->type = stItm->type;
-				ast->priority = stItm->priority;
-				ast->left = t->list[t->size-2];
-				ast->right = t->list[t->size-1];
-				if((t->list[t->size-2])!=NULL)
-					(t->list[t->size-2])->parent = ast;
-				if((t->list[t->size-1])!=NULL)
-					(t->list[t->size-1])->parent = ast;
-					
-				t->list[t->size-2] = ast;
-				t->list[t->size-1] = NULL;
-				t->size--;
-			}
-		break;
-
-		case MINUS:
-			if(t->size == 1) {
-				if((t->list[0]) != NULL)
-					(t->list[0])->sign = -1;
-			} else {
-				ast = getFromPool();
-				ast->type = stItm->type;
-				ast->priority = stItm->priority;
-				ast->left = t->list[t->size-2];
-				ast->right = t->list[t->size-1];
-				if((t->list[t->size-2])!=NULL)
-					(t->list[t->size-2])->parent = ast;
-				if((t->list[t->size-1])!=NULL)
-					(t->list[t->size-1])->parent = ast;
-					
-				t->list[t->size-2] = ast;
-				t->list[t->size-1] = NULL;
-				t->size--;
-			}
-		break;
-
-		case MULTIPLY:
-		case DIVIDE:
-		case POWER:
-		
-		case LT:
-		case GT:
-		case LTE:
-		case GTE:
-		case AND:
-		case OR:
-			ast = getFromPool();
-			ast->type = stItm->type;
-			ast->priority = stItm->priority;
-			ast->left = t->list[t->size-2];
-			ast->right = t->list[t->size-1];
-			if((t->list[t->size-2])!=NULL)
-				(t->list[t->size-2])->parent = ast;
-			if((t->list[t->size-1])!=NULL)
-				(t->list[t->size-1])->parent = ast;
-				
-			t->list[t->size-2] = ast;
-			t->list[t->size-1] = NULL;
-			t->size--;
-		break;
-
-		case SIN:
-		case COS:
-		case TAN:
-		case COTAN:
-		case ASIN:
-		case ACOS:
-		case ATAN:
-		case SQRT:
-		case LN:
-			ast = getFromPool();
-			ast->type = stItm->type;
-			ast->priority = stItm->priority;
-			ast->right = t->list[t->size-1];
-			if((t->list[t->size-1])!=NULL)
-				(t->list[t->size-1])->parent = ast;
-				
-			t->list[t->size-1] = ast;
-		break;
-										
-		case LOG:
-			ast = getFromPool();
-			ast->type = stItm->type;
-			ast->priority = stItm->priority;
-			ast->left = t->list[t->size-2];
-			ast->right = t->list[t->size-1];
-			if((t->list[t->size-2])!=NULL)
-				(t->list[t->size-2])->parent = ast;
-			if((t->list[t->size-1])!=NULL)
-				(t->list[t->size-1])->parent = ast;
-						
-			t->list[t->size-2] = ast;
-			t->list[t->size-1] = NULL;
-			t->size--;
-		break;
-	}
 }
 
 int NLabParser::parseFunctionExpression(Token* tokens, int tokenCount, NMASTList *prefix, NMASTList *domain) {
@@ -468,7 +364,7 @@ NMAST* NLabParser::parseExpression(Token* tokens, int size, int *start) {
 
 				/*  */
 				while(stItm!=NULL && (stItm->type != LPAREN) && isAFunctionType(stItm->type)  != TRUE){
-					addFunction2Tree(mPrefix, stItm);
+					StackUtil::addFunction2Tree(mPrefix, stItm);
 					//free(stItm);
 					stItm = StackUtil::popFromStack(stack, &top);
 				}
@@ -487,7 +383,7 @@ NMAST* NLabParser::parseExpression(Token* tokens, int size, int *start) {
 				}
 
 				if(isAFunctionType(stItm->type)  == TRUE){
-					addFunction2Tree(mPrefix, stItm);
+					StackUtil::addFunction2Tree(mPrefix, stItm);
 				}
 				i++;
 				break;
@@ -601,7 +497,7 @@ NMAST* NLabParser::parseExpression(Token* tokens, int size, int *start) {
 			errorCode = ERROR_PARENTHESE_MISSING;
 			return NULL;
 		}
-		addFunction2Tree(mPrefix, stItm);
+		StackUtil::addFunction2Tree(mPrefix, stItm);
 	}
 	
 	free(stack);
@@ -790,7 +686,7 @@ NMAST* NLabParser::parseDomain(Token *tokens, int tokenCount, int *start) {
 
 				/*  */
 				while(tokenItm!=NULL && (tokenItm->type != LPAREN) && isAFunctionType(tokenItm->type)  != TRUE){
-					addFunction2Tree(mDomain, tokenItm);
+					StackUtil::addFunction2Tree(mDomain, tokenItm);
 					tokenItm = StackUtil::popFromStack(stack, &top);
 				}
 
@@ -808,7 +704,7 @@ NMAST* NLabParser::parseDomain(Token *tokens, int tokenCount, int *start) {
 				}
 
 				if(isAFunctionType(tokenItm->type)  == TRUE){
-					addFunction2Tree(mDomain, tokenItm);
+					StackUtil::addFunction2Tree(mDomain, tokenItm);
 				}
 				
 				index++;
@@ -981,7 +877,7 @@ NMAST* NLabParser::parseDomain(Token *tokens, int tokenCount, int *start) {
 			errorCode = ERROR_PARENTHESE_MISSING;
 			return NULL;
 		}
-		addFunction2Tree(mDomain, tokenItm);
+		StackUtil::addFunction2Tree(mDomain, tokenItm);
 	}
 	*start = index;
 	free(stack);

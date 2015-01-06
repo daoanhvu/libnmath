@@ -19,6 +19,7 @@
 #include <glm\gtc\matrix_transform.hpp>
 #include <gm.hpp>
 #include <camera.h>
+#include <nmath_pool.h>
 
 using namespace nmath;
 
@@ -148,23 +149,80 @@ void testDerivative() {
 	clearPool();
 }
 
+//write space to binary file
 void testFunction1() {
 	NFunction f;
 	NLabLexer lexer;
 	NLabParser parser;
-	NMAST *df;
-	int error;
-	
-	error = f.parse("f(x,y)=2*x^3+y^2", 16, &lexer, &parser);
-	
-	if (error == NMATH_NO_ERROR) {
-		df = f.getDerivativeByVariable(0, 1);
-		printNMAST(df, 0, std::cout);
-		clearTree(&df);
+
+	ListFData *data;
+	float interval[] = { 0.5, 1.5, 1, 2 };
+	int i, j, vcount, spaceCount, error, lineCount = 0;
+	ifstream dataFile("D:\\data\\data.txt");
+	ofstream outFile("function.dat", std::ofstream::binary);
+	string line;
+
+	if (dataFile.is_open()) {
+		while (getline(dataFile, line)) {
+			error = f.parse(line.c_str(), line.length(), &lexer, &parser);
+			if (error != NMATH_NO_ERROR) {
+				std::cout << "Function " << lineCount << " Parsing ERROR = " << error << "\n";
+			}
+			else {
+				//std::cout << f;
+				data = f.getSpace(interval, 0.5f, true);
+
+				if (data != NULL) {
+					spaceCount = data->size;
+					outFile.write((char*)&spaceCount, sizeof(int));
+					for (i = 0; i<data->size; i++) {
+						vcount = data->list[i]->dataSize / data->list[i]->dimension;
+						cout << "Mesh " << i << ", row count: " << data->list[i]->rowCount << " number of vertex: " << vcount << "\n";
+
+						for (j = 0; j<vcount; j++){
+							cout << "x=" << data->list[i]->data[j * data->list[i]->dimension] << ", y = " << data->list[i]->data[j * data->list[i]->dimension + 1];
+
+							if ((data->list[i]->dimension) >= 3) {
+								cout << ", z = " << data->list[i]->data[j * data->list[i]->dimension + 2];
+							}
+
+							if ((data->list[i]->dimension) >= 4) {
+								cout << ", nx = " << data->list[i]->data[j * data->list[i]->dimension + 3];
+							}
+
+							if ((data->list[i]->dimension) >= 5) {
+								cout << ", ny = " << data->list[i]->data[j * data->list[i]->dimension + 4];
+							}
+
+							if ((data->list[i]->dimension) >= 6) {
+								cout << ", nz = " << std::setw(10) << std::setprecision(6) << data->list[i]->data[j * data->list[i]->dimension + 5];
+							}
+
+							cout << "\n";
+						}
+
+						free(data->list[i]->data);
+						free(data->list[i]->rowInfo);
+						free(data->list[i]);
+					}
+					free(data->list);
+					free(data);
+				}
+				else {
+					cout << "Function " << lineCount << " Get Space Failed \n";
+				}
+				cout << "\nFunction Parsing OK\n";
+			}
+			cout << "\n******************************************************\n";
+			lineCount++;
+		}
+
+		dataFile.close();
 	}
+	f.release();
 }
 
-void testFunction2() {
+void testFunction2(std::ostream &out) {
 	NFunction f;
 	NLabLexer lexer;
 	NLabParser parser;
@@ -506,6 +564,7 @@ void testCamera() {
 int _tmain(int argc, _TCHAR* argv[]) {
 	int command;
 
+	initNMASTPool();
 	do {
 		printMenu();
 		printf("command = ");
@@ -518,7 +577,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
 
 		case 2:
 			//testFunction1();
-			testFunction2();
+			testFunction2(std::cout);
 			break;
 
 		case 3:
@@ -563,6 +622,7 @@ int _tmain(int argc, _TCHAR* argv[]) {
 		//testReuseFunction(f);
 		//testCriteria2(f);
 	} while (command != 0);
+	releaseNMASTPool();
 
 	return 0;
 }

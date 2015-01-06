@@ -21,6 +21,7 @@
 #endif
 
 #include "StringUtil.h"
+#include "nmath_pool.h"
 #include "nfunction.h"
 #include "nlablexer.h"
 #include "nlabparser.h"
@@ -358,14 +359,14 @@ FData* NFunction::getSpaceFor2WithANDComposite(int prefixIndex, const float *inp
 				dparam1.values[1] = param.values[1];
 				calcF_t((void*)&dparam1);
 
-				//mod = sqrt(dparam0.retv*dparam0.retv + dparam1.retv*dparam1.retv + 1);
-				//sp->data[sp->dataSize++] = dparam0.retv/mod;
-				//sp->data[sp->dataSize++] = dparam1.retv/mod;
-				//sp->data[sp->dataSize++] = -1/mod;
+				mod = sqrt(dparam0.retv*dparam0.retv + dparam1.retv*dparam1.retv + 1);
+				sp->data[sp->dataSize++] = dparam0.retv/mod;
+				sp->data[sp->dataSize++] = dparam1.retv/mod;
+				sp->data[sp->dataSize++] = -1/mod;
 
-				sp->data[sp->dataSize++] = dparam0.retv;
-				sp->data[sp->dataSize++] = dparam1.retv;
-				sp->data[sp->dataSize++] = -1.0f;
+				//sp->data[sp->dataSize++] = dparam0.retv;
+				//sp->data[sp->dataSize++] = dparam1.retv;
+				//sp->data[sp->dataSize++] = -1.0f;
 			}
 			/*******************************************/
 			
@@ -1899,17 +1900,11 @@ NMAST* nmath::d_cos(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
 	NMAST *r;
 	/* (cos(v))' = -sin(v)*dv */
 	r = (NMAST *)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
 	r->type = MULTIPLY;
 	r->sign = 1;
 	r->parent = NULL;
 
 	r->left = (NMAST *)malloc(sizeof(NMAST));
-#ifdef DEBUG
-	incNumberOfDynamicObject();
-#endif
 	r->left->type = SIN; /* <== negative here */
 	r->left->sign = -1;
 	r->left->parent = r;
@@ -2091,11 +2086,13 @@ NMAST* nmath::d_acos(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x)
 
 	/* sqrt(...) */
 	r->left->right = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->sign = 1;
 	r->left->right->type = SQRT;
 	r->left->right->parent = r->left;
 	r->left->right->left = NULL;
 
 	r->left->right->right = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->right->sign = 1;
 	r->left->right->right->type = MINUS;
 	r->left->right->right->parent = r->left->right;
 
@@ -2149,6 +2146,7 @@ NMAST* nmath::d_atan(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x)
 
 	/* (v^2+1) */
 	r->left->right = (NMAST *)malloc(sizeof(NMAST));
+	r->left->right->sign = 1;
 	r->left->right->type = PLUS;
 	r->left->right->parent = r->left;
 
@@ -2286,6 +2284,7 @@ NMAST* nmath::d_pow_exp(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char
 
 		/* ===================================================== */
 		r->left = (NMAST *)malloc(sizeof(NMAST));
+		r->left->sign = 1;
 		(r->left)->parent = r;
 		(r->left)->type = MULTIPLY;
 
@@ -2326,6 +2325,7 @@ NMAST* nmath::d_pow_exp(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char
 	/* power: (a^v)' = ln(a)*a^v*v' */
 	if (isXLeft == 0 && isXRight != 0){
 		r = (NMAST *)malloc(sizeof(NMAST));
+		r->sign = 1;
 		r->type = MULTIPLY;
 		r->value = 0.0;
 		r->parent = NULL;
@@ -2362,6 +2362,7 @@ NMAST* nmath::d_pow_exp(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char
 	/* power: (u^v)' = (dv*ln(u) + v(du/u))*u^v */
 	if (isXLeft != 0 && isXRight != 0){
 		r = (NMAST *)malloc(sizeof(NMAST));
+		r->sign = 1;
 		r->type = MULTIPLY;
 		r->value = 0.0;
 		r->parent = NULL;
@@ -2382,6 +2383,7 @@ NMAST* nmath::d_pow_exp(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char
 			dv->parent = (r->left)->left;
 
 		((r->left)->left)->right = (NMAST *)malloc(sizeof(NMAST));
+		((r->left)->left)->right->sign = 1;
 		((r->left)->left)->right->type = LN;
 		((r->left)->left)->right->left = NULL;
 		((r->left)->left)->right->right = cloneTree(u, ((r->left)->left)->right);
@@ -2393,6 +2395,7 @@ NMAST* nmath::d_pow_exp(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char
 		((r->left)->right)->parent = r->left;
 		(r->left)->right->left = cloneTree(v, (r->left)->right);
 		(r->left)->right->right = (NMAST *)malloc(sizeof(NMAST));
+		(r->left)->right->right->sign = 1;
 		(r->left)->right->right->type = DIVIDE;
 		(r->left)->right->right->value = 0;
 		(r->left)->right->right->left = du;
@@ -2402,6 +2405,7 @@ NMAST* nmath::d_pow_exp(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char
 
 		/* ===================================================== */
 		r->right = (NMAST *)malloc(sizeof(NMAST));
+		r->right->sign = 1;
 		r->right->type = POWER;
 		r->right->left = cloneTree(u, r->right);
 		r->right->right = cloneTree(v, r->right);
