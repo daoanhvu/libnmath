@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iomanip>
 #include <string>
+#include <vector>
 #include <StringUtil.h>
 #include <nmath.h>
 #include <glm\glm.hpp>
@@ -212,13 +213,78 @@ void testFunction1() {
 	f.release();
 }
 
+/**
+* Need to be tested with OpenGL
+* @param vertices
+* @param rows each element in this array contains the number of vertex on the corresponding row
+* @return
+*/
+void buildIndicesForTriangleStrip(int vcount, int* rows, int rowCount) {
+	int i, j, num_of_vertices, nextCol, count, diff, k;
+
+	std::vector<int> indices;
+
+	count = 0;
+	for (i = 0; i<rowCount - 1; i++){
+		num_of_vertices = rows[i];
+		nextCol = rows[i + 1];
+
+		for (j = 0; j<num_of_vertices; j++){
+			indices.push_back(count);
+			if (i>0 && j == 0){ //first element of rows that not the first row
+				indices.push_back(count);
+			}
+
+			if (j == num_of_vertices - 1){
+				if (i < rowCount - 2){
+					if ((count + num_of_vertices) < vcount && j<nextCol){
+						//neu co 1 phan tu ngay ben duoi
+						indices.push_back(count + num_of_vertices);
+						indices.push_back(count);
+					}
+					indices.push_back(count);
+				}
+				else	if ((count + num_of_vertices) < vcount && j<nextCol){
+					k = count + num_of_vertices;
+					while (k < vcount){
+						indices.push_back(k);
+						k++;
+						if (k < vcount)
+							indices.push_back(k);
+						k++;
+						if (k<vcount)
+							indices.push_back(count);
+					}
+				}
+			}
+			else{
+				//neu ngay ben duoc co mot vertex nua
+				if ((count + num_of_vertices) < vcount && j<nextCol)
+					indices.push_back(count + num_of_vertices);
+				else{ //neu khong thi add vertex cuoi cung cua dong duoi
+					diff = j - nextCol + 1;
+					indices.push_back(count + num_of_vertices - diff);
+				}
+			}
+			count++;
+		}
+	}
+	int outSize = indices.size();
+	std::cout << "Indices length: " << outSize << "\n";
+	for (i = 0; i<outSize; i++) {
+		std::cout << indices[i] << "  ";
+	}
+	std::cout << "\n";
+
+}
+
 void testFunction2(std::ostream &out) {
 	NFunction f;
 	NLabLexer lexer;
 	NLabParser parser;
 
 	ListFData *data;
-	float interval[] = {0.5, 1.5, 1, 2};
+	float interval[] = {-0.5f, 1.0f, -0.5f, 1.0f};
 	int i, j, vcount, error, lineCount = 0;
 	ifstream dataFile("D:\\data\\data.txt");
 	string line;
@@ -237,7 +303,7 @@ void testFunction2(std::ostream &out) {
 					for (i = 0; i<data->size; i++) {
 						vcount = data->list[i]->dataSize / data->list[i]->dimension;
 						cout << "Mesh " << i << ", row count: " << data->list[i]->rowCount << " number of vertex: " << vcount << "\n";
-				
+						buildIndicesForTriangleStrip(vcount, data->list[i]->rowInfo, data->list[i]->rowCount);
 						for (j = 0; j<vcount; j++){
 							cout << "x=" << data->list[i]->data[j * data->list[i]->dimension] << ", y = " << data->list[i]->data[j * data->list[i]->dimension + 1];
 
@@ -566,8 +632,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			break;
 
 		case 2:
-			testFunction1();
-			//testFunction2(std::cout);
+			//testFunction1();
+			testFunction2(std::cout);
 			break;
 
 		case 3:

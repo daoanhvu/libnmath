@@ -10,6 +10,8 @@ Lighting:
 http://www.falloutsoftware.com/tutorials/gl/gl8.htm
 http://www.glprogramming.com/red/chapter05.html
 http://jayurbain.com/msoe/cs421/slides/cs421-05-opengl-es-lighting.pdf
+http://imdoingitwrong.wordpress.com/tag/glsl/
+http://www.gamedev.net/page/resources/_/technical/opengl/the-basics-of-glsl-40-shaders-r2861
 
 Rotation:
 http://www.gamedev.net/page/resources/_/technical/math-and-physics/a-simple-quaternion-based-camera-r1997
@@ -29,3 +31,9 @@ http://andersmalmgren.github.io/FreePIE/samples.html
 http://planning.cs.uiuc.edu/node102.html
 http://stackoverflow.com/questions/16859727/how-to-use-glm-in-android-ndk-application
 http://www.glprogramming.com/red/chapter05.html
+
+
+
+VBO:
+http://www.learnopengles.com/android-lesson-eight-an-introduction-to-index-buffer-objects-ibos/
+https://github.com/learnopengles/Learn-OpenGLES-Tutorials
