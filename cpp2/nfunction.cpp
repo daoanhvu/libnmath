@@ -424,9 +424,9 @@ ListFData* NFunction::getSpaceFor2UnknownVariables(const float *inputInterval, f
 			reduce_t((void*)&reduceParam);
 			df[1] = reduceParam.t;
 #ifdef _DEBUG
-			std::cout << "dx/df: \n";
+			std::cout << "df/dx: \n";
 			printNMAST(df[0], 0, std::cout);
-			std::cout << "dy/df: \n";
+			std::cout << "df/dy: \n";
 			printNMAST(df[1], 0, std::cout);
 #endif
 		}
@@ -1649,14 +1649,18 @@ void* nmath::derivative(void *p){
 
 	u = t->left;
 	v = t->right;
+
+	bool u_contains_var = isContainVar(u, x);
+	bool v_contains_var = isContainVar(v, x);
+
 #ifdef _WIN32
-	if (u != NULL){
+	if (u != NULL && u_contains_var) {
 		pdu.t = t->left;
 		pdu.variables[0] = x;
 		tdu = (HANDLE)_beginthreadex(NULL, 0, &derivative, (void*)&pdu, 0, NULL);
 	}
 
-	if (v != NULL){
+	if (v != NULL && v_contains_var){
 		pdv.t = t->right;
 		pdv.variables[0] = x;
 		tdv = (HANDLE)_beginthreadex(NULL, 0, &derivative, (void*)&pdv, 0, NULL);
@@ -1712,7 +1716,18 @@ void* nmath::derivative(void *p){
 		return 0;
 
 	case MULTIPLY:
-		dp->returnValue = d_product(t, u, du, v, dv, x);
+		if(!u_contains_var && v_contains_var) {
+			dp->returnValue = nmath::getFromPool();
+			dp->returnValue->type = MULTIPLY;
+			dp->returnValue->left = cloneTree(u, dp->returnValue);
+			dp->returnValue->right = dv;
+		} else if(u_contains_var && !v_contains_var) {
+			dp->returnValue = nmath::getFromPool();
+			dp->returnValue->type = MULTIPLY;
+			dp->returnValue->left = cloneTree(v, dp->returnValue);
+			dp->returnValue->right = du;
+		} else
+			dp->returnValue = d_product(t, u, du, v, dv, x);
 		return 0;
 
 	case DIVIDE:
@@ -1726,13 +1741,13 @@ void* nmath::derivative(void *p){
 	dp->returnValue = NULL;
 	return 0;
 #else
-	if (u != NULL) {
+	if (u != NULL && u_contains_var) {
 		pdu.t = t->left;
 		pdu.variables[0] = x;
 		id_du = pthread_create(&tdu, NULL, derivative, (void*)(&pdu));
 	}
 
-	if (v != NULL){
+	if (v != NULL && v_contains_var) {
 		pdv.t = t->right;
 		pdv.variables[0] = x;
 		id_dv = pthread_create(&tdv, NULL, derivative, (void*)(&pdv));
@@ -1783,7 +1798,18 @@ void* nmath::derivative(void *p){
 		return dp->returnValue;
 
 	case MULTIPLY:
-		dp->returnValue = d_product(t, u, du, v, dv, x);
+		if(!u_contains_var && v_contains_var) {
+			dp->returnValue = nmath::getFromPool();
+			dp->returnValue->type = MULTIPLY;
+			dp->returnValue->left = cloneTree(u, dp->returnValue);
+			dp->returnValue->right = dv;
+		} else if(u_contains_var && !v_contains_var) {
+			dp->returnValue = nmath::getFromPool();
+			dp->returnValue->type = MULTIPLY;
+			dp->returnValue->left = cloneTree(v, dp->returnValue);
+			dp->returnValue->right = du;
+		} else
+			dp->returnValue = d_product(t, u, du, v, dv, x);
 		return dp->returnValue;
 
 	case DIVIDE:

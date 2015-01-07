@@ -469,8 +469,8 @@ std::ostream& nmath::printNMAST(const NMAST *ast, int level, std::ostream& os) {
 	if (ast == NULL) return os;
 
 	if (level > 0){
-		for (i = 0; i<level - 1; i++)
-			os << "\t";
+		for (i = 0; i<level; i++)
+			os << " ";
 		os << "|--";
 	}
 
@@ -530,6 +530,14 @@ std::ostream& nmath::printNMAST(const NMAST *ast, int level, std::ostream& os) {
 
 	case POWER:
 		os << "^ \n";
+		break;
+
+	case SIN:
+		os << "SIN \n";
+		break;
+
+	case COS:
+		os << "COS \n";
 		break;
 
 	default:

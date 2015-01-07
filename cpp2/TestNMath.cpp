@@ -150,6 +150,30 @@ void testDerivative() {
 	clearPool();
 }
 
+void testFunction0() {
+	NFunction f;
+	NLabLexer lexer;
+	NLabParser parser;
+	nmath::DParam reduceParam;
+	int error = f.parse("f(x,y)=sin(x)*y", 15, &lexer, &parser);
+
+	nmath::NMAST *dx = f.getDerivativeByVariable(0, 0);
+	reduceParam.t = dx;
+	reduce_t((void*)&reduceParam);
+	dx = reduceParam.t;
+
+	nmath::NMAST *dy = f.getDerivativeByVariable(0, 1);
+	reduceParam.t = dy;
+	reduce_t((void*)&reduceParam);
+	dy = reduceParam.t;
+
+	printNMAST(dx, 0, std::cout);
+	printNMAST(dy, 0, std::cout);
+
+	clearTree(&dx);
+	clearTree(&dy);
+}
+
 //write space to binary file
 void testFunction1() {
 	NFunction f;
@@ -632,8 +656,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			break;
 
 		case 2:
-			//testFunction1();
-			testFunction2(std::cout);
+			testFunction0();
+			//testFunction2(std::cout);
 			break;
 
 		case 3:
