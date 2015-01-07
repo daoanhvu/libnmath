@@ -156,10 +156,11 @@ void testFunction1() {
 	NLabParser parser;
 
 	ListFData *data;
-	float interval[] = { 0.5, 1.5, 1, 2 };
-	int i, j, vcount, spaceCount, error, lineCount = 0;
+	float interval[] = { -1.5f, 1.5f, -1.5f, 1.5f };
+	float v;
+	int i, j, vcount, tmp, spaceCount, error, lineCount = 0;
 	ifstream dataFile("D:\\data\\data.txt");
-	ofstream outFile("function.dat", std::ofstream::binary);
+	ofstream outFile("D:\\data\\function.dat", std::ofstream::binary);
 	string line;
 
 	if (dataFile.is_open()) {
@@ -176,29 +177,17 @@ void testFunction1() {
 					spaceCount = data->size;
 					outFile.write((char*)&spaceCount, sizeof(int));
 					for (i = 0; i<data->size; i++) {
+						
 						vcount = data->list[i]->dataSize / data->list[i]->dimension;
-						cout << "Mesh " << i << ", row count: " << data->list[i]->rowCount << " number of vertex: " << vcount << "\n";
+						tmp = data->list[i]->rowCount;
+						outFile.write((char*)&vcount, sizeof(int));
+						outFile.write((char*)&tmp, sizeof(int));
+						tmp = data->list[i]->dimension;
+						outFile.write((char*)&tmp, sizeof(int));
 
-						for (j = 0; j<vcount; j++){
-							cout << "x=" << data->list[i]->data[j * data->list[i]->dimension] << ", y = " << data->list[i]->data[j * data->list[i]->dimension + 1];
-
-							if ((data->list[i]->dimension) >= 3) {
-								cout << ", z = " << data->list[i]->data[j * data->list[i]->dimension + 2];
-							}
-
-							if ((data->list[i]->dimension) >= 4) {
-								cout << ", nx = " << data->list[i]->data[j * data->list[i]->dimension + 3];
-							}
-
-							if ((data->list[i]->dimension) >= 5) {
-								cout << ", ny = " << data->list[i]->data[j * data->list[i]->dimension + 4];
-							}
-
-							if ((data->list[i]->dimension) >= 6) {
-								cout << ", nz = " << std::setw(10) << std::setprecision(6) << data->list[i]->data[j * data->list[i]->dimension + 5];
-							}
-
-							cout << "\n";
+						for (j = 0; j<data->list[i]->dataSize; j++){
+							v = data->list[i]->data[j];
+							outFile.write((char*)&v, sizeof(float));
 						}
 
 						free(data->list[i]->data);
@@ -216,7 +205,8 @@ void testFunction1() {
 			cout << "\n******************************************************\n";
 			lineCount++;
 		}
-
+		outFile.flush();
+		outFile.close();
 		dataFile.close();
 	}
 	f.release();
@@ -576,8 +566,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			break;
 
 		case 2:
-			//testFunction1();
-			testFunction2(std::cout);
+			testFunction1();
+			//testFunction2(std::cout);
 			break;
 
 		case 3:
