@@ -12,6 +12,8 @@ http://www.glprogramming.com/red/chapter05.html
 http://jayurbain.com/msoe/cs421/slides/cs421-05-opengl-es-lighting.pdf
 http://imdoingitwrong.wordpress.com/tag/glsl/
 http://www.gamedev.net/page/resources/_/technical/opengl/the-basics-of-glsl-40-shaders-r2861
+http://www.lighthouse3d.com/tutorials/glsl-tutorial/the-normal-matrix/
+https://www.opengl.org/sdk/docs/tutorials/ClockworkCoders/lighting.php
 
 Rotation:
 http://www.gamedev.net/page/resources/_/technical/math-and-physics/a-simple-quaternion-based-camera-r1997
