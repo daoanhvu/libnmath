@@ -1721,11 +1721,19 @@ void* nmath::derivative(void *p){
 			dp->returnValue->type = MULTIPLY;
 			dp->returnValue->left = cloneTree(u, dp->returnValue);
 			dp->returnValue->right = dv;
+			if(du != 0) clearTree(&du);
 		} else if(u_contains_var && !v_contains_var) {
 			dp->returnValue = nmath::getFromPool();
 			dp->returnValue->type = MULTIPLY;
 			dp->returnValue->left = cloneTree(v, dp->returnValue);
 			dp->returnValue->right = du;
+			if(dv != 0) clearTree(&dv);
+		} else if (!u_contains_var && !v_contains_var) {
+			dp->returnValue = nmath::getFromPool();
+			dp->returnValue->type = NUMBER;
+			dp->returnValue->value = 0.0;
+			if(dv != 0) clearTree(&dv);
+			if(du != 0) clearTree(&du);
 		} else
 			dp->returnValue = d_product(t, u, du, v, dv, x);
 		return 0;
@@ -1803,13 +1811,24 @@ void* nmath::derivative(void *p){
 			dp->returnValue->type = MULTIPLY;
 			dp->returnValue->left = cloneTree(u, dp->returnValue);
 			dp->returnValue->right = dv;
+			if(du != 0) clearTree(&du);
 		} else if(u_contains_var && !v_contains_var) {
 			dp->returnValue = nmath::getFromPool();
 			dp->returnValue->type = MULTIPLY;
 			dp->returnValue->left = cloneTree(v, dp->returnValue);
 			dp->returnValue->right = du;
+			if(dv != 0) clearTree(&dv);
+		} else if (!u_contains_var && !v_contains_var) {
+			dp->returnValue = nmath::getFromPool();
+			dp->returnValue->type = NUMBER;
+			dp->returnValue->value = 0.0;
+			
+			if(dv != 0) clearTree(&dv);
+			if(du != 0) clearTree(&du);
+			
 		} else
 			dp->returnValue = d_product(t, u, du, v, dv, x);
+			
 		return dp->returnValue;
 
 	case DIVIDE:
