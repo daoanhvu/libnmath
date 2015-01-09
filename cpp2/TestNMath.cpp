@@ -299,7 +299,37 @@ void buildIndicesForTriangleStrip(int vcount, int* rows, int rowCount) {
 		std::cout << indices[i] << "  ";
 	}
 	std::cout << "\n";
+}
 
+void buildIndicesForTriangleStrip(int yLength, int xLength) {
+	// Now build the index data
+	int numStripsRequired = yLength - 1;
+	int numDegensRequired = 2 * (numStripsRequired - 1);
+	int verticesPerStrip = 2 * xLength;
+	short* heightMapIndexData = new short[(verticesPerStrip * numStripsRequired) + numDegensRequired];
+	int offset = 0;
+	for (int y = 0; y < yLength - 1; y++) {
+		if (y > 0) {
+			// Degenerate begin: repeat first vertex
+			heightMapIndexData[offset++] = (short)(y * yLength);
+		}
+		for (int x = 0; x < xLength; x++) {
+			// One part of the strip
+			heightMapIndexData[offset++] = (short)((y * yLength) + x);
+			heightMapIndexData[offset++] = (short)(((y + 1) * yLength) + x);
+		}
+		if (y < yLength - 2) {
+			// Degenerate end: repeat last vertex
+			heightMapIndexData[offset++] = (short)(((y + 1) * yLength) + (xLength - 1));
+		}
+	}
+
+	for (int i = 0; i<offset; i++) {
+		std::cout << heightMapIndexData[i] << "  ";
+	}
+	std::cout << "\n";
+
+	delete[] heightMapIndexData;
 }
 
 void testFunction2(std::ostream &out) {
@@ -308,7 +338,7 @@ void testFunction2(std::ostream &out) {
 	NLabParser parser;
 
 	ListFData *data;
-	float interval[] = {-0.5f, 1.0f, -0.5f, 1.0f};
+	float interval[] = {-1.0f, 1.0f, -1.0f, 1.0f};
 	int i, j, vcount, error, lineCount = 0;
 	ifstream dataFile("D:\\data\\data.txt");
 	string line;
@@ -328,23 +358,24 @@ void testFunction2(std::ostream &out) {
 						vcount = data->list[i]->dataSize / data->list[i]->dimension;
 						cout << "Mesh " << i << ", row count: " << data->list[i]->rowCount << " number of vertex: " << vcount << "\n";
 						buildIndicesForTriangleStrip(vcount, data->list[i]->rowInfo, data->list[i]->rowCount);
+						buildIndicesForTriangleStrip(data->list[i]->rowCount, data->list[i]->rowInfo[0]);
 						for (j = 0; j<vcount; j++){
-							cout << "x=" << data->list[i]->data[j * data->list[i]->dimension] << ", y = " << data->list[i]->data[j * data->list[i]->dimension + 1];
+							cout << data->list[i]->data[j * data->list[i]->dimension] << "f, " << data->list[i]->data[j * data->list[i]->dimension + 1];
 
 							if((data->list[i]->dimension)>=3) {
-								cout << ", z = " << data->list[i]->data[j * data->list[i]->dimension + 2];
+								cout << "f, " << data->list[i]->data[j * data->list[i]->dimension + 2] << "f";
 							}
 
 							if((data->list[i]->dimension) >=4 ) {
-								cout << ", nx = " << data->list[i]->data[j * data->list[i]->dimension + 3];
+								cout << ", " << data->list[i]->data[j * data->list[i]->dimension + 3] << "f";
 							}
 
 							if((data->list[i]->dimension) >=5 ) {
-								cout << ", ny = " << data->list[i]->data[j * data->list[i]->dimension + 4];
+								cout << ", " << data->list[i]->data[j * data->list[i]->dimension + 4] << "f";
 							}
 
 							if((data->list[i]->dimension) >=6 ) {
-								cout << ", nz = " << std::setw(10) << std::setprecision(6) << data->list[i]->data[j * data->list[i]->dimension + 5];
+								cout << ", " << data->list[i]->data[j * data->list[i]->dimension + 5] << "f";
 							}
 
 							cout << "\n";
@@ -656,8 +687,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			break;
 
 		case 2:
-			testFunction0();
-			//testFunction2(std::cout);
+			//testFunction0();
+			testFunction2(std::cout);
 			break;
 
 		case 3:
