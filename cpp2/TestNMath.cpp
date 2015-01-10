@@ -1,8 +1,9 @@
 // TestNMath.cpp : Defines the entry point for the console application.
 //
 #define GLM_FORCE_RADIANS
-
+#ifdef _WIN32
 #include <SDKDDKVer.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <tchar.h>

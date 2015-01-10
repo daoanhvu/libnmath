@@ -9,7 +9,7 @@
 #include "nfunction.h"
 #include "criteria.h"
 #include "SimpleCriteria.h"
-#include "CompositeCriteria.h"
+#include "compositecriteria.h"
 
 
 

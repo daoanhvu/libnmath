@@ -4,6 +4,7 @@
 	
 #endif
 
+#include <cstdlib>
 #include "nmath_pool.h"
 
 #define POOL_CAPACITY 32
@@ -62,7 +63,7 @@ nmath::NMAST* nmath::getFromPool() {
 		AST_POOL[gPoolSize-1] = NULL;
 		gPoolSize--;
 	} else {
-		node = (NMAST*)malloc(sizeof(NMAST));
+		node = (NMAST*)std::malloc(sizeof(NMAST));
 		node->valueType = TYPE_FLOATING_POINT;
 		node->sign = 1;
 		node->variable = 0;

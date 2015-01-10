@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 #include "../cpp2/StringUtil.h"
-#include "../cpp2/nmath.h"
+#include "../nmath.h"
 #include "../gm/gm.hpp"
 #include "../cpp2/nmath_pool.h"
 
