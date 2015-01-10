@@ -1598,7 +1598,7 @@ void* nmath::derivative(void *p){
 		return 0;
 	}
 
-	if (t->type == NUMBER || t->type == PI_TYPE || t->type == E_TYPE){
+	if (t->type == NUMBER || t->type == PI_TYPE || t->type == E_TYPE || (!isContainVar(t, x)) ){
 		u = (NMAST*)malloc(sizeof(NMAST));
 		u->sign = 1;
 		u->type = NUMBER;
@@ -1728,12 +1728,6 @@ void* nmath::derivative(void *p){
 			dp->returnValue->left = cloneTree(v, dp->returnValue);
 			dp->returnValue->right = du;
 			if(dv != 0) clearTree(&dv);
-		} else if (!u_contains_var && !v_contains_var) {
-			dp->returnValue = nmath::getFromPool();
-			dp->returnValue->type = NUMBER;
-			dp->returnValue->value = 0.0;
-			if(dv != 0) clearTree(&dv);
-			if(du != 0) clearTree(&du);
 		} else
 			dp->returnValue = d_product(t, u, du, v, dv, x);
 		return 0;
@@ -1818,14 +1812,6 @@ void* nmath::derivative(void *p){
 			dp->returnValue->left = cloneTree(v, dp->returnValue);
 			dp->returnValue->right = du;
 			if(dv != 0) clearTree(&dv);
-		} else if (!u_contains_var && !v_contains_var) {
-			dp->returnValue = nmath::getFromPool();
-			dp->returnValue->type = NUMBER;
-			dp->returnValue->value = 0.0;
-			
-			if(dv != 0) clearTree(&dv);
-			if(du != 0) clearTree(&du);
-			
 		} else
 			dp->returnValue = d_product(t, u, du, v, dv, x);
 			
