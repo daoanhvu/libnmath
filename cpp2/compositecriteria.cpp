@@ -44,29 +44,6 @@ bool CompositeCriteria::containsVar(char var) {
 	
 	return false;
 }
-#ifdef _WIN32
-istream& CompositeCriteria::operator >>(istream& is) {
-	return is;
-}
-
-ostream& CompositeCriteria::operator <<(ostream& os) {
-	int i;
-
-	os << "(";
-	if (logicOp == OR) {
-		for (i = 0; i < mSize; i++)
-			os << list[i] << " OR ";
-	}
-	else {
-		for (i = 0; i < mSize; i++)
-			os << list[i] << " AND ";
-	}
-	
-	os << ")\n";
-
-	return os;
-}
-#endif
 
 Criteria* CompositeCriteria::clone() {
 	int i;

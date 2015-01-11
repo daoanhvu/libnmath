@@ -6,8 +6,6 @@
 #endif
 #include "common.h"
 
-using namespace std;
-
 namespace nmath {
 	enum NMathCClassType {
 		SIMPLE, COMPOSITE
@@ -30,10 +28,10 @@ namespace nmath {
 			virtual Criteria* andSelf(Criteria& c) { return 0; }
 
 			virtual Criteria* operator &(Criteria& c) { return this; }
-			virtual Criteria* operator |(Criteria& c)	{ return this; }
-#ifdef _WIN32
-			friend istream& operator >>(istream& is, const Criteria& c);
-			friend ostream& operator <<(ostream& os, const Criteria& c);
+			virtual Criteria* operator |(Criteria& c) { return this; }
+#ifdef _PCDEBUG
+			friend std::istream& operator >>(std::istream& is, const Criteria& c);
+			friend std::ostream& operator <<(std::ostream& os, const Criteria& c);
 #endif
 			/* check if value does belong to this interval */
 			virtual bool check(const double *value) { return false; }
@@ -46,6 +44,11 @@ namespace nmath {
 	};
 
 	Criteria* buildCriteria(const NMAST *ast);
+#ifdef _PCDEBUG
+	std::istream& operator >>(std::istream& is, const Criteria& c);
+	std::ostream& operator <<(std::ostream& os, const Criteria& c);
+#endif
+
 }
 
 #endif

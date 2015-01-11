@@ -22,12 +22,12 @@ Criteria* nmath::buildSameVariableCriteria(const NMAST *left, const NMAST *right
 	return out;
 }
 */
-#ifdef _WIN32
-istream& operator >>(istream& is, const Criteria& c) {
+#ifdef _PCDEBUG
+std::istream& nmath::operator >>(std::istream& is, const Criteria& c) {
 	return is;
 }
 
-ostream& nmath::operator <<(ostream& os, const Criteria& c) {
+std::ostream& nmath::operator <<(std::ostream& os, const Criteria& c) {
 	SimpleCriteria* sc;
 	CompositeCriteria *cc;
 	int i;
@@ -67,7 +67,7 @@ ostream& nmath::operator <<(ostream& os, const Criteria& c) {
 			opCh = '|';
 		}
 		for(i=0; i< cc->size(); i++) {
-			os << " " << (*(cc->get(i)));
+			os << " " << ((Criteria&)*(cc->get(i)));
 
 			if(i<(cc->size()-1))
 				os << " " << opCh;

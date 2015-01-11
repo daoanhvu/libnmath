@@ -34,10 +34,7 @@ namespace nmath {
 			CompositeCriteria& normalize(const char* vars, int varcount);
 			
 			bool containsVar(char var);
-#ifdef _WIN32
-			istream& operator >>(istream& is);
-			ostream& operator <<(ostream& os);
-#endif
+
 			Criteria* andSelf(Criteria& c);
 			CompositeCriteria* andCriteria(SimpleCriteria& c);
 			CompositeCriteria* andCriteria(CompositeCriteria& c);

@@ -288,10 +288,7 @@ namespace nmath {
 
 				return outInterval;
 			}
-#ifdef _WIN32
-			istream& operator >>(istream& is);
-			ostream& operator <<(ostream& os);
-#endif
+
 			Criteria* operator &(Criteria& c);
 			Criteria* operator |(Criteria& c);
 

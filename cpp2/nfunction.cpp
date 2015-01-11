@@ -1,4 +1,4 @@
-#include <string>
+#include <cstring>
 #include <cstdlib>
 #include <math.h>
 
@@ -43,7 +43,7 @@ NFunction::NFunction(): text(0), valLen(0) {
 NFunction::~NFunction() {
 	release();
 }
-#ifdef _WIN32
+#ifdef _PCDEBUG
 std::ostream& nmath::operator <<(std::ostream& os, const NFunction& f) {
 	int i;
 	os << "\n Function: " << f.getText() << "\n";
@@ -85,7 +85,7 @@ int NFunction::parse(const char *str, int len, NLabLexer *mLexer, NLabParser *mP
 	}
 
 	text = new char[len+1];
-	memcpy(text, str, len);
+	std::memcpy(text, str, len);
 	textLen = len;
 	text[len] = '\0';
 

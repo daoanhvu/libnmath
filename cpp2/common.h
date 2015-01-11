@@ -193,7 +193,7 @@ namespace nmath {
 
 /* ====================================================================================================== */
 
-#ifdef _DEBUG
+#ifdef _PCDEBUG
 std::ostream& printNMAST(const NMAST *ast, int level, std::ostream& os);
 #endif
 

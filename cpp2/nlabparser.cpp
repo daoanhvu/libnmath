@@ -4,6 +4,7 @@
 	#include <stdio.h>
 #endif
 
+#include <cstring>
 #include "StackUtil.h"
 #include "nlablexer.h"
 #include "nlabparser.h"

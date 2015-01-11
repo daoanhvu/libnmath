@@ -335,9 +335,6 @@ double nmath::doCalculate(double val1, double val2, int type, int *error) {
 
 float nmath::doCalculateF(float val1, float val2, int type, int *error) {
 	(*error) = 0;
-#ifdef _ADEBUG
-	float f;
-#endif
 	switch(type){
 		case PLUS:
 			/*printf("%lf+%lf=%lf\n", val1, val2, val1 + val2);*/
@@ -462,7 +459,7 @@ int nmath::isConstant(int type){
 	return FALSE;
 }
 
-#ifdef _DEBUG
+#ifdef _PCDEBUG
 std::ostream& nmath::printNMAST(const NMAST *ast, int level, std::ostream& os) {
 	int i;
 

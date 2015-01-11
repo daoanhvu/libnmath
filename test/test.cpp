@@ -55,7 +55,7 @@ void printError(int col, int code) {
 			break;
 
 		case ERROR_TOO_MANY_FLOATING_POINT:
-			cout << "Too many floating point at "<< col << "\n";
+			std::cout << "Too many floating point at "<< col << "\n";
 			break;
 
 		case ERROR_PARENTHESE_MISSING:
@@ -107,10 +107,10 @@ void testDerivative() {
 	NFunction f;
 	NLabLexer lexer;
 	NLabParser parser;
-	string str;
+	std::string str;
 
-	cout << "Input function: ";
-	cin >> str;	
+	std::cout << "Input function: ";
+	std::cin >> str;	
 	
 	error = f.parse(str.c_str(), str.length(), &lexer, &parser);
 	if(error != NMATH_NO_ERROR) {
@@ -119,7 +119,7 @@ void testDerivative() {
 	} 
 
 	if( f.getVarCount() == 0 ) {
-		cout << "This expression is not a function due to variables not determined.\n" ;
+		std::cout << "This expression is not a function due to variables not determined.\n" ;
 	}
 	
 	d.t = f.getPrefix(0);
@@ -132,7 +132,7 @@ void testDerivative() {
 	l = 0;
 	nmath::toString(d.returnValue, dstr, &l, 128);
 	dstr[l] = '\0';
-	cout << "f' = "<< dstr << "\n";
+	std::cout << "f' = "<< dstr << "\n";
 	
 	clearTree(&(d.returnValue));
 
@@ -174,9 +174,9 @@ void testFunction1() {
 	float interval[] = { -1.5f, 1.5f, -1.5f, 1.5f };
 	float v;
 	int i, j, vcount, tmp, spaceCount, error, lineCount = 0;
-	ifstream dataFile("D:\\data\\data.txt");
-	ofstream outFile("D:\\data\\function.dat", std::ofstream::binary);
-	string line;
+	std::ifstream dataFile("D:\\data\\data.txt");
+	std::ofstream outFile("D:\\data\\function.dat", std::ofstream::binary);
+	std::string line;
 
 	if (dataFile.is_open()) {
 		while (getline(dataFile, line)) {
@@ -213,11 +213,11 @@ void testFunction1() {
 					free(data);
 				}
 				else {
-					cout << "Function " << lineCount << " Get Space Failed \n";
+					std::cout << "Function " << lineCount << " Get Space Failed \n";
 				}
-				cout << "\nFunction Parsing OK\n";
+				std::cout << "\nFunction Parsing OK\n";
 			}
-			cout << "\n******************************************************\n";
+			std::cout << "\n******************************************************\n";
 			lineCount++;
 		}
 		outFile.flush();
@@ -330,8 +330,8 @@ void testFunction2(std::ostream &out) {
 	ListFData *data;
 	float interval[] = {-1.0f, 1.0f, -1.0f, 1.0f};
 	int i, j, vcount, error, lineCount = 0;
-	ifstream dataFile("D:\\data\\data.txt");
-	string line;
+	std::ifstream dataFile("../../data/data.txt");
+	std::string line;
 
 	if(dataFile.is_open()) {
 		while( getline(dataFile, line) ) {
@@ -346,29 +346,29 @@ void testFunction2(std::ostream &out) {
 				if (data != NULL) {
 					for (i = 0; i<data->size; i++) {
 						vcount = data->list[i]->dataSize / data->list[i]->dimension;
-						cout << "Mesh " << i << ", row count: " << data->list[i]->rowCount << " number of vertex: " << vcount << "\n";
+						std::cout << "Mesh " << i << ", row count: " << data->list[i]->rowCount << " number of vertex: " << vcount << "\n";
 						buildIndicesForTriangleStrip(vcount, data->list[i]->rowInfo, data->list[i]->rowCount);
 						buildIndicesForTriangleStrip(data->list[i]->rowCount, data->list[i]->rowInfo[0]);
 						for (j = 0; j<vcount; j++){
-							cout << data->list[i]->data[j * data->list[i]->dimension] << "f, " << data->list[i]->data[j * data->list[i]->dimension + 1];
+							std::cout << data->list[i]->data[j * data->list[i]->dimension] << "f, " << data->list[i]->data[j * data->list[i]->dimension + 1];
 
 							if((data->list[i]->dimension)>=3) {
-								cout << "f, " << data->list[i]->data[j * data->list[i]->dimension + 2] << "f";
+								std::cout << "f, " << data->list[i]->data[j * data->list[i]->dimension + 2] << "f";
 							}
 
 							if((data->list[i]->dimension) >=4 ) {
-								cout << ", " << data->list[i]->data[j * data->list[i]->dimension + 3] << "f";
+								std::cout << ", " << data->list[i]->data[j * data->list[i]->dimension + 3] << "f";
 							}
 
 							if((data->list[i]->dimension) >=5 ) {
-								cout << ", " << data->list[i]->data[j * data->list[i]->dimension + 4] << "f";
+								std::cout << ", " << data->list[i]->data[j * data->list[i]->dimension + 4] << "f";
 							}
 
 							if((data->list[i]->dimension) >=6 ) {
-								cout << ", " << data->list[i]->data[j * data->list[i]->dimension + 5] << "f";
+								std::cout << ", " << data->list[i]->data[j * data->list[i]->dimension + 5] << "f";
 							}
 
-							cout << "\n";
+							std::cout << "\n";
 						}
 
 						free(data->list[i]->data);
@@ -379,11 +379,11 @@ void testFunction2(std::ostream &out) {
 					free(data);
 				}
 				else {
-					cout << "Function " << lineCount << " Get Space Failed \n";
+					std::cout << "Function " << lineCount << " Get Space Failed \n";
 				}
-				cout << "\nFunction Parsing OK\n";
+				std::cout << "\nFunction Parsing OK\n";
 			}
-			cout << "\n******************************************************\n";
+			std::cout << "\n******************************************************\n";
 			lineCount++;
 		}
 
@@ -403,8 +403,8 @@ void testReduce() {
 
 	float interval[] = { -1, 2, 0, 1 };
 	int i, j, vcount, error, lineCount = 0;
-	ifstream dataFile("D:\\data\\expression.txt");
-	string line;
+	std::ifstream dataFile("D:\\data\\expression.txt");
+	std::string line;
 	char dstr[128];
 	int l = 0;
 
@@ -419,14 +419,14 @@ void testReduce() {
 				if (f.reduce() == NMATH_NO_ERROR) {
 					nmath::toString(f.getPrefix(0), dstr, &l, 128);
 					dstr[l] = '\0';
-					cout << "f' = " << dstr << "\n";
+					std::cout << "f' = " << dstr << "\n";
 				}
 				else {
-					cout << "Expression " << lineCount << " reduce Failed \n";
+					std::cout << "Expression " << lineCount << " reduce Failed \n";
 				}
-				cout << "\Expression Parsing OK\n";
+				std::cout << "\Expression Parsing OK\n";
 			}
-			cout << "\n******************************************************\n";
+			std::cout << "\n******************************************************\n";
 			lineCount++;
 		}
 
@@ -446,16 +446,16 @@ void testCriteria(){
 	int tokenCount = 50;
 	Token tokens[50];
 	int tokenInUse;
-	ifstream dataFile("D:\\data\\criteria.txt");
-	string line;
+	std::ifstream dataFile("D:\\data\\criteria.txt");
+	std::string line;
 
 	if(dataFile.is_open()) {
 		while( getline(dataFile, line) ) {
 			tokenInUse = lexer.lexicalAnalysis(line.c_str(), line.length(), 0, tokens, tokenCount, 0);
 
 			if(lexer.getErrorCode() != NMATH_NO_ERROR) {
-				cout << "ERROR AT LEXICAL PHASE: \n";
-				cout << "Error code = " << lexer.getErrorCode() << " at Column " << lexer.getErrorColumn() << "\n";
+				std::cout << "ERROR AT LEXICAL PHASE: \n";
+				std::cout << "Error code = " << lexer.getErrorCode() << " at Column " << lexer.getErrorColumn() << "\n";
 				continue;
 			}
 
@@ -463,7 +463,7 @@ void testCriteria(){
 
 			if (parser.getErrorCode() == NMATH_NO_ERROR) {
 				start = 0;
-				printNMAST(domain, 0, cout);
+				printNMAST(domain, 0, std::cout);
 				outStr[start] = '\0';
 				puts(outStr);
 
@@ -487,8 +487,8 @@ void testCriteria(){
 					delete o;
 			}
 			else {
-				cout << "ERROR AT PARSING PHASE: \n";
-				cout << "Parsing error with code = " <<  parser.getErrorCode() << "\n";
+				std::cout << "ERROR AT PARSING PHASE: \n";
+				std::cout << "Parsing error with code = " <<  parser.getErrorCode() << "\n";
 			}
 		}// end while
 
@@ -505,14 +505,14 @@ float angle2DVector(float x1, float y1, float x2, float y2) {
 
 void printMat4(gm::mat4 *m) {
 	int i, j;
-	cout << "\n";
+	std::cout << "\n";
 	for(i=0; i<4; i++) {
 		for(j=0; j<4; j++) {
-			cout << m->operator[](i)[j] << "\t";
+			std::cout << m->operator[](i)[j] << "\t";
 		}
-		cout << "\n";
+		std::cout << "\n";
 	}
-	cout << "\n";
+	std::cout << "\n";
 }
 
 

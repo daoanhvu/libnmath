@@ -63,7 +63,7 @@ namespace nmath {
 		NMAST* getPrefix(int index) const { return prefix.list[index]; }
 		ListCriteria* getCriteriaList() const { return (ListCriteria*)&criteria; }
 		Criteria* getCriteria(int index) const { return criteria.list[index]; }
-#ifdef _WIN32
+#ifdef _PCDEBUG
 		friend std::ostream& operator<< (std::ostream& os, const NFunction& f);
 #endif
 	};

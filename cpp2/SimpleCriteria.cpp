@@ -46,51 +46,6 @@ void SimpleCriteria::copyFrom(SimpleCriteria& c) {
 	this->available = c.isAvailable();
 }
 
-#ifdef _WIN32
-istream& SimpleCriteria::operator >>(istream& is) {
-
-	/** GT_LT, GTE_LT, GT_LTE, GTE_LTE */
-	switch (type) {
-	case GT_LT:
-		is >> variable;
-		break;
-
-	case GTE_LT:
-		break;
-
-	case GT_LTE:
-		break;
-
-	case GTE_LTE:
-		break;
-	}
-
-	return is;
-}
-
-ostream& operator <<(ostream& os, const SimpleCriteria &c) {
-	/** GT_LT, GTE_LT, GT_LTE, GTE_LTE */
-	switch (c.getType()) {
-	case GT_LT:
-		os << c.getLeftValue() << " < " << c.getVariable() << " < " << c.getRightValue();
-		break;
-
-	case GTE_LT:
-		os << c.getLeftValue() << " <= " << c.getVariable() << " < " << c.getRightValue();
-		break;
-
-	case GT_LTE:
-		os << c.getLeftValue() << " < " << c.getVariable() << " <= " << c.getRightValue();
-		break;
-
-	case GTE_LTE:
-		os << c.getLeftValue() << " <= " << c.getVariable() << " <= " << c.getRightValue();
-		break;
-	}
-	return os;
-}
-#endif
-
 Criteria* SimpleCriteria::clone() {
 	SimpleCriteria *out;
 	out = new SimpleCriteria(type, variable, leftVal, rightVal, leftInfinity, rightInfinity);
