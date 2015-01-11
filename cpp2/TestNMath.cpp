@@ -66,7 +66,7 @@ void printError(int col, int code) {
 			break;
 
 		case ERROR_TOO_MANY_FLOATING_POINT:
-			cout << "Too many floating point at "<< col << "\n";
+			std::cout << "Too many floating point at " << col << "\n";
 			break;
 
 		case ERROR_PARENTHESE_MISSING:
@@ -118,10 +118,10 @@ void testDerivative() {
 	NFunction f;
 	NLabLexer lexer;
 	NLabParser parser;
-	string str;
+	std::string str;
 
-	cout << "Input function: ";
-	cin >> str;	
+	std::cout << "Input function: ";
+	std::cin >> str;
 	
 	error = f.parse(str.c_str(), str.length(), &lexer, &parser);
 	if(error != NMATH_NO_ERROR) {
@@ -130,7 +130,7 @@ void testDerivative() {
 	} 
 
 	if( f.getVarCount() == 0 ) {
-		cout << "This expression is not a function due to variables not determined.\n" ;
+		std::cout << "This expression is not a function due to variables not determined.\n";
 	}
 	
 	d.t = f.getPrefix(0);
@@ -143,7 +143,7 @@ void testDerivative() {
 	l = 0;
 	nmath::toString(d.returnValue, dstr, &l, 128);
 	dstr[l] = '\0';
-	cout << "f' = "<< dstr << "\n";
+	std::cout << "f' = " << dstr << "\n";
 	
 	clearTree(&(d.returnValue));
 
@@ -185,9 +185,9 @@ void testFunction1() {
 	float interval[] = { -1.5f, 1.5f, -1.5f, 1.5f };
 	float v;
 	int i, j, vcount, tmp, spaceCount, error, lineCount = 0;
-	ifstream dataFile("D:\\data\\data.txt");
-	ofstream outFile("D:\\data\\function.dat", std::ofstream::binary);
-	string line;
+	std::ifstream dataFile("D:\\data\\data.txt");
+	std::ofstream outFile("D:\\data\\function.dat", std::ofstream::binary);
+	std::string line;
 
 	if (dataFile.is_open()) {
 		while (getline(dataFile, line)) {
@@ -224,11 +224,11 @@ void testFunction1() {
 					free(data);
 				}
 				else {
-					cout << "Function " << lineCount << " Get Space Failed \n";
+					std::cout << "Function " << lineCount << " Get Space Failed \n";
 				}
-				cout << "\nFunction Parsing OK\n";
+				std::cout << "\nFunction Parsing OK\n";
 			}
-			cout << "\n******************************************************\n";
+			std::cout << "\n******************************************************\n";
 			lineCount++;
 		}
 		outFile.flush();
@@ -341,8 +341,8 @@ void testFunction2(std::ostream &out) {
 	ListFData *data;
 	float interval[] = {-1.0f, 1.0f, -1.0f, 1.0f};
 	int i, j, vcount, error, lineCount = 0;
-	ifstream dataFile("D:\\data\\data.txt");
-	string line;
+	std::ifstream dataFile("D:\\data\\data.txt");
+	std::string line;
 
 	if(dataFile.is_open()) {
 		while( getline(dataFile, line) ) {
@@ -357,29 +357,29 @@ void testFunction2(std::ostream &out) {
 				if (data != NULL) {
 					for (i = 0; i<data->size; i++) {
 						vcount = data->list[i]->dataSize / data->list[i]->dimension;
-						cout << "Mesh " << i << ", row count: " << data->list[i]->rowCount << " number of vertex: " << vcount << "\n";
+						std::cout << "Mesh " << i << ", row count: " << data->list[i]->rowCount << " number of vertex: " << vcount << "\n";
 						buildIndicesForTriangleStrip(vcount, data->list[i]->rowInfo, data->list[i]->rowCount);
 						buildIndicesForTriangleStrip(data->list[i]->rowCount, data->list[i]->rowInfo[0]);
 						for (j = 0; j<vcount; j++){
-							cout << data->list[i]->data[j * data->list[i]->dimension] << "f, " << data->list[i]->data[j * data->list[i]->dimension + 1];
+							std::cout << data->list[i]->data[j * data->list[i]->dimension] << "f, " << data->list[i]->data[j * data->list[i]->dimension + 1];
 
 							if((data->list[i]->dimension)>=3) {
-								cout << "f, " << data->list[i]->data[j * data->list[i]->dimension + 2] << "f";
+								std::cout << "f, " << data->list[i]->data[j * data->list[i]->dimension + 2] << "f";
 							}
 
 							if((data->list[i]->dimension) >=4 ) {
-								cout << ", " << data->list[i]->data[j * data->list[i]->dimension + 3] << "f";
+								std::cout << ", " << data->list[i]->data[j * data->list[i]->dimension + 3] << "f";
 							}
 
 							if((data->list[i]->dimension) >=5 ) {
-								cout << ", " << data->list[i]->data[j * data->list[i]->dimension + 4] << "f";
+								std::cout << ", " << data->list[i]->data[j * data->list[i]->dimension + 4] << "f";
 							}
 
 							if((data->list[i]->dimension) >=6 ) {
-								cout << ", " << data->list[i]->data[j * data->list[i]->dimension + 5] << "f";
+								std::cout << ", " << data->list[i]->data[j * data->list[i]->dimension + 5] << "f";
 							}
 
-							cout << "\n";
+							std::cout << "\n";
 						}
 
 						free(data->list[i]->data);
@@ -390,11 +390,11 @@ void testFunction2(std::ostream &out) {
 					free(data);
 				}
 				else {
-					cout << "Function " << lineCount << " Get Space Failed \n";
+					std::cout << "Function " << lineCount << " Get Space Failed \n";
 				}
-				cout << "\nFunction Parsing OK\n";
+				std::cout << "\nFunction Parsing OK\n";
 			}
-			cout << "\n******************************************************\n";
+			std::cout << "\n******************************************************\n";
 			lineCount++;
 		}
 
@@ -414,8 +414,8 @@ void testReduce() {
 
 	float interval[] = { -1, 2, 0, 1 };
 	int i, j, vcount, error, lineCount = 0;
-	ifstream dataFile("D:\\data\\expression.txt");
-	string line;
+	std::ifstream dataFile("D:\\data\\expression.txt");
+	std::string line;
 	char dstr[128];
 	int l = 0;
 
@@ -430,14 +430,14 @@ void testReduce() {
 				if (f.reduce() == NMATH_NO_ERROR) {
 					nmath::toString(f.getPrefix(0), dstr, &l, 128);
 					dstr[l] = '\0';
-					cout << "f' = " << dstr << "\n";
+					std::cout << "f' = " << dstr << "\n";
 				}
 				else {
-					cout << "Expression " << lineCount << " reduce Failed \n";
+					std::cout << "Expression " << lineCount << " reduce Failed \n";
 				}
-				cout << "\Expression Parsing OK\n";
+				std::cout << "\Expression Parsing OK\n";
 			}
-			cout << "\n******************************************************\n";
+			std::cout << "\n******************************************************\n";
 			lineCount++;
 		}
 
@@ -457,16 +457,16 @@ void testCriteria(){
 	int tokenCount = 50;
 	Token tokens[50];
 	int tokenInUse;
-	ifstream dataFile("D:\\data\\criteria.txt");
-	string line;
+	std::ifstream dataFile("D:\\data\\criteria.txt");
+	std::string line;
 
 	if(dataFile.is_open()) {
 		while( getline(dataFile, line) ) {
 			tokenInUse = lexer.lexicalAnalysis(line.c_str(), line.length(), 0, tokens, tokenCount, 0);
 
 			if(lexer.getErrorCode() != NMATH_NO_ERROR) {
-				cout << "ERROR AT LEXICAL PHASE: \n";
-				cout << "Error code = " << lexer.getErrorCode() << " at Column " << lexer.getErrorColumn() << "\n";
+				std::cout << "ERROR AT LEXICAL PHASE: \n";
+				std::cout << "Error code = " << lexer.getErrorCode() << " at Column " << lexer.getErrorColumn() << "\n";
 				continue;
 			}
 
@@ -474,7 +474,7 @@ void testCriteria(){
 
 			if (parser.getErrorCode() == NMATH_NO_ERROR) {
 				start = 0;
-				printNMAST(domain, 0, cout);
+				printNMAST(domain, 0, std::cout);
 				outStr[start] = '\0';
 				puts(outStr);
 
@@ -498,8 +498,8 @@ void testCriteria(){
 					delete o;
 			}
 			else {
-				cout << "ERROR AT PARSING PHASE: \n";
-				cout << "Parsing error with code = " <<  parser.getErrorCode() << "\n";
+				std::cout << "ERROR AT PARSING PHASE: \n";
+				std::cout << "Parsing error with code = " << parser.getErrorCode() << "\n";
 			}
 		}// end while
 
@@ -511,11 +511,11 @@ void printMat4(glm::mat4 *m) {
 	int i, j;
 	for(i=0; i<4; i++) {
 		for(j=0; j<4; j++) {
-			cout << m->operator[](i)[j] << "\t";
+			std::cout << m->operator[](i)[j] << "\t";
 		}
-		cout << "\n";
+		std::cout << "\n";
 	}
-	cout << "\n";
+	std::cout << "\n";
 }
 
 float angle2DVector(float x1, float y1, float x2, float y2) {
@@ -526,14 +526,14 @@ float angle2DVector(float x1, float y1, float x2, float y2) {
 
 void printMat4(gm::mat4 *m) {
 	int i, j;
-	cout << "\n";
+	std::cout << "\n";
 	for(i=0; i<4; i++) {
 		for(j=0; j<4; j++) {
-			cout << m->operator[](i)[j] << "\t";
+			std::cout << m->operator[](i)[j] << "\t";
 		}
-		cout << "\n";
+		std::cout << "\n";
 	}
-	cout << "\n";
+	std::cout << "\n";
 }
 
 
@@ -552,20 +552,20 @@ void testGM() {
 	/* USE GLM */
 	view1 = glm::lookAt(glm::vec3(0,0,-4), glm::vec3(0,0,0),glm::vec3(0,1,0));
 	pers1 = glm::perspective(fovy, aspect, nearPlane, farPlane);
-	cout << "GLM: \n";
-	cout << "Aspect: " << aspect << "\n";
-	cout <<"View: \n";
+	std::cout << "GLM: \n";
+	std::cout << "Aspect: " << aspect << "\n";
+	std::cout << "View: \n";
 	printMat4(&view1);
-	cout <<"Perspective: \n";
+	std::cout << "Perspective: \n";
 	printMat4(&pers1);
-	cout <<"Multiply: \n";
+	std::cout << "Multiply: \n";
 	glm::mat4 mm1 = view1 * pers1;
 	printMat4(&mm1);
-	cout << "\n************************* \n";
+	std::cout << "\n************************* \n";
 
 	/* USE GM */
-	cout << "GM: \n";
-	cout <<"View: \n";
+	std::cout << "GM: \n";
+	std::cout << "View: \n";
 	camera.lookAt(0, 0, -4, 0, 0, 0, 0, 1, 0);
 	camera.setViewport(0, 0, 800, 600);
 	camera.setPerspective(fovy, nearPlane, farPlane);
@@ -573,7 +573,7 @@ void testGM() {
 	gm::mat4 pers2 = camera.getPerspective();
 	printMat4(&view2);
 	printMat4(&pers2);
-	cout <<"Multiply: \n";
+	std::cout << "Multiply: \n";
 	gm::mat4 mm2 = pers2 * view2;
 	printMat4(&mm2);
 }
@@ -595,18 +595,18 @@ void testProject() {
 	pers1 = glm::perspective(fovy, aspect, nearPlane, farPlane);
 	glm::vec3 obj(1.2f, 0.75, 0.03);
 	glm::vec3 a = glm::project(obj, view1, pers1, glm::vec4(0, 0, 800, 600));
-	cout << "GLM: \n";
-	cout << "Aspect: " << aspect << "\n";
-	cout <<"View: \n";
+	std::cout << "GLM: \n";
+	std::cout << "Aspect: " << aspect << "\n";
+	std::cout << "View: \n";
 	printMat4(&view1);
-	cout <<"Perspective: \n";
+	std::cout << "Perspective: \n";
 	printMat4(&pers1);
-	cout << "Out: (" << a[0] << ", " << a[1] << ", " << a[2] << ")\n";
-	cout << "\n************************* \n";
+	std::cout << "Out: (" << a[0] << ", " << a[1] << ", " << a[2] << ")\n";
+	std::cout << "\n************************* \n";
 
 	/* USE GM */
-	cout << "GM: \n";
-	cout <<"View: \n";
+	std::cout << "GM: \n";
+	std::cout << "View: \n";
 	float a1[3];
 	camera.lookAt(0, 0, -4, 0, 0, 0, 0, 1, 0);
 	camera.setViewport(0, 0, 800, 600);
@@ -617,7 +617,7 @@ void testProject() {
 	printMat4(&view2);
 	printMat4(&pers2);
 	
-	cout << "Out: (" << a1[0] << ", " << a1[1] << ", " << a1[2] << ")";
+	std::cout << "Out: (" << a1[0] << ", " << a1[1] << ", " << a1[2] << ")";
 }
 
 void testMultiply() {
@@ -629,25 +629,25 @@ void testMultiply() {
 	view1 = glm::lookAt(glm::vec3(0,0,-4), glm::vec3(0,0,0),glm::vec3(0,1,0));
 	glm::vec4 obj(1.2f, 0.75, 0.03, 2);
 	glm::vec4 a = view1 * obj;
-	cout << "GLM: \n";
+	std::cout << "GLM: \n";
 	
-	cout <<"View: \n";
+	std::cout << "View: \n";
 	printMat4(&view1);
-	cout << "(" << obj[0] << ", " << obj[1] << ", " << obj[2] << ", " << obj[3] << ")\n";
-	cout <<"Result: (" << a[0] << ", " << a[1] << ", " << a[2] << ", " << a[3] << ")\n";
-	cout << "\n************************* \n";
+	std::cout << "(" << obj[0] << ", " << obj[1] << ", " << obj[2] << ", " << obj[3] << ")\n";
+	std::cout << "Result: (" << a[0] << ", " << a[1] << ", " << a[2] << ", " << a[3] << ")\n";
+	std::cout << "\n************************* \n";
 
 	/* USE GM */
-	cout << "GM: \n";
-	cout <<"View: \n";
+	std::cout << "GM: \n";
+	std::cout << "View: \n";
 	camera.lookAt(0, 0, -4, 0, 0, 0, 0, 1, 0);
 	camera.setViewport(0, 0, 800, 600);
 	gm::mat4 view2 = camera.getView();
 	printMat4(&view2);
-	cout << "(" << obj[0] << ", " << obj[1] << ", " << obj[2] << ", " << obj[3] << ")\n";
+	std::cout << "(" << obj[0] << ", " << obj[1] << ", " << obj[2] << ", " << obj[3] << ")\n";
 	gm::vec4 tmp(obj[0], obj[1], obj[2], obj[3]);
 	gm::vec4 a1 = view2 * tmp;
-	cout << "Out: (" << a1[0] << ", " << a1[1] << ", " << a1[2] << ", " << a1[3] << ")";
+	std::cout << "Out: (" << a1[0] << ", " << a1[1] << ", " << a1[2] << ", " << a1[3] << ")";
 }
 
 void testCamera() {
@@ -656,8 +656,8 @@ void testCamera() {
 	float a1[3];
 
 	/* USE GM */
-	cout << "GM: \n";
-	cout <<"View: \n";
+	std::cout << "GM: \n";
+	std::cout << "View: \n";
 	camera.lookAt(0, 0, -6.5f, 0, 0, 0, 0, 1, 0);
 	camera.setViewport(0, 0, 600, 886);
 	camera.setPerspective(D2R(35), 0.1f, 9.0f);
@@ -669,7 +669,7 @@ void testCamera() {
 
 	//camera.project(a1, 1.0f, 0.0f, 0.0f);
 	camera.project(a1, 0.0f, 0.0f, 0.0f);
-	cout << "Out: (" << a1[0] << ", " << a1[1] << ", " << a1[2] << ")";
+	std::cout << "Out: (" << a1[0] << ", " << a1[1] << ", " << a1[2] << ")";
 }
 
 
@@ -722,17 +722,6 @@ int _tmain(int argc, _TCHAR* argv[]) {
 			testReduce();
 			break;
 		}
-
-		//testReduce(f);
-		//testDerivative(f);
-		//	fflush(stdin);
-		//	printf("Filename: ");
-		//	fgets(str, 128, stdin);
-
-
-		//testCalculate(f);
-		//testReuseFunction(f);
-		//testCriteria2(f);
 	} while (command != 0);
 	releaseNMASTPool();
 

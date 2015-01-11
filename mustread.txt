@@ -39,3 +39,6 @@ http://www.glprogramming.com/red/chapter05.html
 VBO:
 http://www.learnopengles.com/android-lesson-eight-an-introduction-to-index-buffer-objects-ibos/
 https://github.com/learnopengles/Learn-OpenGLES-Tutorials
+
+Two-Sided Shading
+http://en.wikibooks.org/wiki/GLSL_Programming/GLUT/Two-Sided_Surfaces
