@@ -871,13 +871,13 @@ void* nmath::reduce_t(void *param){
 		if (((dp->t)->left != NULL) && ((dp->t)->right != NULL)) {
 
 			/*****************************************************************/
+			//case: 2 + 1 + 3 = 5 + 1
 			if (isConstant((dp->t)->right->type) &&
-				((dp->t)->left->type == PLUS || (dp->t)->left->type == MINUS ||
-				(dp->t)->left->type == MULTIPLY /*|| (dp->t)->left->type == DIVIDE */)) {
+				((dp->t)->left->type == PLUS || (dp->t)->left->type == MINUS)) {
 
 				o1 = dp->t;
 				o2 = (dp->t)->left;
-				if (o1->priority == o2->priority){
+				if (o1->priority == o2->priority) {
 					if (isConstant(o2->left->type)) {
 						switch (o1->type){
 						case PLUS:
@@ -887,13 +887,6 @@ void* nmath::reduce_t(void *param){
 						case MINUS:
 							o2->left->value -= o1->right->value;
 							break;
-
-						case MULTIPLY:
-							o2->left->value *= o1->right->value;
-							break;
-
-							//case DIVIDE:
-							//break;
 						}
 
 						if ((o1->parent != NULL) && (o1 == o1->parent->left)) {
