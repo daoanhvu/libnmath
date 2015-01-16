@@ -23,12 +23,24 @@ Fraction& Fraction::operator =(const Fraction &c) {
 	return *this;
 }
 
+Fraction operator +(int n, const Fraction& f) {
+	Fraction result;
+	result.numerator = f.numerator + f.denomerator * n;
+	result.denomerator = f.denomerator;
+	return result;
+}
+
+Fraction operator +(const Fraction& f, int n) {
+	Fraction result;
+	result.numerator = f.numerator + f.denomerator * n;
+	result.denomerator = f.denomerator;
+	return result;
+}
+
 /*
-friend Fraction& operator +(int n, const Fraction& f);
 friend Fraction& operator -(int n, const Fraction& f);
 friend Fraction& operator *(int n, const Fraction& f);
 friend Fraction& operator /(int n, const Fraction& f);
-friend Fraction& operator +(const Fraction& f, int n);
 friend Fraction& operator -(const Fraction& f, int n);
 friend Fraction& operator *(const Fraction& f, int n);
 friend Fraction& operator /(const Fraction& f, int n);

@@ -42,3 +42,7 @@ https://github.com/learnopengles/Learn-OpenGLES-Tutorials
 
 Two-Sided Shading
 http://en.wikibooks.org/wiki/GLSL_Programming/GLUT/Two-Sided_Surfaces
+
+Photoshop:
+http://webdesign.tutsplus.com/tutorials/design-a-beautifully-detailed-web-button--webdesign-2098
+http://www.noupe.com/design/call-to-action-40-of-the-best-button-tutorials-the-web-has-to-offer-83061.html
