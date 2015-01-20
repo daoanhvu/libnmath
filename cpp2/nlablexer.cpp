@@ -544,6 +544,11 @@ int NLabLexer::isFunctionName(int index, int *outType, int *outlen) {
 		*outlen = 4;
 		result = TRUE;
 	}
+	else if ((index + 3 < mInputLen) && (c0 == 'a' && c1 == 'b' && c2 == 's')){
+		(*outType) = ABS;
+		*outlen = 3;
+		result = TRUE;
+	}
 	else if ((index + 3 < mInputLen) && (c0 == 't' && c1 == 'a' && c2 == 'n')){
 		(*outType) = TAN;
 		*outlen = 3;

@@ -37,6 +37,7 @@
 #define GTE_LT			0x00010011
 #define GT_LTE			0x00010012
 #define GTE_LTE			0x00010013
+#define ABS				0x00010014
 #define LN 				0x000100E0
 #define LOG 			0x000100E1
 #define IMPLY			0x00010000

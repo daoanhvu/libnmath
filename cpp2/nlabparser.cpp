@@ -108,6 +108,13 @@ int NLabParser::parseFunctionExpression(Token* tokens, int tokenCount, NMASTList
 				/*
 					Parse expression
 				*/
+
+				if (tokenCount <= k) {
+					errorCode = ERROR_NOT_AN_EXPRESSION;
+					errorColumn = k;
+					return ERROR_NOT_AN_EXPRESSION;
+				}
+
 				item = parseExpression(tokens, tokenCount, &k);
 				/** after parseExpression, we may get error, so MUST check if it's OK here */
 				if( errorCode!=NMATH_NO_ERROR ) break;
@@ -400,22 +407,16 @@ NMAST* NLabParser::parseExpression(Token* tokens, int size, int *start) {
 			case SQRT:
 			case LN:
 			case LOG:
+			case ABS:
 			
 			/*
 				if( (i+2)>=tokens->size || tokens->list[i+1].type != LPAREN){
 					clearStackWithoutFreeItem(stack, top+1);
 					free(stack);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-#endif
 					for(i=0;i<prefix->size;i++)
 						clearTree(&(prefix->list[i]));
 					free(prefix->list);
 					free(prefix);
-#ifdef DEBUG
-	descNumberOfDynamicObject();
-	descNumberOfDynamicObject();
-#endif
 					errorColumn = tk->column;
 					errorCode = ERROR_PARENTHESE_MISSING;
 					return;

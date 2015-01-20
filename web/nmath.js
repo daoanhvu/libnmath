@@ -233,7 +233,7 @@ function parserLogicOperator(i, charAtI, k, charAtK) {
 	return nextPos;
 }
 
-Token checkParenthesePrackets(char c){
+function checkParenthesePrackets(char c){
 		Token tk = null;
 		switch(c){
 			case '(':
@@ -255,20 +255,20 @@ Token checkParenthesePrackets(char c){
 		return tk;
 	}
 	
-	private Token checkCommaSemi(char c){
-		Token tk = null;
-		switch(c){
-			case ',':
-				tk = new Token(Token.COMMA, ",");
-			break;
+function checkCommaSemi(char c) {
+	Token tk = null;
+	switch(c){
+		case ',':
+			tk = new Token(Token.COMMA, ",");
+		break;
 			
-			case ';':
-				tk = new Token(Token.SEMI, ";");				
-			break;
-		}
-		
-		return tk;
+		case ';':
+			tk = new Token(Token.SEMI, ";");				
+		break;
 	}
+		
+	return tk;
+}
 	
 	/***********************************************************************/
 	/**

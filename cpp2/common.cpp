@@ -299,6 +299,9 @@ double nmath::doCalculate(double val1, double val2, int type, int *error) {
 		case ACOS:
 			return acos(val2);
 
+		case ABS:
+			return (val2<0)?(-val2):val2;
+
 		case COTAN:
 			if(val2==0 || val2 == PI){
 				(*error) = ERROR_DIV_BY_ZERO;
@@ -375,6 +378,9 @@ float nmath::doCalculateF(float val1, float val2, int type, int *error) {
 
 		case ACOS:
 			return acos(val2);
+
+		case ABS:
+			return (val2<0)?(-val2):val2;
 
 		case COTAN:
 			if(val2==0 || val2 == PI){
