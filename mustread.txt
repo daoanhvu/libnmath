@@ -61,3 +61,8 @@ https://takinginitiative.wordpress.com/2008/04/03/basic-neural-network-tutorial-
 http://hocdethi.blogspot.com/2012/12/toan-roi-rac-phan-iii-tap-hop-anh-xa.html
 https://www.youtube.com/watch?v=XRwxjKknoCc
 https://www.youtube.com/watch?v=AYPJmYx-MM8
+
+PHP Restful Webservice:
+http://www.sitepoint.com/writing-a-restful-web-service-with-slim/
+http://markroland.com/blog/restful-php-api/
+http://www.drdobbs.com/web-development/restful-web-services-a-tutorial/240169069
