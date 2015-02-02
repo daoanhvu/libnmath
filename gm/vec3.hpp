@@ -36,6 +36,12 @@ namespace gm {
 				data[2] + v2[2]);
 		}
 
+		Vec3<T> operator -(Vec3<T> &v2) {
+			return Vec3<T>(data[0] - v2[0],
+				data[1] - v2[1],
+				data[2] - v2[2]);
+		}
+
 		Vec3<T> operator +(T a) {
 			return Vec3<T>(data[0] + a, data[1] + a, data[2] + a);
 		}
