@@ -7,7 +7,7 @@
 #include <iostream>
 #endif
 
-#ifdef _WIN32
+#ifdef _WINDOWS
 #include <Windows.h>
 #include <process.h>
 #endif
@@ -43,6 +43,7 @@ NFunction::NFunction(): text(0), valLen(0) {
 NFunction::~NFunction() {
 	release();
 }
+
 #ifdef _PCDEBUG
 std::ostream& nmath::operator <<(std::ostream& os, const NFunction& f) {
 	int i;
