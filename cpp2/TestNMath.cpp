@@ -435,7 +435,7 @@ void testReduce() {
 				else {
 					std::cout << "Expression " << lineCount << " reduce Failed \n";
 				}
-				std::cout << "\Expression Parsing OK\n";
+				std::cout << "Expression Parsing OK\n";
 			}
 			std::cout << "\n******************************************************\n";
 			lineCount++;

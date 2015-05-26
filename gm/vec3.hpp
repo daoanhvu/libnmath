@@ -56,12 +56,12 @@ namespace gm {
 	};
 
 	template <typename T>
-	Vec3<T> operator *(Vec3<T> const v, T a) {
+	Vec3<T> operator *(Vec3<T> const &v, T a) {
 		return Vec3<T>(v.data[0] * a, v.data[1] * a, v.data[2] * a);
 	}
 
 	template <typename T>
-	Vec3<T> operator *(T a, Vec3<T> const v) {
+	Vec3<T> operator *(T a, Vec3<T> const &v) {
 		return Vec3<T>(v.data[0] * a, v.data[1] * a, v.data[2] * a);
 	}
 

@@ -63,6 +63,11 @@ namespace gm {
 			return *this;
 		}
 	};
+	
+	template <typename T>
+	Vec4<T> operator +(Vec4<T> const &v1, Vec4<T> const &v2) {
+		return Vec4<T>(v1.data[0] + v2.data[0], v1.data[1] + v2.data[1], v1.data[2] + v2.data[2], v1.data[3] + v2.data[3]);
+	}
 
 	template <typename T>
 	Vec4<T> operator *(Vec4<T> const v, T a) {
