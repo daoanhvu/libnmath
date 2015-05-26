@@ -507,15 +507,15 @@ void testCriteria(){
 	}
 }
 
-void printMat4(glm::mat4 *m) {
+void printMat4(std::ostream &out, glm::mat4 *m) {
 	int i, j;
 	for(i=0; i<4; i++) {
 		for(j=0; j<4; j++) {
-			std::cout << m->operator[](i)[j] << "\t";
+			out << m->operator[](i)[j] << "\t";
 		}
-		std::cout << "\n";
+		out << "\n";
 	}
-	std::cout << "\n";
+	out << "\n";
 }
 
 float angle2DVector(float x1, float y1, float x2, float y2) {
@@ -524,16 +524,16 @@ float angle2DVector(float x1, float y1, float x2, float y2) {
 	return acos(cs);
 }
 
-void printMat4(gm::mat4 *m) {
+void printMat4(std::ostream &out, gm::mat4 *m) {
 	int i, j;
-	std::cout << "\n";
+	out << "\n";
 	for(i=0; i<4; i++) {
 		for(j=0; j<4; j++) {
-			std::cout << m->operator[](i)[j] << "\t";
+			out << m->operator[](i)[j] << "\t";
 		}
-		std::cout << "\n";
+		out << "\n";
 	}
-	std::cout << "\n";
+	out << "\n";
 }
 
 
@@ -555,12 +555,12 @@ void testGM() {
 	std::cout << "GLM: \n";
 	std::cout << "Aspect: " << aspect << "\n";
 	std::cout << "View: \n";
-	printMat4(&view1);
+	printMat4(std::cout, &view1);
 	std::cout << "Perspective: \n";
-	printMat4(&pers1);
+	printMat4(std::cout, &pers1);
 	std::cout << "Multiply: \n";
 	glm::mat4 mm1 = view1 * pers1;
-	printMat4(&mm1);
+	printMat4(std::cout, &mm1);
 	std::cout << "\n************************* \n";
 
 	/* USE GM */
@@ -571,11 +571,11 @@ void testGM() {
 	camera.setPerspective(fovy, nearPlane, farPlane);
 	gm::mat4 view2 = camera.getView();
 	gm::mat4 pers2 = camera.getPerspective();
-	printMat4(&view2);
-	printMat4(&pers2);
+	printMat4(std::cout, &view2);
+	printMat4(std::cout, &pers2);
 	std::cout << "Multiply: \n";
 	gm::mat4 mm2 = pers2 * view2;
-	printMat4(&mm2);
+	printMat4(std::cout, &mm2);
 }
 
 void testProject() {
@@ -598,9 +598,9 @@ void testProject() {
 	std::cout << "GLM: \n";
 	std::cout << "Aspect: " << aspect << "\n";
 	std::cout << "View: \n";
-	printMat4(&view1);
+	printMat4(std::cout, &view1);
 	std::cout << "Perspective: \n";
-	printMat4(&pers1);
+	printMat4(std::cout, &pers1);
 	std::cout << "Out: (" << a[0] << ", " << a[1] << ", " << a[2] << ")\n";
 	std::cout << "\n************************* \n";
 
@@ -614,8 +614,8 @@ void testProject() {
 	gm::mat4 view2 = camera.getView();
 	gm::mat4 pers2 = camera.getPerspective();
 	camera.project(a1, 1.2f, 0.75, 0.03);
-	printMat4(&view2);
-	printMat4(&pers2);
+	printMat4(std::cout, &view2);
+	printMat4(std::cout, &pers2);
 	
 	std::cout << "Out: (" << a1[0] << ", " << a1[1] << ", " << a1[2] << ")";
 }
@@ -632,7 +632,7 @@ void testMultiply() {
 	std::cout << "GLM: \n";
 	
 	std::cout << "View: \n";
-	printMat4(&view1);
+	printMat4(std::cout, &view1);
 	std::cout << "(" << obj[0] << ", " << obj[1] << ", " << obj[2] << ", " << obj[3] << ")\n";
 	std::cout << "Result: (" << a[0] << ", " << a[1] << ", " << a[2] << ", " << a[3] << ")\n";
 	std::cout << "\n************************* \n";
@@ -643,11 +643,51 @@ void testMultiply() {
 	camera.lookAt(0, 0, -4, 0, 0, 0, 0, 1, 0);
 	camera.setViewport(0, 0, 800, 600);
 	gm::mat4 view2 = camera.getView();
-	printMat4(&view2);
+	printMat4(std::cout, &view2);
 	std::cout << "(" << obj[0] << ", " << obj[1] << ", " << obj[2] << ", " << obj[3] << ")\n";
 	gm::vec4 tmp(obj[0], obj[1], obj[2], obj[3]);
 	gm::vec4 a1 = view2 * tmp;
 	std::cout << "Out: (" << a1[0] << ", " << a1[1] << ", " << a1[2] << ", " << a1[3] << ")";
+}
+
+void testRotationGM() {
+	float rotX = -0.5f;
+	float rotY = -0.1f;
+	gm::mat4 inverted;
+	gm::mat4 rotation;
+	gm::mat4 mModel;
+	gm::mat4 temp;
+	gm::vec4 xAxis(1, 0, 0, 0);
+	gm::vec4 yAxis(0, 1, 0, 0);
+	gm::vec4 rotationAxisX, rotationAxisY;
+	std::ofstream outFile("D:\\data\\c_rotation.dat");
+
+	printMat4(outFile, &mModel);
+
+	mModel.inverse(inverted);
+	outFile << "First inversion: \n";
+	printMat4(outFile, &inverted);
+
+	rotationAxisX = inverted * xAxis;
+	outFile << "mRotationAxisX: " << rotationAxisX[0] << "\t" << rotationAxisX[1] << "\t" << rotationAxisX[2] << "\t" << rotationAxisX[3] << "\n";
+	rotation = gm::rotate(rotX, rotationAxisX);
+	temp[0] = mModel[0] * rotation[0][0] + mModel[1] * rotation[0][1] + mModel[2] * rotation[0][2];
+	temp[1] = mModel[0] * rotation[1][0] + mModel[1] * rotation[1][1] + mModel[2] * rotation[1][2];
+	temp[2] = mModel[0] * rotation[2][0] + mModel[1] * rotation[2][1] + mModel[2] * rotation[2][2];
+	temp[3] = mModel[3];
+	outFile << "after first rotation: \n";
+	printMat4(outFile, &temp);
+
+	temp.inverse(inverted);
+	rotationAxisY = inverted * yAxis;
+	rotation = gm::rotate(rotY, rotationAxisY);
+	mModel[0] = temp[0] * rotation[0][0] + temp[1] * rotation[0][1] + temp[2] * rotation[0][2];
+	mModel[1] = temp[0] * rotation[1][0] + temp[1] * rotation[1][1] + temp[2] * rotation[1][2];
+	mModel[2] = temp[0] * rotation[2][0] + temp[1] * rotation[2][1] + temp[2] * rotation[2][2];
+	mModel[3] = temp[3];
+	outFile << "Final mRotationM matrix: \n";
+	printMat4(outFile, &mModel);
+	outFile.close();
 }
 
 void testCamera() {
@@ -664,8 +704,8 @@ void testCamera() {
 	gm::mat4 view2 = camera.getView();
 	gm::mat4 pers2 = camera.getPerspective();
 
-	printMat4(&view2);
-	printMat4(&pers2);
+	printMat4(std::cout, &view2);
+	printMat4(std::cout, &pers2);
 
 	//camera.project(a1, 1.0f, 0.0f, 0.0f);
 	camera.project(a1, 0.0f, 0.0f, 0.0f);
@@ -684,7 +724,8 @@ int _tmain(int argc, _TCHAR* argv[]) {
 
 		switch (command) {
 		case 1:
-			testCriteria();
+			//testCriteria();
+			testRotationGM();
 			break;
 
 		case 2:

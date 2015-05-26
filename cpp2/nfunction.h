@@ -84,6 +84,7 @@ namespace nmath {
 	NMAST* d_sum_subtract(NMAST *t, int type, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
 	NMAST* d_quotient(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
 	NMAST* d_sqrt(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
+	NMAST* d_ln(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
 	bool isContainVar(NMAST *t, char x);
 #ifdef _WIN32
 	unsigned int __stdcall reduce_t(void *param);

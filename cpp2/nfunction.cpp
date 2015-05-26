@@ -7,7 +7,7 @@
 #include <iostream>
 #endif
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 #include <Windows.h>
 #include <process.h>
 #endif
@@ -1787,6 +1787,10 @@ void* nmath::derivative(void *p){
 	case SQRT:
 		dp->returnValue = d_sqrt(t, u, du, v, dv, x);
 		return dp->returnValue;
+		
+	case LN:
+		dp->returnValue = d_ln(t, u, du, v, dv, x);
+		return dp->returnValue;
 
 	case PLUS:
 	case MINUS:
@@ -2472,4 +2476,8 @@ NMAST* nmath::d_sqrt(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x)
 
 	r->right->right = cloneTree(t, r->right);
 	return r;
+}
+
+NMAST* nmath::d_ln(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x){
+	return NULL;
 }

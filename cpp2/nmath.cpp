@@ -41,6 +41,7 @@ NMAST* d_cotan(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
 NMAST* d_asin(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
 NMAST* d_acos(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
 NMAST* d_atan(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
+NMAST* d_ln(NMAST *t, NMAST *u, NMAST *du, NMAST *v, NMAST *dv, char x);
 
 /*
 	Check if a tree contains variable x
