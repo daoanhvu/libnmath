@@ -529,7 +529,7 @@ void printMat4(std::ostream &out, gm::mat4 *m) {
 	out << "\n";
 	for(i=0; i<4; i++) {
 		for(j=0; j<4; j++) {
-			out << m->operator[](i)[j] << "\t";
+			out << m->operator[](j)[i] << "\t\t";
 		}
 		out << "\n";
 	}

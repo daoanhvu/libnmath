@@ -136,130 +136,85 @@ namespace gm {
 		/*
 			http://www.cg.info.hiroshima-cu.ac.jp/~miyazaki/knowledge/teche23.html
 		*/
-		bool inverse(FMat4<T> &outM) {
+		bool inverse(FMat4<T> &invOut) {
+			FMat4<T> inv;
 			T det;
-			
-			outM[0][0] = m[5]  * m[10] * m[15] - 
-					 m[5]  * m[11] * m[14] - 
-					 m[9]  * m[6]  * m[15] + 
-					 m[9]  * m[7]  * m[14] +
-					 m[13] * m[6]  * m[11] - 
-					 m[13] * m[7]  * m[10];
+			int i, j;
 
-			outM[4] = -m[4]  * m[10] * m[15] + 
-					  m[4]  * m[11] * m[14] + 
-					  m[8]  * m[6]  * m[15] - 
-					  m[8]  * m[7]  * m[14] - 
-					  m[12] * m[6]  * m[11] + 
-					  m[12] * m[7]  * m[10];
+			inv[0][0] = data[1][1] * data[2][2] * data[3][3] - data[1][1] * data[2][3] * data[3][2] - 
+						data[2][1] * data[1][2] * data[3][3] + data[2][1] * data[1][3] * data[3][2] +
+						data[3][1] * data[1][2] * data[2][3] - data[3][1] * data[1][3] * data[2][2];
 
-			outM[8] = m[4]  * m[9] * m[15] - 
-					 m[4]  * m[11] * m[13] - 
-					 m[8]  * m[5] * m[15] + 
-					 m[8]  * m[7] * m[13] + 
-					 m[12] * m[5] * m[11] - 
-					 m[12] * m[7] * m[9];
+			inv[1][0] = -data[1][0] * data[2][2] * data[3][3] + data[1][0] * data[2][3] * data[3][2] + 
+						 data[2][0] * data[1][2] * data[3][3] - data[2][0] * data[1][3] * data[3][2] - 
+						 data[3][0] * data[1][2] * data[2][3] + data[3][0] * data[1][3] * data[2][2];
 
-			outM[12] = -m[4]  * m[9] * m[14] + 
-					   m[4]  * m[10] * m[13] +
-					   m[8]  * m[5] * m[14] - 
-					   m[8]  * m[6] * m[13] - 
-					   m[12] * m[5] * m[10] + 
-					   m[12] * m[6] * m[9];
+			inv[2][0] = data[1][0] * data[2][1] * data[3][3] - data[1][0] * data[2][3] * data[3][1] -
+						data[2][0] * data[1][1] * data[3][3] + data[2][0] * data[1][3] * data[3][1] +
+						data[3][0] * data[1][1] * data[2][3] - data[3][0] * data[1][3] * data[2][1];
 
-			outM[1] = -m[1]  * m[10] * m[15] + 
-					  m[1]  * m[11] * m[14] + 
-					  m[9]  * m[2] * m[15] - 
-					  m[9]  * m[3] * m[14] - 
-					  m[13] * m[2] * m[11] + 
-					  m[13] * m[3] * m[10];
+			inv[3][0] = -data[1][0] * data[2][1] * data[3][2] + data[1][0] * data[2][2] * data[3][1] +
+						 data[2][0] * data[1][1] * data[3][2] - data[2][0] * data[1][2] * data[3][1] - 
+						 data[3][0] * data[1][1] * data[2][2] + data[3][0] * data[1][2] * data[2][1];
 
-			outM[5] = m[0]  * m[10] * m[15] - 
-					 m[0]  * m[11] * m[14] - 
-					 m[8]  * m[2] * m[15] + 
-					 m[8]  * m[3] * m[14] + 
-					 m[12] * m[2] * m[11] - 
-					 m[12] * m[3] * m[10];
+			inv[0][1] = -data[0][1] * data[2][2] * data[3][3] + data[0][1] * data[2][3] * data[3][2] + 
+						 data[2][1] * data[0][2] * data[3][3] - data[2][1] * data[0][3] * data[3][2] - 
+						 data[3][1] * data[0][2] * data[2][3] + data[3][1] * data[0][3] * data[2][2];
 
-			outM[9] = -m[0]  * m[9] * m[15] + 
-					  m[0]  * m[11] * m[13] + 
-					  m[8]  * m[1] * m[15] - 
-					  m[8]  * m[3] * m[13] - 
-					  m[12] * m[1] * m[11] + 
-					  m[12] * m[3] * m[9];
+			inv[1][1] = data[0][0] * data[2][2] * data[3][3] - data[0][0] * data[2][3] * data[3][2] - 
+						data[2][0] * data[0][2] * data[3][3] + data[2][0] * data[0][3] * data[3][2] + 
+						data[3][0] * data[0][2] * data[2][3] - data[3][0] * data[0][3] * data[2][2];
 
-			outM[13] = m[0]  * m[9] * m[14] - 
-					  m[0]  * m[10] * m[13] - 
-					  m[8]  * m[1] * m[14] + 
-					  m[8]  * m[2] * m[13] + 
-					  m[12] * m[1] * m[10] - 
-					  m[12] * m[2] * m[9];
+			inv[2][1] = -data[0][0] * data[2][1] * data[3][3] + data[0][0] * data[2][3] * data[3][1] + 
+						 data[2][0] * data[0][1] * data[3][3] - data[2][0] * data[0][3] * data[3][1] - 
+						 data[3][0] * data[0][1] * data[2][3] + data[3][0] * data[0][3] * data[2][1];
 
-			outM[2] = m[1]  * m[6] * m[15] - 
-					 m[1]  * m[7] * m[14] - 
-					 m[5]  * m[2] * m[15] + 
-					 m[5]  * m[3] * m[14] + 
-					 m[13] * m[2] * m[7] - 
-					 m[13] * m[3] * m[6];
+			inv[3][1] = data[0][0] * data[2][1] * data[3][2] - data[0][0] * data[2][2] * data[3][1] - 
+						data[2][0] * data[0][1] * data[3][2] + data[2][0] * data[0][2] * data[3][1] + 
+						data[3][0] * data[0][1] * data[2][2] - data[3][0] * data[0][2] * data[2][1];
 
-			outM[6] = -m[0]  * m[6] * m[15] + 
-					  m[0]  * m[7] * m[14] + 
-					  m[4]  * m[2] * m[15] - 
-					  m[4]  * m[3] * m[14] - 
-					  m[12] * m[2] * m[7] + 
-					  m[12] * m[3] * m[6];
+			inv[0][2] = data[0][1]  * data[1][2] * data[3][3] - data[0][1]  * data[1][3] * data[3][2] - 
+					 data[1][1]  * data[0][2] * data[3][3] + data[1][1]  * data[0][3] * data[3][2] + 
+					 data[3][1] * data[0][2] * data[1][3] - data[3][1] * data[0][3] * data[1][2];
 
-			outM[10] = m[0]  * m[5] * m[15] - 
-					  m[0]  * m[7] * m[13] - 
-					  m[4]  * m[1] * m[15] + 
-					  m[4]  * m[3] * m[13] + 
-					  m[12] * m[1] * m[7] - 
-					  m[12] * m[3] * m[5];
+			inv[1][2] = -data[0][0] * data[1][2] * data[3][3] + data[0][0] * data[1][3] * data[3][2] + 
+					  data[1][0] * data[0][2] * data[3][3] - data[1][0] * data[0][3] * data[3][2] - 
+					  data[3][0] * data[0][2] * data[1][3] + data[3][0] * data[0][3] * data[1][2];
 
-			outM[14] = -m[0]  * m[5] * m[14] + 
-					   m[0]  * m[6] * m[13] + 
-					   m[4]  * m[1] * m[14] - 
-					   m[4]  * m[2] * m[13] - 
-					   m[12] * m[1] * m[6] + 
-					   m[12] * m[2] * m[5];
+			inv[2][2] = data[0][0]  * data[1][1] * data[3][3] - data[0][0]  * data[1][3] * data[3][1] - 
+					  data[1][0]  * data[0][1] * data[3][3] + data[1][0]  * data[0][3] * data[3][1] + 
+					  data[3][0] * data[0][1] * data[1][3] - data[3][0] * data[0][3] * data[1][1];
 
-			outM[3] = -m[1] * m[6] * m[11] + 
-					  m[1] * m[7] * m[10] + 
-					  m[5] * m[2] * m[11] - 
-					  m[5] * m[3] * m[10] - 
-					  m[9] * m[2] * m[7] + 
-					  m[9] * m[3] * m[6];
+			inv[3][2] = -data[0][0] * data[1][1] * data[3][2] + data[0][0] * data[1][2] * data[3][1] + 
+					   data[1][0] * data[0][1] * data[3][2] - data[1][0] * data[0][2] * data[3][1] - 
+					   data[3][0] * data[0][1] * data[1][2] + data[3][0] * data[0][2] * data[1][1];
 
-			outM[7] = m[0] * m[6] * m[11] - 
-					 m[0] * m[7] * m[10] - 
-					 m[4] * m[2] * m[11] + 
-					 m[4] * m[3] * m[10] + 
-					 m[8] * m[2] * m[7] - 
-					 m[8] * m[3] * m[6];
+			inv[0][3] = -data[0][1] * data[1][2] * data[2][3] + data[0][1] * data[1][3] * data[2][2] + 
+					  data[1][1] * data[0][2] * data[2][3] - data[1][1] * data[0][3] * data[2][2] - 
+					  data[2][1] * data[0][2] * data[1][3] + data[2][1] * data[0][3] * data[1][2];
 
-			outM[11] = -m[0] * m[5] * m[11] + 
-					   m[0] * m[7] * m[9] + 
-					   m[4] * m[1] * m[11] - 
-					   m[4] * m[3] * m[9] - 
-					   m[8] * m[1] * m[7] + 
-					   m[8] * m[3] * m[5];
+			inv[1][3] = data[0][0] * data[1][2] * data[2][3] - data[0][0] * data[1][3] * data[2][2] - 
+					 data[1][0] * data[0][2] * data[2][3] + data[1][0] * data[0][3] * data[2][2] + 
+					 data[2][0] * data[0][2] * data[1][3] - data[2][0] * data[0][3] * data[1][2];
 
-			outM[3][3] = m[0] * m[5] * m[10] - 
-					  m[0] * m[6] * m[9] - 
-					  m[4] * m[1] * m[10] + 
-					  m[4] * m[2] * m[9] + 
-					  m[8] * m[1] * m[6] - 
-					  m[8] * m[2] * m[5];
+			inv[2][3] = -data[0][0] * data[1][1] * data[2][3] + data[0][0] * data[1][3] * data[2][1] + 
+					   data[1][0] * data[0][1] * data[2][3] - data[1][0] * data[0][3] * data[2][1] - 
+					   data[2][0] * data[0][1] * data[1][3] + data[2][0] * data[0][3] * data[1][1];
 
-			det = m[0] * outM[0] + m[1] * outM[4] + m[2] * outM[8] + m[3] * outM[12];
+			inv[3][3] = data[0][0] * data[1][1] * data[2][2] - data[0][0] * data[1][2] * data[2][1] - 
+					  data[1][0] * data[0][1] * data[2][2] + data[1][0] * data[0][2] * data[2][1] + 
+					  data[2][0] * data[0][1] * data[1][2] - data[2][0] * data[0][2] * data[1][1];
+
+			det = data[0][0] * inv[0][0] + data[0][1] * inv[2][0] + data[0][2] * inv[2][0] + data[0][3] * inv[3][0];
 
 			if (det == 0)
 				return false;
 
 			det = 1.0 / det;
 
-			for (i = 0; i < 16; i++)
-				outM[i] = outM[i] * det;
+			for (i = 0; i < 4; i++)
+				for(j=0; j<4; j++)
+					invOut[i][j] = inv[i][j] * det;
 
 			return true;
 		}
