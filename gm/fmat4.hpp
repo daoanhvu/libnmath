@@ -11,6 +11,7 @@ namespace gm {
 	template <typename T>
 	struct FMat4 {
 	private:
+		//Column-major
 		Vec4<T> data[4];
 
 	public:
@@ -83,35 +84,44 @@ namespace gm {
 
 		FMat4<T> operator *(FMat4<T> &m2) {
 			FMat4<T> result;
-			int i, j, k;
-			T s;
-
+			int i;
+			
+			result[0][0] = 0;
+			result[1][1] = 0;
+			result[2][2] = 0;
+			result[3][3] = 0;
 			for(i=0; i<4; i++) {
-				for(j=0; j<4; j++) {
-					s = 0;
-					for(k=0; k<4; k++){
-						s += data[i][k] * m2[k][j];
-					}
-
-					result[i][j] = s;
-				}
+				result[0][0] += data[i][0] * m2[0][i];
+				result[0][1] += data[i][1] * m2[0][i];
+				result[0][2] += data[i][2] * m2[0][i];
+				result[0][3] += data[i][3] * m2[0][i];
+				
+				result[1][0] += data[i][0] * m2[1][i];
+				result[1][1] += data[i][1] * m2[1][i];
+				result[1][2] += data[i][2] * m2[1][i];
+				result[1][3] += data[i][3] * m2[1][i];
+				
+				result[2][0] += data[i][0] * m2[2][i];
+				result[2][1] += data[i][1] * m2[2][i];
+				result[2][2] += data[i][2] * m2[2][i];
+				result[2][3] += data[i][3] * m2[2][i];
+				
+				result[3][0] += data[i][0] * m2[3][i];
+				result[3][1] += data[i][1] * m2[3][i];
+				result[3][2] += data[i][2] * m2[3][i];
+				result[3][3] += data[i][3] * m2[3][i];
 			}
+			
 			return result;
 		}
 
 		Vec4<T> operator *(Vec4<T> &v) {
 			Vec4<T> result;
 			int i, j;
-			T s;
 			for(i=0; i<4; i++) {
-				s = 0;
 				for(j=0; j<4; j++)
-					//s += data[i][j] * v[j];
-					s += data[j][i] * v[j];
-				
-				result[i] = s;
+					result[i] += data[j][i] * v[j];
 			}
-			
 			return result;
 		}
 		
@@ -123,55 +133,134 @@ namespace gm {
 			}
 		}
 		
+		/*
+			http://www.cg.info.hiroshima-cu.ac.jp/~miyazaki/knowledge/teche23.html
+		*/
 		bool inverse(FMat4<T> &outM) {
-			T subFactor00 = data[2][2] * data[3][3] - data[3][2] * data[2][3];
-			T subFactor01 = data[2][1] * data[3][3] - data[3][1] * data[2][3];
-			T subFactor02 = data[2][1] * data[3][2] - data[3][1] * data[2][2];
-			T subFactor03 = data[2][0] * data[3][3] - data[3][0] * data[2][3];
-			T subFactor04 = data[2][0] * data[3][2] - data[3][0] * data[2][2];
-			T subFactor05 = data[2][0] * data[3][1] - data[3][0] * data[2][1];
-			T subFactor06 = data[1][2] * data[3][3] - data[3][2] * data[1][3];
-			T subFactor07 = data[1][1] * data[3][3] - data[3][1] * data[1][3];
-			T subFactor08 = data[1][1] * data[3][2] - data[3][1] * data[1][2];
-			T subFactor09 = data[1][0] * data[3][3] - data[3][0] * data[1][3];
-			T subFactor10 = data[1][0] * data[3][2] - data[3][0] * data[1][2];
-			T subFactor11 = data[1][1] * data[3][3] - data[3][1] * data[1][3];
-			T subFactor12 = data[1][0] * data[3][1] - data[3][0] * data[1][1];
-			T subFactor13 = data[1][2] * data[2][3] - data[2][2] * data[1][3];
-			T subFactor14 = data[1][1] * data[2][3] - data[2][1] * data[1][3];
-			T subFactor15 = data[1][1] * data[2][2] - data[2][1] * data[1][2];
-			T subFactor16 = data[1][0] * data[2][3] - data[2][0] * data[1][3];
-			T subFactor17 = data[1][0] * data[2][2] - data[2][0] * data[1][2];
-			T subFactor18 = data[1][0] * data[2][1] - data[2][0] * data[1][1];
+			T det;
 			
-			outM[0][0] = + (data[1][1] * subFactor00 - data[1][2] * subFactor01 + data[1][3] * subFactor02);
-			outM[0][1] = - (data[1][0] * subFactor00 - data[1][2] * subFactor03 + data[1][3] * subFactor04);
-			outM[0][2] = + (data[1][0] * subFactor01 - data[1][1] * subFactor03 + data[1][3] * subFactor05);
-			outM[0][3] = - (data[1][0] * subFactor02 - data[1][1] * subFactor04 + data[1][2] * subFactor05);
+			outM[0][0] = m[5]  * m[10] * m[15] - 
+					 m[5]  * m[11] * m[14] - 
+					 m[9]  * m[6]  * m[15] + 
+					 m[9]  * m[7]  * m[14] +
+					 m[13] * m[6]  * m[11] - 
+					 m[13] * m[7]  * m[10];
 
-			outM[1][0] = - (data[0][1] * subFactor00 - data[0][2] * subFactor01 + data[0][3] * subFactor02);
-			outM[1][1] = + (data[0][0] * subFactor00 - data[0][2] * subFactor03 + data[0][3] * subFactor04);
-			outM[1][2] = - (data[0][0] * subFactor01 - data[0][1] * subFactor03 + data[0][3] * subFactor05);
-			outM[1][3] = + (data[0][0] * subFactor02 - data[0][1] * subFactor04 + data[0][2] * subFactor05);
+			outM[4] = -m[4]  * m[10] * m[15] + 
+					  m[4]  * m[11] * m[14] + 
+					  m[8]  * m[6]  * m[15] - 
+					  m[8]  * m[7]  * m[14] - 
+					  m[12] * m[6]  * m[11] + 
+					  m[12] * m[7]  * m[10];
 
-			outM[2][0] = + (data[0][1] * subFactor06 - data[0][2] * subFactor07 + data[0][3] * subFactor08);
-			outM[2][1] = - (data[0][0] * subFactor06 - data[0][2] * subFactor09 + data[0][3] * subFactor10);
-			outM[2][2] = + (data[0][0] * subFactor11 - data[0][1] * subFactor09 + data[0][3] * subFactor12);
-			outM[2][3] = - (data[0][0] * subFactor08 - data[0][1] * subFactor10 + data[0][2] * subFactor12);
+			outM[8] = m[4]  * m[9] * m[15] - 
+					 m[4]  * m[11] * m[13] - 
+					 m[8]  * m[5] * m[15] + 
+					 m[8]  * m[7] * m[13] + 
+					 m[12] * m[5] * m[11] - 
+					 m[12] * m[7] * m[9];
 
-			outM[3][0] = - (data[0][1] * subFactor13 - data[0][2] * subFactor14 + data[0][3] * subFactor15);
-			outM[3][1] = + (data[0][0] * subFactor13 - data[0][2] * subFactor16 + data[0][3] * subFactor17);
-			outM[3][2] = - (data[0][0] * subFactor14 - data[0][1] * subFactor16 + data[0][3] * subFactor18);
-			outM[3][3] = + (data[0][0] * subFactor15 - data[0][1] * subFactor17 + data[0][2] * subFactor18);
+			outM[12] = -m[4]  * m[9] * m[14] + 
+					   m[4]  * m[10] * m[13] +
+					   m[8]  * m[5] * m[14] - 
+					   m[8]  * m[6] * m[13] - 
+					   m[12] * m[5] * m[10] + 
+					   m[12] * m[6] * m[9];
 
-			T determinant = 
-				+ data[0][0] * outM[0][0] 
-				+ data[0][1] * outM[0][1] 
-				+ data[0][2] * outM[0][2] 
-				+ data[0][3] * outM[0][3];
+			outM[1] = -m[1]  * m[10] * m[15] + 
+					  m[1]  * m[11] * m[14] + 
+					  m[9]  * m[2] * m[15] - 
+					  m[9]  * m[3] * m[14] - 
+					  m[13] * m[2] * m[11] + 
+					  m[13] * m[3] * m[10];
 
-			outM /= determinant;
-			
+			outM[5] = m[0]  * m[10] * m[15] - 
+					 m[0]  * m[11] * m[14] - 
+					 m[8]  * m[2] * m[15] + 
+					 m[8]  * m[3] * m[14] + 
+					 m[12] * m[2] * m[11] - 
+					 m[12] * m[3] * m[10];
+
+			outM[9] = -m[0]  * m[9] * m[15] + 
+					  m[0]  * m[11] * m[13] + 
+					  m[8]  * m[1] * m[15] - 
+					  m[8]  * m[3] * m[13] - 
+					  m[12] * m[1] * m[11] + 
+					  m[12] * m[3] * m[9];
+
+			outM[13] = m[0]  * m[9] * m[14] - 
+					  m[0]  * m[10] * m[13] - 
+					  m[8]  * m[1] * m[14] + 
+					  m[8]  * m[2] * m[13] + 
+					  m[12] * m[1] * m[10] - 
+					  m[12] * m[2] * m[9];
+
+			outM[2] = m[1]  * m[6] * m[15] - 
+					 m[1]  * m[7] * m[14] - 
+					 m[5]  * m[2] * m[15] + 
+					 m[5]  * m[3] * m[14] + 
+					 m[13] * m[2] * m[7] - 
+					 m[13] * m[3] * m[6];
+
+			outM[6] = -m[0]  * m[6] * m[15] + 
+					  m[0]  * m[7] * m[14] + 
+					  m[4]  * m[2] * m[15] - 
+					  m[4]  * m[3] * m[14] - 
+					  m[12] * m[2] * m[7] + 
+					  m[12] * m[3] * m[6];
+
+			outM[10] = m[0]  * m[5] * m[15] - 
+					  m[0]  * m[7] * m[13] - 
+					  m[4]  * m[1] * m[15] + 
+					  m[4]  * m[3] * m[13] + 
+					  m[12] * m[1] * m[7] - 
+					  m[12] * m[3] * m[5];
+
+			outM[14] = -m[0]  * m[5] * m[14] + 
+					   m[0]  * m[6] * m[13] + 
+					   m[4]  * m[1] * m[14] - 
+					   m[4]  * m[2] * m[13] - 
+					   m[12] * m[1] * m[6] + 
+					   m[12] * m[2] * m[5];
+
+			outM[3] = -m[1] * m[6] * m[11] + 
+					  m[1] * m[7] * m[10] + 
+					  m[5] * m[2] * m[11] - 
+					  m[5] * m[3] * m[10] - 
+					  m[9] * m[2] * m[7] + 
+					  m[9] * m[3] * m[6];
+
+			outM[7] = m[0] * m[6] * m[11] - 
+					 m[0] * m[7] * m[10] - 
+					 m[4] * m[2] * m[11] + 
+					 m[4] * m[3] * m[10] + 
+					 m[8] * m[2] * m[7] - 
+					 m[8] * m[3] * m[6];
+
+			outM[11] = -m[0] * m[5] * m[11] + 
+					   m[0] * m[7] * m[9] + 
+					   m[4] * m[1] * m[11] - 
+					   m[4] * m[3] * m[9] - 
+					   m[8] * m[1] * m[7] + 
+					   m[8] * m[3] * m[5];
+
+			outM[3][3] = m[0] * m[5] * m[10] - 
+					  m[0] * m[6] * m[9] - 
+					  m[4] * m[1] * m[10] + 
+					  m[4] * m[2] * m[9] + 
+					  m[8] * m[1] * m[6] - 
+					  m[8] * m[2] * m[5];
+
+			det = m[0] * outM[0] + m[1] * outM[4] + m[2] * outM[8] + m[3] * outM[12];
+
+			if (det == 0)
+				return false;
+
+			det = 1.0 / det;
+
+			for (i = 0; i < 16; i++)
+				outM[i] = outM[i] * det;
+
 			return true;
 		}
 	};
