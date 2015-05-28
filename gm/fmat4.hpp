@@ -140,28 +140,30 @@ namespace gm {
 			FMat4<T> inv;
 			T det;
 			int i, j;
+			T factor2233 = data[2][2] * data[3][3];
+			T factor1123 = data[1][1] * data[2][3];
 
-			inv[0][0] = data[1][1] * data[2][2] * data[3][3] - data[1][1] * data[2][3] * data[3][2] - 
+			inv[0][0] = data[1][1] * factor2233 - factor1123 * data[3][2] - 
 						data[2][1] * data[1][2] * data[3][3] + data[2][1] * data[1][3] * data[3][2] +
 						data[3][1] * data[1][2] * data[2][3] - data[3][1] * data[1][3] * data[2][2];
 
-			inv[1][0] = -data[1][0] * data[2][2] * data[3][3] + data[1][0] * data[2][3] * data[3][2] + 
+			inv[1][0] = -data[1][0] * factor2233 + data[1][0] * data[2][3] * data[3][2] + 
 						 data[2][0] * data[1][2] * data[3][3] - data[2][0] * data[1][3] * data[3][2] - 
 						 data[3][0] * data[1][2] * data[2][3] + data[3][0] * data[1][3] * data[2][2];
 
 			inv[2][0] = data[1][0] * data[2][1] * data[3][3] - data[1][0] * data[2][3] * data[3][1] -
 						data[2][0] * data[1][1] * data[3][3] + data[2][0] * data[1][3] * data[3][1] +
-						data[3][0] * data[1][1] * data[2][3] - data[3][0] * data[1][3] * data[2][1];
+						data[3][0] * factor1123 - data[3][0] * data[1][3] * data[2][1];
 
 			inv[3][0] = -data[1][0] * data[2][1] * data[3][2] + data[1][0] * data[2][2] * data[3][1] +
 						 data[2][0] * data[1][1] * data[3][2] - data[2][0] * data[1][2] * data[3][1] - 
 						 data[3][0] * data[1][1] * data[2][2] + data[3][0] * data[1][2] * data[2][1];
 
-			inv[0][1] = -data[0][1] * data[2][2] * data[3][3] + data[0][1] * data[2][3] * data[3][2] + 
+			inv[0][1] = -data[0][1] * factor2233 + data[0][1] * data[2][3] * data[3][2] + 
 						 data[2][1] * data[0][2] * data[3][3] - data[2][1] * data[0][3] * data[3][2] - 
 						 data[3][1] * data[0][2] * data[2][3] + data[3][1] * data[0][3] * data[2][2];
 
-			inv[1][1] = data[0][0] * data[2][2] * data[3][3] - data[0][0] * data[2][3] * data[3][2] - 
+			inv[1][1] = data[0][0] * factor2233 - data[0][0] * data[2][3] * data[3][2] - 
 						data[2][0] * data[0][2] * data[3][3] + data[2][0] * data[0][3] * data[3][2] + 
 						data[3][0] * data[0][2] * data[2][3] - data[3][0] * data[0][3] * data[2][2];
 
@@ -197,7 +199,7 @@ namespace gm {
 					 data[1][0] * data[0][2] * data[2][3] + data[1][0] * data[0][3] * data[2][2] + 
 					 data[2][0] * data[0][2] * data[1][3] - data[2][0] * data[0][3] * data[1][2];
 
-			inv[2][3] = -data[0][0] * data[1][1] * data[2][3] + data[0][0] * data[1][3] * data[2][1] + 
+			inv[2][3] = -data[0][0] * factor1123 + data[0][0] * data[1][3] * data[2][1] + 
 					   data[1][0] * data[0][1] * data[2][3] - data[1][0] * data[0][3] * data[2][1] - 
 					   data[2][0] * data[0][1] * data[1][3] + data[2][0] * data[0][3] * data[1][1];
 
