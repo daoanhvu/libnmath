@@ -3,7 +3,9 @@
 
 #include <math.h>
 #include "vec3.hpp"
+#include <iostream>
 
+using namespace std;
 namespace gm {
 	template <typename T>
 	struct Vec4 {
@@ -29,6 +31,11 @@ namespace gm {
 			data[1] = v.data[1];
 			data[2] = v.data[2];
 			data[3] = w;
+		}
+		
+		friend ostream& operator <<(ostream &o, Vec4 &v) {
+			o << "(" <<v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ")";
+			return o;
 		}
 
 		T& operator [](int index)	{ return data[index]; }
