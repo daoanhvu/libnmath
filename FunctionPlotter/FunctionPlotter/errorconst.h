@@ -1,9 +1,0 @@
-#ifndef _ERRORCONST_H
-#define _ERRORCONST_H
-
-#define NFP_OK						0
-#define NFP_ERROR_PIXEL_FORMAT_FAIL	1
-#define NFP_ERROR_GLSL_PROGRAM_FAIL	2
-#define NFP_ERROR_INIT_GLEW_FAIL	3
-
-#endif
