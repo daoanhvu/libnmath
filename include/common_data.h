@@ -154,23 +154,18 @@ namespace nmath {
 		unsigned int loggedRowCount;
 	};
 
-    template <typename T>
-	struct ListFData {
-		FData<T> **list;
-		unsigned long loggedSize;
-		unsigned long size;
-	};
-
 	/**
 	 * This structure is used for function evaluation and derivative calculation
 	 *
 	 */
 	template <typename T>
 	struct DParam {
+		// This is input expression
 		NMAST<T> *t;
 		std::string variables[4];
 		int varCount;
 		int error;
+		//This is input values
 		T values[MAX_VAR_COUNT];
 		T retv;
 		NMAST<T> *returnValue;

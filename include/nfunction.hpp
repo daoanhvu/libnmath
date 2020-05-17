@@ -27,8 +27,8 @@ namespace nmath {
 		int errorCode;
 		int errorColumn;
 
-        ListFData<T>* getSpaceFor2UnknownVariables(const T *inputInterval, T epsilon, bool needNormalVector) {
-            ListFData<T> *lstData = nullptr;
+        std::vector<FData<T>*> getSpaceFor2UnknownVariables(const T *inputInterval, T epsilon, bool needNormalVector) {
+            std::vector<FData<T>*> lstData;
             FData<T> **tempList;
             FData<T> *sp;
             DParam<T> param;
@@ -43,11 +43,6 @@ namespace nmath {
             cc.add(sc);
             sc = new SimpleCriteria<T>(GTE_LTE, variables[1]->text, inputInterval[2], inputInterval[3], false, false);
             cc.add(sc);
-
-            lstData = new ListFData<T>;
-            lstData->size = 0;
-            lstData->loggedSize = prefix.size();
-            lstData->list = (FData<T>**)malloc(sizeof(FData<T>*) * lstData->loggedSize);
 
             for(int i=0; i<prefix.size(); i++) {
                 if(needNormalVector) {
@@ -67,14 +62,7 @@ namespace nmath {
                         sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, &cc, df);
                     else
                         sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, &cc, nullptr);
-
-                    if(lstData->size >= lstData->loggedSize) {
-                        lstData->loggedSize += 2;
-                        tempList = (FData<T>**)realloc(lstData->list, sizeof(FData<T>*) * lstData->loggedSize);
-                        if(tempList != nullptr)
-                            lstData->list = tempList;
-                    }
-                    lstData->list[lstData->size++] = sp;
+                    lstData.push_back(sp);
                 } else {
                     outCriteria = (CompositeCriteria<T>*)criteria[i]->getInterval(inputInterval, this->strVars);
                     switch(outCriteria->logicOperator()) {
@@ -83,14 +71,7 @@ namespace nmath {
                                 sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria, df);
                             else
                                 sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria, 0);
-
-                            if(lstData->size >= lstData->loggedSize) {
-                                lstData->loggedSize += 2;
-                                tempList = (FData<T>**)realloc(lstData->list, sizeof(FData<T>*) * lstData->loggedSize);
-                                if(tempList != nullptr)
-                                    lstData->list = tempList;
-                            }
-                            lstData->list[lstData->size++] = sp;
+                            lstData.push_back(sp);
                             break;
 
                         case OR:
@@ -99,13 +80,7 @@ namespace nmath {
                                     sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, (CompositeCriteria<T>*)(outCriteria->get(j)), df);
                                 else
                                     sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, (CompositeCriteria<T>*)(outCriteria->get(j)), 0);
-                                if(lstData->size >= lstData->loggedSize) {
-                                    lstData->loggedSize += 2;
-                                    tempList = (FData<T>**)realloc(lstData->list, sizeof(FData<T>*) * lstData->loggedSize);
-                                    if(tempList != nullptr)
-                                        lstData->list = tempList;
-                                }
-                                lstData->list[lstData->size++] = sp;
+                                lstData.push_back(sp);
                             }
                             break;
 
@@ -489,8 +464,8 @@ namespace nmath {
             return rp.retv;
         }
 
-        ListFData<T>* getSpace(const T *inputInterval, T epsilon, bool needNormalVector) {
-            ListFData<T> *lstData = nullptr;
+        std::vector<FData<T>*> getSpace(const T *inputInterval, T epsilon, bool needNormalVector) {
+            std::vector<FData<T>*> lstData;
             FData<T> *sp;
             DParam<T> param;
             SimpleCriteria<T>* sc;
@@ -549,19 +524,13 @@ namespace nmath {
                             sp->data[sp->dataSize++] = y;
                             elementOnRow++;
                         }
-
                         sp->rowInfo[sp->rowCount++] = elementOnRow;
-                        lstData = new ListFData<T>;
-                        lstData->size = 0;
-                        lstData->list = (FData<T>**)malloc(sizeof(FData<T>*) * 1);
-                        lstData->list[lstData->size++] = sp;
-
-
+                        lstData.push_back(sp);
                         return lstData;
                     }
 
                     outCriteria = criteria[0]->getInterval(inputInterval, strVars);
-                    if (outCriteria == nullptr) return nullptr;
+                    if (outCriteria == nullptr) return lstData;
 
                     /*
                         Because this is an one-unknown variable function so output criteria is SIMPLE or
@@ -622,18 +591,12 @@ namespace nmath {
                             }
 
                             sp->rowInfo[sp->rowCount++] = elementOnRow;
-                            lstData = new ListFData<T>;
-                            lstData->size = 0;
-                            lstData->list = (FData<T>**)malloc(sizeof(FData<T>*) * 1);
-                            lstData->list[lstData->size++] = sp;
+                            lstData.push_back(sp);
                             break;
 
                         case COMPOSITE: //OR-COMPOSITE criteria
                             int i;
                             cc = (CompositeCriteria<T>*)outCriteria;
-                            lstData = new ListFData<T>;
-                            lstData->size = 0;
-                            lstData->list = (FData<T>**)malloc(sizeof(FData<T>*) * cc->size());
                             for (i = 0; i < cc->size(); i++) {
                                 sc = (SimpleCriteria<T>*)cc->get(i);
 
@@ -685,7 +648,7 @@ namespace nmath {
                                 }
 
                                 sp->rowInfo[sp->rowCount++] = elementOnRow;
-                                lstData->list[lstData->size++] = sp;
+                                lstData.push_back(sp);
                             }
                             break;
                     }

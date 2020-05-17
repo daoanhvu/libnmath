@@ -17,9 +17,7 @@ namespace nmath {
         // This is the offset of normal vector in a data tupe
         short normalOffset;
         std::vector<short> indices;
-        T *data;
-        unsigned int dataSize;
-		unsigned int loggedSize;
+        std::vector<T> data;
         /**
 		 * rowInfo holds the number of element on each row
 		 * rowCount is the number of row
@@ -27,7 +25,7 @@ namespace nmath {
 		std::vector<int> rowInfo;
 	public:
 		ImageData();
-        ImageData(unsigned int vcount, short noffs, const int* rows, int rowCount);
+        ImageData(unsigned int vcount, short dim, short noffs, const int* rows, int rowCount);
 		~ImageData();
 
         T operator[] (int idx) {
@@ -47,12 +45,12 @@ namespace nmath {
 	};
 
     template <typename T>
-    ImageData<T>::ImageData():vertexCount(0), dimension(0), normalOffset(-1), data(NULL) {
+    ImageData<T>::ImageData():vertexCount(0), dimension(0), normalOffset(-1) {
     }
 
     template <typename T>
-    ImageData<T>::ImageData(unsigned int vcount, short noffs, const int* rows, int rowCount)
-        :vertexCount(vcount), normalOffset(noffs) {
+    ImageData<T>::ImageData(unsigned int vcount, short dim, short noffs, const int* rows, int rowCount)
+        :vertexCount(vcount), dimension(dim), normalOffset(noffs) {
         for(auto i=0; i<rowCount; i++) {
             rowInfo.push_back(rows[i]);
         }
@@ -60,52 +58,52 @@ namespace nmath {
 
     template <typename T>
     ImageData<T>::~ImageData() {
-
     }
 
     template <typename T>
     void ImageData<T>::generateIndices() {
-        auto rowCount = rowInfo.size();
         short count = 0;
-        this->indices.clear();
-        for(auto i=0; i<rowCount-1; i++) {
+        indices.clear();
+        int rowCount = rowInfo.size();
+        for(int i=0; i<rowCount-1; i++) {
             auto vertexCountLine = rowInfo[i];
             auto nexRowCount = rowInfo[i + 1];
-
-            for(auto j=0; j<vertexCountLine; j++) {
-                indices.push_back(count);
-                if(i>0 && j==0) { //first element of rows that are not the first row
-					indices.push_back(count);
-				}
-
-                if(j == (vertexCountLine-1) ) {
-                    if(i < rowCount - 2) {
-                        if( (count + vertexCountLine) < vertexCount && j<nexRowCount){
-							//neu co 1 phan tu ngay ben duoi
-							indices.push_back(count + vertexCountLine);
-							indices.push_back(count);
-						}
-						indices.push_back(count);
-                    } else if(( (count + vertexCountLine) < vertexCount) && (j < nexRowCount)) {
-                        auto k = count + vertexCountLine;
-						while(k < vertexCount) {
-							indices.push_back(k);
-							k++;
-							if(k < vertexCount)
-								indices.push_back(k);
-							k++;
-							if(k < vertexCount)
-								indices.push_back(count);
-						}
+            for(int j=0; j<vertexCountLine; j++) {
+                if(j == vertexCountLine - 1) {
+                    indices.push_back(count);
+                    if(j>=nexRowCount) {
+                        indices.push_back(count);
+                    } else {
+                        // add the vertex right below if any
+                        indices.push_back(count + vertexCountLine);
+                        if( (i == rowCount-2) && (j == nexRowCount - 1)) {
+                            indices.push_back(count + vertexCountLine);
+                        }
+                    }
+                    int e = count + vertexCountLine + 1;
+                    int e1 = count + nexRowCount + 1;
+                    for(auto k=e; k<e1; k++) {
+                        indices.push_back(k);
+                        // if(i < rowCount-2) {
+                            indices.push_back(k);
+                            indices.push_back(count);
+                            indices.push_back(count);
+                            indices.push_back(k);
+                            if(k == e1-1) {
+                                indices.push_back(k);
+                            }
+                        // }
                     }
                 } else {
-                    //neu ngay ben duoc co mot vertex nua
-					if( (count + vertexCountLine) < vertexCount && j<nexRowCount) {
-						indices.push_back(count + vertexCountLine);
-					} else { //neu khong thi add vertex cuoi cung cua dong duoi
-						auto diff = j - nexRowCount + 1;
-						indices.push_back(count + vertexCountLine - diff);
-					}
+                    if(i>0 && j==0) {
+                        //Degenerated case
+                        indices.push_back(count);
+                    }
+                    indices.push_back(count);
+                    // add the vertex right below if any
+                    if(j < nexRowCount) {
+                        indices.push_back(count + vertexCountLine);
+                    }
                 }
                 count++;
             }
