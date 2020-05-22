@@ -46,8 +46,7 @@ namespace nmath {
     }
 
     template <typename T>
-    T parseDouble(const char *str, int start, int end, int *error){
-        int i;
+    T parseDouble(const char *str, int start, int end, int *error) {
         T val = 0;
         char isFloatingPoint = 0;
         long floating = 1;
@@ -62,30 +61,58 @@ namespace nmath {
             start++;
         }
 
-        for(i=start; i<end; i++){
+        for(int i=start; i<end; i++) {
 
+            // TODO: Fix this
             if(str[i]=='\0')
-                return 0;
+                return (T)0;
 
-            if((str[i]<48) || (str[i]>57)){
+            if((str[i]<48) || (str[i]>57)) {
                 if( str[i] == 46 && isFloatingPoint==0)
                     isFloatingPoint = 1;
                 else{
                     *error = ERROR_PARSE;
                     /*printf(" Floating point ERROR F\n");*/
-                    return 0;
+                    return (T)0;
                 }
-            }else{
+            } else {
                 if(isFloatingPoint){
                     floating *= 10;
                     val = val + (T)(str[i] - 48)/floating;
-                }else
+                } else {
                     val = val * 10 + (str[i] - 48);
+                }
             }
         }
         (*error) = 0;
         return val*negative;
     }
+
+    template <typename T>
+    T parseInteger(const char *str, int start, int end, int *error) {
+        T val = (T)0;
+        const char C_48 = 48;
+        const char C_57 = 57;
+        *error = -1;
+        if(str == nullptr)
+            return 0;
+
+        int negative = 1;
+        if(str[start] == '-') {
+            negative = -1;
+            start++;
+        }
+        for(auto i=start; i<end; i++) {
+            if((str[i] >= C_48) && (str[i]<=C_57)) {
+                val = val * (T)10 + (T)(str[i] - C_48);
+            } else {
+                *error = i;
+                return val;
+            }
+        }
+        return val;
+    }
+
     template <typename T>
     void clearTree(NMAST<T> **prf){
         if((*prf) == nullptr)

@@ -34,6 +34,10 @@ namespace nmath {
 
         void generateIndices();
 
+        std::vector<short> getIndices() const {
+            return indices;
+        }
+
         // This is for testing purpose
         void printIndices(std::ostream &out) {
             out << std::endl;
@@ -65,36 +69,56 @@ namespace nmath {
         short count = 0;
         indices.clear();
         int rowCount = rowInfo.size();
+        int orientation = 0;
+        unsigned int count_pass = 0;
         for(int i=0; i<rowCount-1; i++) {
+            count_pass += (i <= 0) ? 0 :  rowInfo[i-1];
             auto vertexCountLine = rowInfo[i];
             auto nexRowCount = rowInfo[i + 1];
-            for(int j=0; j<vertexCountLine; j++) {
+            int j = 0;
+            while(j<vertexCountLine) {
+                // If we are at the last position of row i
                 if(j == vertexCountLine - 1) {
                     indices.push_back(count);
+                    // If the number of vertex on row i is greater than the number of vertex on the next row
                     if(j>=nexRowCount) {
                         indices.push_back(count);
                     } else {
-                        // add the vertex right below if any
+                        // add the vertex right below
                         indices.push_back(count + vertexCountLine);
-                        if( (i == rowCount-2) && (j == nexRowCount - 1)) {
+
+                        // If j is the last position on the next row so 
+                        // this is a degeneration
+                        if(j == nexRowCount - 1) {
+                            // degenerate
                             indices.push_back(count + vertexCountLine);
                         }
-                    }
-                    int e = count + vertexCountLine + 1;
-                    int e1 = count + nexRowCount + 1;
-                    for(auto k=e; k<e1; k++) {
-                        indices.push_back(k);
-                        // if(i < rowCount-2) {
-                            indices.push_back(k);
-                            indices.push_back(count);
-                            indices.push_back(count);
+                    
+                        int e = count + vertexCountLine + 1;
+                        int e1 = count + nexRowCount + 1;
+                        for(auto k=e; k<e1; k++) {
                             indices.push_back(k);
                             if(k == e1-1) {
                                 indices.push_back(k);
+                            } else {
+                                indices.push_back(count);
                             }
-                        // }
+
+                            // indices.push_back(k);
+                            // if(i < rowCount-2) {
+                                // indices.push_back(k);
+                                // indices.push_back(count);
+                                // indices.push_back(count);
+                                // indices.push_back(k);
+                                // if(k == e1-1) {
+                                //     indices.push_back(k);
+                                // }
+                            // }
+                        }
                     }
                 } else {
+                    // If this is not the first row and 
+                    // we are at the first element of it
                     if(i>0 && j==0) {
                         //Degenerated case
                         indices.push_back(count);
@@ -103,9 +127,34 @@ namespace nmath {
                     // add the vertex right below if any
                     if(j < nexRowCount) {
                         indices.push_back(count + vertexCountLine);
+                    } else {
+                        int lastIndexOnNextRow = count + vertexCountLine - 1;
+                        int e = count + vertexCountLine + 1;
+                        int e1 = count + nexRowCount + 1;
+                        for(auto k=j; k<(vertexCountLine-1); k++) {
+                            indices.push_back(++count);
+                            if(k==vertexCountLine-2) {
+                                indices.push_back(count);
+                            } else {
+                                indices.push_back(lastIndexOnNextRow);
+                            }
+                        }
+                        j = vertexCountLine - 1;
                     }
                 }
                 count++;
+                j++;
+            }
+        }
+
+        //post processing for tail degenerate triangles
+        if(indices[indices.size()-1] == indices[indices.size()-2]) {
+            if(indices[indices.size()-3] == indices[indices.size()-4]) {
+                indices.pop_back();
+                indices.pop_back();
+                indices.pop_back();
+            } else {
+                indices.pop_back();
             }
         }
     }

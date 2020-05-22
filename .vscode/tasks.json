@@ -8,7 +8,7 @@
                 "all"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}/build"
             },
             "group": {
                 "kind": "build",

@@ -1,4 +1,5 @@
 
+#include <cstring>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -11,13 +12,69 @@
 #include "SimpleCriteria.hpp"
 #include "logging.h"
 
+struct GeneratedIndicesTestCase {
+	public:
+	int id;
+	int rowInfo[32];
+	int rowCount;
+	short expectedResult[256];
+	int expectedResultSize;
 
-void testGenerateIndices() {
-	int rowInfos[10] = {1, 3, 4, 2};
-	nmath::ImageData<float> imageData(10, 3, 0, rowInfos, 4);
+	GeneratedIndicesTestCase() {
+		rowCount = 0;
+	}
+
+	GeneratedIndicesTestCase(int _id, const int *rows, int _rowCount, const short *expecteds, int expectedRlen) {
+		this->id = _id;
+		memcpy(this->rowInfo, rows, sizeof(int) * _rowCount);
+		this->rowCount = _rowCount;
+		memcpy(this->expectedResult, expecteds, sizeof(short) * expectedRlen);
+		this->expectedResultSize = expectedRlen;
+	}
+} ;
+
+
+bool runTestCase(const GeneratedIndicesTestCase *test) {
+	int vertexCount = 0;
+	bool result = true;
+	for(auto i=0; i<test->rowCount; i++) {
+		vertexCount += test->rowInfo[i];
+	}
+	nmath::ImageData<float> imageData(vertexCount, 3, 0, test->rowInfo, test->rowCount);
 	imageData.generateIndices();
-	std::cout << "Indices: ";
-	imageData.printIndices(std::cout);
+	std::vector<short> actualResult = imageData.getIndices();
+	if(actualResult.size() != test->expectedResultSize) {
+		std::cout << "\033[41m" << "Test failed! actual size: " << actualResult.size() << "\033[0m" << std::endl;
+		return false;
+	} else {
+		for(auto i=0; i<test->expectedResultSize; i++) {
+			if(actualResult[i] != test->expectedResult[i]) {
+				std::cout << "\033[41m" << "Test failed! actual value: " << actualResult[i] << ". Expected value: " << test->expectedResult[i] << "\033[0m" << std::endl;
+				return false;
+			}
+		}
+		result = true;
+	}
+	std::cout << "\033[32m" << "Test " << test->id << " passed" << "\033[0m" << std::endl;
+	std::cout << "======================================" << std::endl;
+	return result;
+}
+
+void runTestes() {
+	int rowInfo1[] = {3, 2};
+	const short expectedResult1[] = {0, 3, 1, 4, 2};
+	GeneratedIndicesTestCase test1(1, rowInfo1, 2, expectedResult1, 5);
+	runTestCase(&test1);
+
+	int rowInfo2[] = {2, 3};
+	const short expectedResult2[] = {0, 2, 1, 3, 4};
+	GeneratedIndicesTestCase test2(2, rowInfo2, 2, expectedResult2, 5);
+	runTestCase(&test2);
+
+	int rowInfo3[] = {2, 2, 2};
+	const short expectedResult3[] = {0, 2, 1, 3, 3, 2, 2, 4, 3, 5};
+	GeneratedIndicesTestCase test3(3, rowInfo3, 3, expectedResult3, 10);
+	runTestCase(&test3);
 }
 
 void printResult(const short *expected, int len, std::vector<short>& indices) {
@@ -34,64 +91,28 @@ void printResult(const short *expected, int len, std::vector<short>& indices) {
 
 
 int main(int argc, char* argv[]) {
-	int rowInfo[] = {2, 3};
-	nmath::ImageData<float> imageData(5, 3, 0, rowInfo, 2);
-	// const int rowCount = 2;
-	// std::vector<short> actualResult;
-	// const short expectedResult[] = {0, 2, 1, 3, 4};
+
+	if(argc < 3) {
+		runTestes();
+		return 0;
+	}
+	int error;
+	int *rowInfo = new int[argc -1];
+	int numOfVertex = 0;
+
+	for(auto i=1; i<argc; i++) {
+		auto len = strlen(argv[i]);
+		auto val = nmath::parseInteger<int>(argv[i], 0, len, &error);
+		rowInfo[i-1] = val;
+		numOfVertex += val;
+	}
+	int numRow = argc - 1;
+
+	nmath::ImageData<float> imageData(numOfVertex, 3, 0, rowInfo, numRow);
 	imageData.generateIndices();
 	imageData.printIndices(std::cout);
-	// printResult(expectedResult, 5, actualResult);
 
-	// int rowInfo1[] = {3, 2, 2};
-	// const int rowCount1 = 3;
-	// std::vector<short> actualResult1;
-	// const short expectedResult1[] = {0, 3, 1, 4, 2, 2, 3, 3, 5, 4, 6, 6};
-	// generateIndices(rowInfo1, rowCount1, 7, actualResult1);
-	// printResult(expectedResult1, 12, actualResult1);
-	// // testGenerateIndices();
-
-	// int rowInfo2[] = {3, 2};
-	// const int rowCount2 = 2;
-	// std::vector<short> actualResult2;
-	// const short expectedResult2[] = {0, 3, 1, 4, 2, 2};
-	// generateIndices(rowInfo2, rowCount2, 5, actualResult2);
-	// printResult(expectedResult2, 6, actualResult2);
-
-	// int rowInfo3[] = {3, 2, 3};
-	// const int rowCount3 = 3;
-	// std::vector<short> actualResult3;
-	// const short expectedResult3[] = {0, 3, 1, 4, 2, 2, 3, 3, 5, 4, 6, 7};
-	// generateIndices(rowInfo3, rowCount3, 8, actualResult3);
-	// printResult(expectedResult3, 12, actualResult3);
-
-	// int rowInfo4[] = {2, 4};
-	// const int rowCount4 = 2;
-	// std::vector<short> actualResult4;
-	// const short expectedResult4[] = {0, 2, 1, 3, 4};
-	// generateIndices(rowInfo4, rowCount4, 6, actualResult4);
-	// printResult(expectedResult4, 5, actualResult4);
-
-	// int rowInfo5[] = {2, 5};
-	// const int rowCount5 = 2;
-	// std::vector<short> actualResult5;
-	// const short expectedResult5[] = {0, 2, 1, 3, 4};
-	// generateIndices(rowInfo5, rowCount5, 7, actualResult5);
-	// printResult(expectedResult5, 5, actualResult5);
-
-	// int rowInfo6[] = {3, 3};
-	// const int rowCount6 = 2;
-	// std::vector<short> actualResult6;
-	// const short expectedResult6[] = {0, 3, 1, 4, 2, 5, 5};
-	// generateIndices(rowInfo6, rowCount6, 6, actualResult6);
-	// printResult(expectedResult6, 7, actualResult6);
-
-	// int rowInfo7[] = {5, 3};
-	// const int rowCount7 = 2;
-	// std::vector<short> actualResult7;
-	// const short expectedResult7[] = {0, 5, 1, 6, 2, 7, 3, 4, 4};
-	// generateIndices(rowInfo7, rowCount7, 8, actualResult7);
-	// printResult(expectedResult7, 9, actualResult7);
+	delete[] rowInfo;
 
 	// int rowInfo8[] = {4, 2, 3};
 	// const int rowCount8 = 3;

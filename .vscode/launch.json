@@ -17,6 +17,19 @@
             "externalConsole": false,
             "MIMode": "lldb",
             "preLaunchTask": "build with makefile"
+        },
+        {
+            "name": "BuildIndicesGenerate",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/output/mac/testImageData",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "build with makefile"
         }
     ]
 }
