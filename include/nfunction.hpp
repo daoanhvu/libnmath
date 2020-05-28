@@ -6,6 +6,7 @@
 #include <string>
 #include "criteria.hpp"
 #include "common_data.h"
+#include "imagedata.hpp"
 #include "nlablexer.h"
 #include "nlabparser.hpp"
 #include "compositecriteria.hpp"
@@ -27,10 +28,10 @@ namespace nmath {
 		int errorCode;
 		int errorColumn;
 
-        std::vector<FData<T>*> getSpaceFor2UnknownVariables(const T *inputInterval, T epsilon, bool needNormalVector) {
-            std::vector<FData<T>*> lstData;
-            FData<T> **tempList;
-            FData<T> *sp;
+        std::vector<ImageData<T>*> getSpaceFor2UnknownVariables(const T *inputInterval, T epsilon, bool needNormalVector) {
+            std::vector<ImageData<T>*> lstData;
+            ImageData<T> **tempList;
+            ImageData<T> *sp;
             DParam<T> param;
             DParam<T> reduceParam;
             CompositeCriteria<T> *outCriteria;
@@ -113,22 +114,23 @@ namespace nmath {
          * @param df the derivative of this function, this is used for calculating normal vectors
          * @return an object of FData, if df is not null then the returned object consists of x, y, z
          */
-        FData<T>* getSpaceFor2WithANDComposite(int prefixIndex, const T *inputInterval,
+        ImageData<T>* getSpaceFor2WithANDComposite(int prefixIndex, const T *inputInterval,
                                     T epsilon, const CompositeCriteria<T>* c, NMAST<T> **df) {
-            FData<T> *sp;
+            ImageData<T> *sp;
             DParam<T> param;
             DParam<T> dparam0;
             DParam<T> dparam1;
             T min[2];
             T max[2];
-            T *dataTemp;
-            int *rowInfoTemp;
             T z;
             int j, k, elementOnRow;
             SimpleCriteria<T> *sc;
             std::string currentVar;
 
-            //used for normalizing nv
+            /*
+                We want the normal vector to be a unit vector 
+                so this value is used for normalizing normal vector
+            */
             float mod;
 
             for(k=0; k<variables.size(); k++) {
@@ -150,21 +152,13 @@ namespace nmath {
                 }
             }
 
-            sp = (FData<T>*)malloc(sizeof(FData<T>));
-
             /**
              * 2 Unknown variable means we are in three dimension space
              * for each point in the value domain, we need 3 values for x, y and z.
              * And if we need to calculate normal vector at each point, we have to add 3 values
              * to hold nx, ny and nz, this case we have 6 values per point
              */
-            sp->dimension = (char)((df == nullptr)?3:6);
-            sp->loggedSize = 20;
-            sp->dataSize = 0;
-            sp->data = (float*)malloc(sizeof(float) * sp->loggedSize);
-            sp->loggedRowCount = 0;
-            sp->rowCount = 0;
-            sp->rowInfo= nullptr;
+            sp = new ImageData<T>(((df == nullptr)?3:6));
 
             param.t = prefix[prefixIndex];
             param.variables[0] = variables[0]->text;
@@ -178,15 +172,13 @@ namespace nmath {
                 while(param.values[1] < max[1]) {
                     calc_t<T>((void*)&param);
                     z = param.retv;
-                    if( sp->dataSize >= sp->loggedSize - (sp->dimension) ){
-                        sp->loggedSize += 20;
-                        dataTemp = (T*)realloc(sp->data, sizeof(T) * sp->loggedSize);
-                        if(dataTemp != nullptr)
-                            sp->data = dataTemp;
-                    }
-                    sp->data[sp->dataSize++] = param.values[0];
-                    sp->data[sp->dataSize++] = param.values[1];
-                    sp->data[sp->dataSize++] = z;
+                    // TODO: We are not sure about dimension here!
+                    // sp->data[sp->dataSize++] = param.values[0];
+                    // sp->data[sp->dataSize++] = param.values[1];
+                    // sp->data[sp->dataSize++] = z;
+                    sp->addData(param.values[0]);
+                    sp->addData(param.values[1]);
+                    sp->addData(z);
 
                     /******** Now, calculate the normal vector at x, y, z **************/
                     if(df != nullptr) {
@@ -207,13 +199,12 @@ namespace nmath {
                         calc_t<T>((void*)&dparam1);
 
                         mod = sqrt(dparam0.retv*dparam0.retv + dparam1.retv*dparam1.retv + 1);
-                        sp->data[sp->dataSize++] = dparam0.retv/mod;
-                        sp->data[sp->dataSize++] = dparam1.retv/mod;
-                        sp->data[sp->dataSize++] = -1/mod;
-
-                        //sp->data[sp->dataSize++] = dparam0.retv;
-                        //sp->data[sp->dataSize++] = dparam1.retv;
-                        //sp->data[sp->dataSize++] = -1.0f;
+                        // sp->data[sp->dataSize++] = dparam0.retv/mod;
+                        // sp->data[sp->dataSize++] = dparam1.retv/mod;
+                        // sp->data[sp->dataSize++] = -1/mod;
+                        sp->addData(dparam0.retv/mod);
+                        sp->addData(dparam1.retv/mod);
+                        sp->addData(-1/mod);
                     }
                     /*******************************************/
 
@@ -221,14 +212,7 @@ namespace nmath {
                     param.values[1] += epsilon;
                 }
 
-                if(sp->rowCount >= sp->loggedRowCount){
-                    sp->loggedRowCount += 10;
-                    rowInfoTemp = (int*)realloc(sp->rowInfo, sizeof(int) * sp->loggedRowCount);
-                    if(rowInfoTemp != nullptr)
-                        sp->rowInfo = rowInfoTemp;
-                }
-
-                sp->rowInfo[sp->rowCount++] = elementOnRow;
+                sp->addRow(elementOnRow);
                 param.values[0] += epsilon;
             }
 
@@ -464,30 +448,22 @@ namespace nmath {
             return rp.retv;
         }
 
-        std::vector<FData<T>*> getSpace(const T *inputInterval, T epsilon, bool needNormalVector) {
-            std::vector<FData<T>*> lstData;
-            FData<T> *sp;
+        std::vector<ImageData<T>*> getSpace(const T *inputInterval, T epsilon, bool needNormalVector) {
+            std::vector<ImageData<T>*> lstData;
+            ImageData<T> *sp;
             DParam<T> param;
             SimpleCriteria<T>* sc;
             CompositeCriteria<T>* cc;
             Criteria<T>* outCriteria;
             T y, lastX, rightVal;
             int elementOnRow = 0;
-            T *tmpP;
             auto valLen = this->variables.size();
 
             switch (valLen) {
                 case 1L:
                     if (criteria.size() <= 0L) {
 
-                        sp = (FData<T>*)malloc(sizeof(FData<T>));
-                        sp->dimension = 2;
-                        sp->loggedSize = 20;
-                        sp->dataSize = 0;
-                        sp->data = (T*)malloc(sizeof(T) * sp->loggedSize);
-                        sp->rowCount = 0;
-                        sp->loggedRowCount = 1;
-                        sp->rowInfo = (int*)malloc(sizeof(int));
+                        sp = new ImageData<T>(2);
 
                         param.error = NMATH_NO_ERROR;
                         param.variables[0] = variables[0]->text;
@@ -497,14 +473,8 @@ namespace nmath {
                             calc_t<T>((void*)&param);
                             y = param.retv;
 
-                            if (sp->dataSize >= sp->loggedSize - 2){
-                                sp->loggedSize += 20;
-                                tmpP = (T*)realloc(sp->data, sizeof(T) * sp->loggedSize);
-                                if (tmpP != nullptr)
-                                    sp->data = tmpP;
-                            }
-                            sp->data[sp->dataSize++] = param.values[0];
-                            sp->data[sp->dataSize++] = y;
+                            sp->addData(param.values[0]);
+                            sp->addData(y);
                             elementOnRow++;
                             lastX = param.values[0];
                             param.values[0] += epsilon;
@@ -514,17 +484,11 @@ namespace nmath {
                             param.values[0] = inputInterval[1];
                             calc_t<T>((void*)&param);
                             y = param.retv;
-                            if (sp->dataSize >= sp->loggedSize - 2){
-                                sp->loggedSize += 4;
-                                tmpP = (T*)realloc(sp->data, sizeof(T) * sp->loggedSize);
-                                if (tmpP != nullptr)
-                                    sp->data = tmpP;
-                            }
-                            sp->data[sp->dataSize++] = param.values[0];
-                            sp->data[sp->dataSize++] = y;
+                            sp->addData(param.values[0]);
+                            sp->addData(y);
                             elementOnRow++;
                         }
-                        sp->rowInfo[sp->rowCount++] = elementOnRow;
+                        sp->addRow(elementOnRow);
                         lstData.push_back(sp);
                         return lstData;
                     }
@@ -544,14 +508,7 @@ namespace nmath {
                         case SIMPLE:
                             sc = (SimpleCriteria<T>*)outCriteria;
 
-                            sp = (FData<T>*)malloc(sizeof(FData<T>));
-                            sp->dimension = 2;
-                            sp->loggedSize = 20;
-                            sp->dataSize = 0;
-                            sp->data = (T*)malloc(sizeof(T) * sp->loggedSize);
-                            sp->rowCount = 0;
-                            sp->loggedRowCount = 1;
-                            sp->rowInfo = (int*)malloc(sizeof(int));
+                            sp = new ImageData<T>(2);
 
                             param.error = NMATH_NO_ERROR;
                             param.variables[0] = variables[0]->text;
@@ -561,15 +518,8 @@ namespace nmath {
                             while (param.values[0] <= rightVal) {
                                 calc_t<T>((void*)&param);
                                 y = param.retv;
-
-                                if (sp->dataSize >= sp->loggedSize - 2){
-                                    sp->loggedSize += 20;
-                                    tmpP = (T*)realloc(sp->data, sizeof(T) * sp->loggedSize);
-                                    if (tmpP != nullptr)
-                                        sp->data = tmpP;
-                                }
-                                sp->data[sp->dataSize++] = param.values[0];
-                                sp->data[sp->dataSize++] = y;
+                                sp->addData(param.values[0]);
+                                sp->addData(y);
                                 elementOnRow++;
                                 lastX = param.values[0];
                                 param.values[0] += epsilon;
@@ -579,18 +529,11 @@ namespace nmath {
                                 param.values[0] = rightVal;
                                 calc_t<T>((void*)&param);
                                 y = param.retv;
-                                if (sp->dataSize >= sp->loggedSize - 2){
-                                    sp->loggedSize += 4;
-                                    tmpP = (T*)realloc(sp->data, sizeof(T) * sp->loggedSize);
-                                    if (tmpP != nullptr)
-                                        sp->data = tmpP;
-                                }
-                                sp->data[sp->dataSize++] = param.values[0];
-                                sp->data[sp->dataSize++] = y;
+                                sp->addData(param.values[0]);
+                                sp->addData(y);
                                 elementOnRow++;
                             }
-
-                            sp->rowInfo[sp->rowCount++] = elementOnRow;
+                            sp->addRow(elementOnRow);
                             lstData.push_back(sp);
                             break;
 
@@ -600,15 +543,7 @@ namespace nmath {
                             for (i = 0; i < cc->size(); i++) {
                                 sc = (SimpleCriteria<T>*)cc->get(i);
 
-                                sp = (FData<T>*)malloc(sizeof(FData<T>));
-                                sp->dimension = 2;
-                                sp->loggedSize = 20;
-                                sp->dataSize = 0;
-                                sp->data = (T*)malloc(sizeof(T) * sp->loggedSize);
-                                sp->rowCount = 0;
-                                sp->loggedRowCount = 1;
-                                sp->rowInfo = (int*)malloc(sizeof(int));
-
+                                sp = new ImageData<T>(2);
                                 param.error = NMATH_NO_ERROR;
                                 param.variables[0] = variables[0]->text;
                                 param.values[0] = sc->getLeftValue();
@@ -618,15 +553,8 @@ namespace nmath {
                                 while (param.values[0] <= rightVal) {
                                     calc_t<T>(&param);
                                     y = param.retv;
-
-                                    if (sp->dataSize >= sp->loggedSize - 2){
-                                        sp->loggedSize += 20;
-                                        tmpP = (T*)realloc(sp->data, sizeof(T) * sp->loggedSize);
-                                        if (tmpP != nullptr)
-                                            sp->data = tmpP;
-                                    }
-                                    sp->data[sp->dataSize++] = param.values[0];
-                                    sp->data[sp->dataSize++] = y;
+                                    sp->addData(param.values[0]);
+                                    sp->addData(y);
                                     elementOnRow++;
                                     lastX = param.values[0];
                                     param.values[0] += epsilon;
@@ -636,18 +564,11 @@ namespace nmath {
                                     param.values[0] = rightVal;
                                     calc_t<T>((void*)&param);
                                     y = param.retv;
-                                    if (sp->dataSize >= sp->loggedSize - 2){
-                                        sp->loggedSize += 4;
-                                        tmpP = (T*)realloc(sp->data, sizeof(T) * sp->loggedSize);
-                                        if (tmpP != nullptr)
-                                            sp->data = tmpP;
-                                    }
-                                    sp->data[sp->dataSize++] = param.values[0];
-                                    sp->data[sp->dataSize++] = y;
+                                    sp->addData(param.values[0]);
+                                    sp->addData(y);
                                     elementOnRow++;
                                 }
-
-                                sp->rowInfo[sp->rowCount++] = elementOnRow;
+                                sp->addRow(elementOnRow);
                                 lstData.push_back(sp);
                             }
                             break;

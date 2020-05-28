@@ -25,11 +25,20 @@ namespace nmath {
 		std::vector<int> rowInfo;
 	public:
 		ImageData();
+        ImageData(short dim);
         ImageData(unsigned int vcount, short dim, short noffs, const int* rows, int rowCount);
 		~ImageData();
 
         T operator[] (int idx) {
             return data[idx];
+        }
+
+        void addData(T val) {
+            data.push_back(val);
+        }
+
+        void addRow(int elementOnNewRow) {
+            rowInfo.push_back(elementOnNewRow);
         }
 
         void generateIndices();
@@ -50,6 +59,10 @@ namespace nmath {
 
     template <typename T>
     ImageData<T>::ImageData():vertexCount(0), dimension(0), normalOffset(-1) {
+    }
+
+    template <typename T>
+    ImageData<T>::ImageData(short dim):vertexCount(0), dimension(dim), normalOffset(-1) {
     }
 
     template <typename T>

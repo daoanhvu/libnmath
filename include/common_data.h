@@ -139,20 +139,20 @@ namespace nmath {
     /**
      * This structure is used to hold all calculated data of a function
      */
-    template <typename T>
-	struct FData {
-		T *data;
-		unsigned int dataSize;
-		unsigned int loggedSize;
-		char dimension;
-		/**
-		 * rowInfo holds the number of element on each row
-		 * rowCount is the number of row
-		*/
-		int *rowInfo;
-		unsigned int rowCount;
-		unsigned int loggedRowCount;
-	};
+    // template <typename T>
+	// struct FData {
+	// 	T *data;
+	// 	unsigned int dataSize;
+	// 	unsigned int loggedSize;
+	// 	char dimension;
+	// 	/**
+	// 	 * rowInfo holds the number of element on each row
+	// 	 * rowCount is the number of row
+	// 	*/
+	// 	int *rowInfo;
+	// 	unsigned int rowCount;
+	// 	unsigned int loggedRowCount;
+	// };
 
 	/**
 	 * This structure is used for function evaluation and derivative calculation
