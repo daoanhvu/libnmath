@@ -4,7 +4,7 @@
 
 using namespace nmath;
 
-int pushItem2Stack(Token ***st, int *top, int *allocLen, Token *item) {
+int nmath::pushItem2Stack(Token ***st, int *top, int *allocLen, Token *item) {
 	nmath::Token** tmp;
 	if ((*top) >= ((*allocLen) - 1)) {
 		(*allocLen) += INCLEN;
@@ -20,7 +20,7 @@ int pushItem2Stack(Token ***st, int *top, int *allocLen, Token *item) {
 	return NMATH_NO_ERROR;
 }
 
-Token* popFromStack(Token **st, int *top) {
+Token* nmath::popFromStack(Token **st, int *top) {
 	Token *p;
 	if (st == nullptr || ((*top) < 0))
 		return nullptr;
@@ -28,4 +28,18 @@ Token* popFromStack(Token **st, int *top) {
 	st[(*top)] = nullptr;
 	(*top)--;
 	return p;
+}
+
+int nmath::clearStackWithoutFreeItem(Token **ls, int len) {
+	int i;
+	//Token *p;
+
+	if(ls==nullptr)
+		return 0;
+
+	for(i=0; i<len; i++){
+		//p = ls[i];
+		ls[i] = nullptr;
+	}
+	return i;
 }

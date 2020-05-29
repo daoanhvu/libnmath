@@ -173,9 +173,6 @@ namespace nmath {
                     calc_t<T>((void*)&param);
                     z = param.retv;
                     // TODO: We are not sure about dimension here!
-                    // sp->data[sp->dataSize++] = param.values[0];
-                    // sp->data[sp->dataSize++] = param.values[1];
-                    // sp->data[sp->dataSize++] = z;
                     sp->addData(param.values[0]);
                     sp->addData(param.values[1]);
                     sp->addData(z);

@@ -58,19 +58,6 @@ namespace nmath {
     }
 
     /******************************************************************************************/
-    int clearStackWithoutFreeItem(Token **ls, int len){
-        int i;
-        //Token *p;
-
-        if(ls==nullptr)
-            return 0;
-
-        for(i=0; i<len; i++){
-            //p = ls[i];
-            ls[i] = nullptr;
-        }
-        return i;
-    }
 
     template <typename T>
     int NLabParser<T>::parseFunctionExpression(std::vector<Token*> tokens,
