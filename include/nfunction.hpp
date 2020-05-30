@@ -393,6 +393,12 @@ namespace nmath {
 					delete criteria[i];
 			}
 			criteria.clear();
+
+            for (i = 0; i < mTokens.size(); i++) {
+                if (mTokens[i] != nullptr)
+                    delete mTokens[i];
+            }
+			mTokens.clear();
 		}
 
         int reduce() {
