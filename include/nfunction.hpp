@@ -172,10 +172,14 @@ namespace nmath {
                 while(param.values[1] < max[1]) {
                     calc_t<T>((void*)&param);
                     z = param.retv;
-                    // TODO: We are not sure about dimension here!
-                    sp->addData(param.values[0]);
-                    sp->addData(param.values[1]);
-                    sp->addData(z);
+
+                    /*
+                        This method is used for 2 unknown variables function only
+                        so we know that we need 3 float for a point
+                    */
+                    sp->addData(param.values[0]); // OFFSET = 0
+                    sp->addData(param.values[1]); // OFFSET = 1
+                    sp->addData(z);               // OFFSET = 2
 
                     /******** Now, calculate the normal vector at x, y, z **************/
                     if(df != nullptr) {
@@ -211,6 +215,10 @@ namespace nmath {
 
                 sp->addRow(elementOnRow);
                 param.values[0] += epsilon;
+            }
+            sp->calculateVertexCount();
+            if(df != nullptr) {
+                sp->setNormalOffset(3);
             }
 
             return sp;
@@ -492,6 +500,7 @@ namespace nmath {
                             elementOnRow++;
                         }
                         sp->addRow(elementOnRow);
+                        sp->calculateVertexCount();
                         lstData.push_back(sp);
                         return lstData;
                     }
@@ -537,6 +546,7 @@ namespace nmath {
                                 elementOnRow++;
                             }
                             sp->addRow(elementOnRow);
+                            sp->calculateVertexCount();
                             lstData.push_back(sp);
                             break;
 
@@ -572,6 +582,7 @@ namespace nmath {
                                     elementOnRow++;
                                 }
                                 sp->addRow(elementOnRow);
+                                sp->calculateVertexCount();
                                 lstData.push_back(sp);
                             }
                             break;

@@ -14,10 +14,13 @@ namespace nmath {
 	private:
         unsigned int vertexCount;
         short dimension;
-        // This is the offset of normal vector in a data tupe
+        // This is the offset of normal vector in a data tube
         short normalOffset;
         std::vector<short> indices;
+
+        // This is vertices data
         std::vector<T> data;
+        std::vector<float> colors;
         /**
 		 * rowInfo holds the number of element on each row
 		 * rowCount is the number of row
@@ -27,7 +30,7 @@ namespace nmath {
 		ImageData();
         ImageData(short dim);
         ImageData(unsigned int vcount, short dim, short noffs, const int* rows, int rowCount);
-		~ImageData();
+		virtual ~ImageData();
 
         T operator[] (int idx) {
             return data[idx];
@@ -35,6 +38,60 @@ namespace nmath {
 
         void addData(T val) {
             data.push_back(val);
+
+        }
+
+        void setColor(int color) {
+            const float MAX_COLOR_VALUE = 255.0f;
+            float red = (color & 0xFF) / MAX_COLOR_VALUE;
+            float green = ((color >> 8) & 0xFF) / MAX_COLOR_VALUE;
+            float blue = ((color >> 16) & 0xFF) / MAX_COLOR_VALUE;
+            float alpha = ((color >> 24) & 0xFF) / MAX_COLOR_VALUE;
+
+            auto vc = data.size() / this->dimension;
+            for(auto i=0; i<vc; i++) {
+                colors.push_back(red);
+                colors.push_back(green);
+                colors.push_back(blue);
+                colors.push_back(alpha);
+            }
+        }
+
+        void calculateVertexCount() {
+            this->vertexCount = data.size() / this->dimension;
+        }
+
+        unsigned int getVertexCount() {
+            return vertexCount;
+        }
+
+        unsigned int vertexListSize() {
+            return data.size();
+        }
+
+        unsigned int copyDataTo(T* anArray) {
+            T* source = &data[0];
+            unsigned int size = data.size();
+            memcpy(anArray, source, size * sizeof(T));
+            return size;
+        }
+
+        unsigned int copyIndicesTo(short* anArray) {
+            short* source = &indices[0];
+            unsigned int size = indices.size();
+            memcpy(anArray, source, size * sizeof(short));
+            return size;
+        }
+
+        unsigned int copyColorTo(float* anArray) {
+            float* source = &colors[0];
+            unsigned int size = colors.size();
+            memcpy(anArray, source, size * sizeof(float));
+            return size;
+        }
+
+        T* getData() {
+            return &data[0];
         }
 
         void addRow(int elementOnNewRow) {
@@ -43,8 +100,20 @@ namespace nmath {
 
         void generateIndices();
 
-        std::vector<short> getIndices() const {
+        void setNormalOffset(int _normalOffset) {
+            this->normalOffset = _normalOffset;
+        }
+
+        std::vector<short> getListIndices() const {
             return indices;
+        }
+
+        short* getIndices() {
+            return &indices[0];
+        }
+
+        unsigned int indicesSize() const {
+            return indices.size();
         }
 
         // This is for testing purpose
