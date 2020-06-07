@@ -17,7 +17,7 @@ const int NLabLexer::setLeadNegativeNumber[14] = { LPAREN, LPRACKET, SEMI, COMMA
 	if SUCCESS, return the size of token
 	otherwise return a negative value
 */
-Token* NLabLexer::addToken(int _type, const char *_text, int len, int _col) {
+Token* NLabLexer::createToken(int _type, const char *_text, int len, int _col) {
 
     auto *tk = new Token;
     tk->type = _type;
@@ -99,20 +99,20 @@ size_t NLabLexer::lexicalAnalysis(const char *inStr, int len,
 	     * */
 		if( (inStr[idx] & 0x80) != 0x80 ) {
 			if( checkNumericOperator(inStr, len, idx, &type, &k, tokens) ) {
-				tokens.push_back(addToken(type, inStr + idx, k, idx));
+				tokens.push_back(createToken(type, inStr + idx, k, idx));
 				idx += k;
 			}else if( checkParenthesePrackets(inStr[idx], &type) ) {
-                tokens.push_back(addToken(type, inStr + idx, 1, idx));
+                tokens.push_back(createToken(type, inStr + idx, 1, idx));
 				idx++;
 			}else if( checkCommaSemi(inStr[idx], &type) ) {
-                tokens.push_back(addToken(type, inStr + idx, 1, idx));
+                tokens.push_back(createToken(type, inStr + idx, 1, idx));
 				idx++;
 			}else if(parserLogicOperator(inStr, idx, &type, &k )) {
-                tokens.push_back(addToken(type, inStr + idx, k, idx));
+                tokens.push_back(createToken(type, inStr + idx, k, idx));
 				idx += k;
 			}else if(inStr[idx] == ':' ) {
 				if(inStr[idx+1] == '-' ) {
-                    tokens.push_back(addToken(ELEMENT_OF, inStr + idx, 2, idx));
+                    tokens.push_back(createToken(ELEMENT_OF, inStr + idx, 2, idx));
 					idx += 2;
 				}else{ //ERROR: bad token found
 					errorColumn = idx;
@@ -134,31 +134,31 @@ size_t NLabLexer::lexicalAnalysis(const char *inStr, int len,
 							}
 							floatingPoint = true;
 						} else {
-							tokens.push_back(addToken(NUMBER, inStr + idx, k-idx, idx));
+							tokens.push_back(createToken(NUMBER, inStr + idx, k-idx, idx));
 							idx = k;
 							break;
 						}
 					}
 				}
 				if(idx < k){
-					tokens.push_back(addToken(NUMBER, inStr + idx, k-idx, idx));
+					tokens.push_back(createToken(NUMBER, inStr + idx, k-idx, idx));
 					idx = k;
 				}
 			}else if( isFunctionName(inStr, len, idx, &type, &k ) ) {
-                tokens.push_back(addToken(type, inStr + idx, k, idx));
+                tokens.push_back(createToken(type, inStr + idx, k, idx));
 				idx += k;
 			}else if(idx>0 && (inStr[idx-1]==' ') && (inStr[idx]=='D') && (inStr[idx+1]==':') ){
-                tokens.push_back(addToken(DOMAIN_NOTATION, "DOMAIN_NOTATION", 14, idx));
+                tokens.push_back(createToken(DOMAIN_NOTATION, "DOMAIN_NOTATION", 14, idx));
 				idx += 2;
 			}else if( isAName(inStr, len, idx, &k) ) {
-				tokens.push_back(addToken(NAME, inStr + idx, k, idx));
+				tokens.push_back(createToken(NAME, inStr + idx, k, idx));
 				idx += k;
 			}else if( (idx+1 < len ) && (inStr[idx]=='p' || inStr[idx]=='P') && (inStr[idx+1]=='i' || inStr[idx+1]=='I')
 							&& ( (idx+1 == len-1) || !isASCIILetter(inStr[idx+2]) ) ) {
-                tokens.push_back(addToken(PI_TYPE, "3.14159265358979", 16, idx));
+                tokens.push_back(createToken(PI_TYPE, "3.14159265358979", 16, idx));
 				idx += 2;
 			}else if(inStr[idx]=='e' && ((idx==len-1) || !isASCIILetter(inStr[idx+1]))) {
-                tokens.push_back(addToken(E_TYPE, "2.718281828", 11, idx));
+                tokens.push_back(createToken(E_TYPE, "2.718281828", 11, idx));
 				idx++;
 			}else
 				idx++;
@@ -171,27 +171,27 @@ size_t NLabLexer::lexicalAnalysis(const char *inStr, int len,
 			//LOGI(3, "UTF Code: (0x%X)%d", chCode, chCode);
 			switch(chCode) {
 				case PI_TYPE:
-                    tokens.push_back(addToken(PI_TYPE, "3.14159265358979", 16, idx));
+                    tokens.push_back(createToken(PI_TYPE, "3.14159265358979", 16, idx));
 				break;
 
 				case E_TYPE:
-                    tokens.push_back(addToken(E_TYPE, "2.718281828", 11, idx));
+                    tokens.push_back(createToken(E_TYPE, "2.718281828", 11, idx));
 				break;
 
 				case DIVIDE:
-                    tokens.push_back(addToken(DIVIDE, inStr + idx, nextIdx-idx, idx));
+                    tokens.push_back(createToken(DIVIDE, inStr + idx, nextIdx-idx, idx));
 				break;
 
 				case AND:
-                    tokens.push_back(addToken(AND, inStr + idx, nextIdx-idx, idx));
+                    tokens.push_back(createToken(AND, inStr + idx, nextIdx-idx, idx));
 				break;
 
 				case OR:
-                    tokens.push_back(addToken(OR, inStr + idx, nextIdx-idx, idx));
+                    tokens.push_back(createToken(OR, inStr + idx, nextIdx-idx, idx));
 				break;
 
 				case SQRT:
-                    tokens.push_back(addToken(SQRT, inStr + idx, nextIdx-idx, idx));
+                    tokens.push_back(createToken(SQRT, inStr + idx, nextIdx-idx, idx));
 				break;
 
                 default:
