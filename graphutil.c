@@ -46,14 +46,14 @@ int* buildIndicesForGLLINEs(int vcount, int *rows, int rowCount, int *size, int 
 				tmp = (int*)realloc(indices, sizeof(int) * (*loggedSize));
 				indices = tmp;
 			}
-			indices[(*size)++] = j + colCount*i;
+			indices[(*size)++] = j + colCount * i;
 			if(i> 0 && i<rowCount-1) {
 				if(*size >= (*loggedSize)) {
 					(*loggedSize) += 100;
 					tmp = (int*)realloc(indices, sizeof(int) * (*loggedSize));
 					indices = tmp;
 				}
-				indices[(*size)++] = j + colCount*i;
+				indices[(*size)++] = j + colCount * i;
 			}
 		}
 	}

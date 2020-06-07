@@ -1,32 +1,36 @@
 // TestNMath.cpp : Defines the entry point for the console application.
 //
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
 #include <string>
 #include <vector>
-#include "../cpp2/StringUtil.h"
-#include "../cpp2/nmath.h"
-#include "../gm/gm.hpp"
-#include "../cpp2/nmath_pool.h"
+
+#include "nlablexer.h"
+#include "nfunction.hpp"
+#include "criteria.hpp"
+#include "SimpleCriteria.hpp"
+#include "compositecriteria.hpp"
+#include "logging.h"
 
 using namespace nmath;
 
-void printCriteria(Criteria *c) {
-	int i, n;
+void printCriteria(Criteria<float> *c) {
+	int n;
 
 	if (c == NULL) return;
 	printf("\n");
 	switch (c->getCClassType()){
-		case SIMPLE:
-			printf("(%lf,%lf)", ((SimpleCriteria*)c)->getLeftValue(), ((SimpleCriteria*)c)->getRightValue());
+		case NMathCClassType::SIMPLE:
+			printf("(%lf,%lf)", ((SimpleCriteria<float>*)c)->getLeftValue(), ((SimpleCriteria<float>*)c)->getRightValue());
 			break;
-		case COMPOSITE:
-			n = ((CompositeCriteria*)c)->size();
-			for (i = 0; i < n; i++)
-				printCriteria((*((CompositeCriteria*)c))[i]);
+		case NMathCClassType::COMPOSITE:
+			n = ((CompositeCriteria<float>*)c)->size();
+			for (int i = 0; i < n; i++) {
+				printCriteria((*((CompositeCriteria<float>*)c))[i]);
+			}
 			break;
 	}
 }
@@ -36,7 +40,8 @@ void printMenu() {
 	printf("1. Test lexer \n");
 	printf("2. Test Function \n");
 	printf("3. Test getSpace \n");
-	printf("4. Test Calculating \n");
+	printf("4. Test Reduce \n");
+	printf("5. Test Calculating \n");
 	printf("-----------------------------------------------------------------------------------\n");
 }
 
@@ -96,337 +101,148 @@ void printError(int col, int code) {
 	}
 }
 
+void testCriteria() {
+	std::string variable = "a";
+	SimpleCriteria<float> *sc = new SimpleCriteria<float>(GTE_LTE, variable, (float)0, (float)0.5f, true, true);
+	float value = 0.5f;
+	if(sc->check(&value)) {
+		std::cout << "\nPassed: " << value << " belong to the domain.\n";
+	} else {
+		std::cout << "\nFailed\n";
+	}
+	delete sc;
+}
 
-void testDerivative() {
-	DParam d;
-	int error;
-	double vars[] = {4, 1};
-	double ret;
-	char dstr[128];
-	int l = 0;
-	NFunction f;
+void testReduceOne(const std::string& line) {
+	NFunction<float> f;
 	NLabLexer lexer;
-	NLabParser parser;
-	std::string str;
-
-	std::cout << "Input function: ";
-	std::cin >> str;	
-	
-	error = f.parse(str.c_str(), str.length(), &lexer, &parser);
-	if(error != NMATH_NO_ERROR) {
-		printError(f.getErrorColumn(), error);
-		return;
-	} 
-
-	if( f.getVarCount() == 0 ) {
-		std::cout << "This expression is not a function due to variables not determined.\n" ;
-	}
-	
-	d.t = f.getPrefix(0);
-	d.error = 0;
-	d.returnValue = NULL;
-	d.variables[0] = 'x';
-
-	nmath::derivative(&d);
-	//printNMAST(d.returnValue, 0, std::cout);
-	l = 0;
-	nmath::toString(d.returnValue, dstr, &l, 128);
-	dstr[l] = '\0';
-	std::cout << "f' = "<< dstr << "\n";
-	
-	clearTree(&(d.returnValue));
-
-	f.release();
-	clearPool();
-}
-
-void testFunction0() {
-	NFunction f;
-	NLabLexer lexer;
-	NLabParser parser;
-	nmath::DParam reduceParam;
-	int error = f.parse("f(x,y)=sin(x)*y", 15, &lexer, &parser);
-
-	nmath::NMAST *dx = f.getDerivativeByVariable(0, 0);
-	reduceParam.t = dx;
-	reduce_t((void*)&reduceParam);
-	dx = reduceParam.t;
-
-	nmath::NMAST *dy = f.getDerivativeByVariable(0, 1);
-	reduceParam.t = dy;
-	reduce_t((void*)&reduceParam);
-	dy = reduceParam.t;
-
-	printNMAST(dx, 0, std::cout);
-	printNMAST(dy, 0, std::cout);
-
-	clearTree(&dx);
-	clearTree(&dy);
-}
-
-//write space to binary file
-void testFunction1() {
-	NFunction f;
-	NLabLexer lexer;
-	NLabParser parser;
-
-	ListFData *data;
-	float interval[] = { -1.5f, 1.5f, -1.5f, 1.5f };
-	float v;
-	int i, j, vcount, tmp, spaceCount, error, lineCount = 0;
-	std::ifstream dataFile("D:\\data\\data.txt");
-	std::ofstream outFile("D:\\data\\function.dat", std::ofstream::binary);
-	std::string line;
-
-	if (dataFile.is_open()) {
-		while (getline(dataFile, line)) {
-			error = f.parse(line.c_str(), line.length(), &lexer, &parser);
-			if (error != NMATH_NO_ERROR) {
-				std::cout << "Function " << lineCount << " Parsing ERROR = " << error << "\n";
-			}
-			else {
-				//std::cout << f;
-				data = f.getSpace(interval, 0.5f, true);
-
-				if (data != NULL) {
-					spaceCount = data->size;
-					outFile.write((char*)&spaceCount, sizeof(int));
-					for (i = 0; i<data->size; i++) {
-						
-						vcount = data->list[i]->dataSize / data->list[i]->dimension;
-						tmp = data->list[i]->rowCount;
-						outFile.write((char*)&vcount, sizeof(int));
-						outFile.write((char*)&tmp, sizeof(int));
-						tmp = data->list[i]->dimension;
-						outFile.write((char*)&tmp, sizeof(int));
-
-						for (j = 0; j<data->list[i]->dataSize; j++){
-							v = data->list[i]->data[j];
-							outFile.write((char*)&v, sizeof(float));
-						}
-
-						free(data->list[i]->data);
-						free(data->list[i]->rowInfo);
-						free(data->list[i]);
-					}
-					free(data->list);
-					free(data);
-				}
-				else {
-					std::cout << "Function " << lineCount << " Get Space Failed \n";
-				}
-				std::cout << "\nFunction Parsing OK\n";
-			}
-			std::cout << "\n******************************************************\n";
-			lineCount++;
-		}
-		outFile.flush();
-		outFile.close();
-		dataFile.close();
-	}
-	f.release();
-}
-
-/**
-* Need to be tested with OpenGL
-* @param vertices
-* @param rows each element in this array contains the number of vertex on the corresponding row
-* @return
-*/
-void buildIndicesForTriangleStrip(int vcount, int* rows, int rowCount) {
-	int i, j, num_of_vertices, nextCol, count, diff, k;
-
-	std::vector<int> indices;
-
-	count = 0;
-	for (i = 0; i<rowCount - 1; i++){
-		num_of_vertices = rows[i];
-		nextCol = rows[i + 1];
-
-		for (j = 0; j<num_of_vertices; j++){
-			indices.push_back(count);
-			if (i>0 && j == 0){ //first element of rows that not the first row
-				indices.push_back(count);
-			}
-
-			if (j == num_of_vertices - 1){
-				if (i < rowCount - 2){
-					if ((count + num_of_vertices) < vcount && j<nextCol){
-						//neu co 1 phan tu ngay ben duoi
-						indices.push_back(count + num_of_vertices);
-						indices.push_back(count);
-					}
-					indices.push_back(count);
-				}
-				else	if ((count + num_of_vertices) < vcount && j<nextCol){
-					k = count + num_of_vertices;
-					while (k < vcount){
-						indices.push_back(k);
-						k++;
-						if (k < vcount)
-							indices.push_back(k);
-						k++;
-						if (k<vcount)
-							indices.push_back(count);
-					}
-				}
-			}
-			else{
-				//neu ngay ben duoc co mot vertex nua
-				if ((count + num_of_vertices) < vcount && j<nextCol)
-					indices.push_back(count + num_of_vertices);
-				else{ //neu khong thi add vertex cuoi cung cua dong duoi
-					diff = j - nextCol + 1;
-					indices.push_back(count + num_of_vertices - diff);
-				}
-			}
-			count++;
-		}
-	}
-	int outSize = indices.size();
-	std::cout << "Indices length: " << outSize << "\n";
-	for (i = 0; i<outSize; i++) {
-		std::cout << indices[i] << "  ";
-	}
-	std::cout << "\n";
-}
-
-void buildIndicesForTriangleStrip(int yLength, int xLength) {
-	// Now build the index data
-	int numStripsRequired = yLength - 1;
-	int numDegensRequired = 2 * (numStripsRequired - 1);
-	int verticesPerStrip = 2 * xLength;
-	short* heightMapIndexData = new short[(verticesPerStrip * numStripsRequired) + numDegensRequired];
-	int offset = 0;
-	for (int y = 0; y < yLength - 1; y++) {
-		if (y > 0) {
-			// Degenerate begin: repeat first vertex
-			heightMapIndexData[offset++] = (short)(y * yLength);
-		}
-		for (int x = 0; x < xLength; x++) {
-			// One part of the strip
-			heightMapIndexData[offset++] = (short)((y * yLength) + x);
-			heightMapIndexData[offset++] = (short)(((y + 1) * yLength) + x);
-		}
-		if (y < yLength - 2) {
-			// Degenerate end: repeat last vertex
-			heightMapIndexData[offset++] = (short)(((y + 1) * yLength) + (xLength - 1));
-		}
-	}
-
-	for (int i = 0; i<offset; i++) {
-		std::cout << heightMapIndexData[i] << "  ";
-	}
-	std::cout << "\n";
-
-	delete[] heightMapIndexData;
-}
-
-void testFunction2(std::ostream &out) {
-	NFunction f;
-	NLabLexer lexer;
-	NLabParser parser;
-
-	ListFData *data;
-	float interval[] = {-1.0f, 1.0f, -1.0f, 1.0f};
+	NLabParser<float> parser;
+	float interval[] = { -1, 2, 0, 1 };
 	int i, j, vcount, error, lineCount = 0;
-	std::ifstream dataFile("../../data/data.txt");
-	std::string line;
-
-	if(dataFile.is_open()) {
-		while( getline(dataFile, line) ) {
-			error = f.parse(line.c_str(), line.length(), &lexer, &parser);
-			if (error != NMATH_NO_ERROR) {
-				std::cout << "Function " << lineCount << " Parsing ERROR = " << error << "\n";
-			}
-			else {
-				//std::cout << f;
-				data = f.getSpace(interval, 0.5f, true);
-
-				if (data != NULL) {
-					for (i = 0; i<data->size; i++) {
-						vcount = data->list[i]->dataSize / data->list[i]->dimension;
-						std::cout << "Mesh " << i << ", row count: " << data->list[i]->rowCount << " number of vertex: " << vcount << "\n";
-						buildIndicesForTriangleStrip(vcount, data->list[i]->rowInfo, data->list[i]->rowCount);
-						buildIndicesForTriangleStrip(data->list[i]->rowCount, data->list[i]->rowInfo[0]);
-						for (j = 0; j<vcount; j++){
-							std::cout << data->list[i]->data[j * data->list[i]->dimension] << "f, " << data->list[i]->data[j * data->list[i]->dimension + 1];
-
-							if((data->list[i]->dimension)>=3) {
-								std::cout << "f, " << data->list[i]->data[j * data->list[i]->dimension + 2] << "f";
-							}
-
-							if((data->list[i]->dimension) >=4 ) {
-								std::cout << ", " << data->list[i]->data[j * data->list[i]->dimension + 3] << "f";
-							}
-
-							if((data->list[i]->dimension) >=5 ) {
-								std::cout << ", " << data->list[i]->data[j * data->list[i]->dimension + 4] << "f";
-							}
-
-							if((data->list[i]->dimension) >=6 ) {
-								std::cout << ", " << data->list[i]->data[j * data->list[i]->dimension + 5] << "f";
-							}
-
-							std::cout << "\n";
-						}
-
-						free(data->list[i]->data);
-						free(data->list[i]->rowInfo);
-						free(data->list[i]);
-					}
-					free(data->list);
-					free(data);
-				}
-				else {
-					std::cout << "Function " << lineCount << " Get Space Failed \n";
-				}
-				std::cout << "\nFunction Parsing OK\n";
-			}
-			std::cout << "\n******************************************************\n";
-			lineCount++;
+	int l = 0;
+	char dstr[128];
+	error = f.parse(line.c_str(), line.length(), &lexer, &parser);
+	if (error != NMATH_NO_ERROR) {
+		std::cout << "Expression " << lineCount << " Parsing ERROR = " << error << "\n";
+	} else {
+		std::cout << f;
+		int resultCode = f.reduce();
+		if (resultCode == NMATH_NO_ERROR) {
+			toString<float>(f.getPrefix(0), dstr, &l, 128);
+			dstr[l] = '\0';
+			std::cout << "f = " << dstr << "\n";
+		} else {
+			std::cout << "Expression " << lineCount << " reduce Failed with code: "<< resultCode <<"\n";
 		}
-
-		dataFile.close();
+		std::cout << "Expression Parsing OK\n";
 	}
-	f.release();
+	std::cout << "\n******************************************************\n";
 }
 
-void testCalculate() {
+void testCalculus(const std::string& line) {
+	NFunction<float> f;
+	NLabLexer lexer;
+	NLabParser<float> parser;
+	float interval[] = { -1, 2, 0, 1 };
+	int i, j, vcount, error, lineCount = 0;
+	int l = 0;
+	char dstr[128];
+	// error = f.parse(line.c_str(), line.length(), &lexer, &parser);
+	error = f.parse(line, &lexer, &parser);
+	if (error != NMATH_NO_ERROR) {
+		std::cout << "Expression " << lineCount << " Parsing ERROR = " << error << "\n";
+	} else {
+		std::cout << f;
+		int resultCode = f.reduce();
+		if (resultCode == NMATH_NO_ERROR) {
+			NMAST<float> *d = f.getDerivative("x");
+			if(d != nullptr) {
+				toString<float>(d, dstr, &l, 128);
+				std::cout << "f'(x) = " << dstr << std::endl;
+			}
+			clearTree<float>(&d);
+		} else {
+			std::cout << "Expression " << lineCount << " reduce Failed with code: "<< resultCode <<"\n";
+		}
+		
+	}
+	std::cout << "\n******************************************************\n";
+}
 
+void testFunction() {
+	std::string str = "f(x)= x^2 D: x > 1.5";
+	print_with_color(std::cout, "Test Parser with formula: " + str, FG_GREEN) << std::endl;
+	nmath::NLabLexer lexer;
+	nmath::NLabParser<float> mParser;
+	vector<nmath::Token*> mTokens;
+	vector<nmath::NMAST<float>* > prefix;
+	vector<nmath::Criteria<float>*> criteria;
+	vector<nmath::NMAST<float>* > variables;
+	int errorCode;
+	int errorColumn;
+	std::vector<nmath::NMAST<float>* > domain;
+
+	lexer.lexicalAnalysis(str, false, 0, mTokens, nullptr);
+	print_with_color(std::cout, "Number of token: ", FG_GREEN)  << mTokens.size() << std::endl;
+
+	if(mTokens.size() != 12) {
+		std::cout << "\033[31mTest failed!!!\033[0m" << std::endl;
+		print_with_color(std::cout, "Test failed!!!!" + str, FG_RED) << std::endl;
+		return;
+	}
+
+	mParser.parseFunctionExpression(mTokens, prefix,
+                                             domain, variables, &errorCode, &errorColumn);
+	std::cout << "Size of domain: " << domain.size() << std::endl;
+
+	nmath::NMAST<float>* d1 = domain[0];
+
+	nmath::Criteria<float> *c = nmath::buildCriteria(domain[0]);
+
+	if(c->getCClassType() == nmath::SIMPLE) {
+		nmath::SimpleCriteria<float> *sc = (nmath::SimpleCriteria<float>*)c;
+		std::cout << " C is a \033[32mSIMPLE\033[0m criteria " << std::endl;
+		std::cout << "type = " << sc->getType() << ", (L,R) = " << sc->getLeftValue() << ",  " << sc->getRightValue() << std::endl;
+		if(sc->getType() != GT_LT) {
+			print_with_color(std::cout, "Test failed!!!!", FG_RED) << std::endl;
+		}
+	} else {
+		std::cout << " C is a COMPOSITE criteria " << std::endl;
+	}
+
+	for(int i=0; i<mTokens.size(); i++) {
+        delete mTokens[i];
+    }
+
+	for(int i=0; i<prefix.size(); i++) {
+        nmath::clearTree(&(prefix[i]));
+    }
+
+	for(int i=0; i<domain.size(); i++) {
+        nmath::clearTree(&(domain[i]));
+    }
+    domain.clear();
+    delete c;
+    print_with_color(std::cout, "Test passed!!!!", FG_GREEN) << std::endl;
 }
 
 void testReduce() {
-	NFunction f;
+	std::string filename;
+	NFunction<float> f;
 	NLabLexer lexer;
-	NLabParser parser;
-
+	NLabParser<float> parser;
 	float interval[] = { -1, 2, 0, 1 };
 	int i, j, vcount, error, lineCount = 0;
-	std::ifstream dataFile("D:\\data\\expression.txt");
+	std::cout << "Enter data file: ";
+	getline(std::cin, filename);
+	std::ifstream dataFile(filename);
 	std::string line;
 	char dstr[128];
 	int l = 0;
 
 	if (dataFile.is_open()) {
 		while (getline(dataFile, line)) {
-			error = f.parse(line.c_str(), line.length(), &lexer, &parser);
-			if (error != NMATH_NO_ERROR) {
-				std::cout << "Expression " << lineCount << " Parsing ERROR = " << error << "\n";
-			}
-			else {
-				std::cout << f;
-				if (f.reduce() == NMATH_NO_ERROR) {
-					nmath::toString(f.getPrefix(0), dstr, &l, 128);
-					dstr[l] = '\0';
-					std::cout << "f' = " << dstr << "\n";
-				}
-				else {
-					std::cout << "Expression " << lineCount << " reduce Failed \n";
-				}
-				std::cout << "Expression Parsing OK\n";
-			}
-			std::cout << "\n******************************************************\n";
+			testReduceOne(line);
 			lineCount++;
 		}
 
@@ -435,91 +251,17 @@ void testReduce() {
 	f.release();
 }
 
-void testCriteria(){
-	NLabLexer lexer;
-	NLabParser parser;
-	NMAST *domain;
-	Criteria *c, *o;
-	char outStr[64];
-	int start = 0;
-	double value[] = { -1, 2, 0, 1 };
-	int tokenCount = 50;
-	Token tokens[50];
-	int tokenInUse;
-	std::ifstream dataFile("D:\\data\\criteria.txt");
-	std::string line;
-
-	if(dataFile.is_open()) {
-		while( getline(dataFile, line) ) {
-			tokenInUse = lexer.lexicalAnalysis(line.c_str(), line.length(), 0, tokens, tokenCount, 0);
-
-			if(lexer.getErrorCode() != NMATH_NO_ERROR) {
-				std::cout << "ERROR AT LEXICAL PHASE: \n";
-				std::cout << "Error code = " << lexer.getErrorCode() << " at Column " << lexer.getErrorColumn() << "\n";
-				continue;
-			}
-
-			domain = parser.parseDomain(tokens, tokenInUse, &start);
-
-			if (parser.getErrorCode() == NMATH_NO_ERROR) {
-				start = 0;
-				printNMAST(domain, 0, std::cout);
-				outStr[start] = '\0';
-				puts(outStr);
-
-				c = nmath::buildCriteria(domain);
-
-				if (c->getCClassType() == COMPOSITE && ((CompositeCriteria*)c)->logicOperator() == OR)
-					((CompositeCriteria*)c)->normalize("xy", 2);
-
-				o = c->getInterval(value, "xy", 2);
-
-				std::cout << line << "\n";
-				std::cout << ((Criteria&)*c) << "\n";
-				std::cout << "\n Result: \n";
-				std::cout << ((Criteria&)*o) << "\n";
-				::clearTree(&domain);
-
-				if (c != NULL)
-					delete c;
-
-				if (o != NULL)
-					delete o;
-			}
-			else {
-				std::cout << "ERROR AT PARSING PHASE: \n";
-				std::cout << "Parsing error with code = " <<  parser.getErrorCode() << "\n";
-			}
-		}// end while
-
-		dataFile.close();
-	}
-}
-
-
-float angle2DVector(float x1, float y1, float x2, float y2) {
-	float d = (x1 * x2) + (y1 * y2);
-	float cs = d / (sqrt(x1*x1 + y1*y1) * sqrt(x2*x2 + y2*y2));
-	return acos(cs);
-}
-
-void printMat4(gm::mat4 *m) {
-	int i, j;
-	std::cout << "\n";
-	for(i=0; i<4; i++) {
-		for(j=0; j<4; j++) {
-			std::cout << m->operator[](i)[j] << "\t";
-		}
-		std::cout << "\n";
-	}
-	std::cout << "\n";
-}
-
-
 int main(int argc, char* argv[]) {
+	testFunction();
+	// testReduceOne("f(x)=sin(x) + x");
+	// testCriteria();
+	testCalculus("f(x)=sin(x) + x");
+	return 0;
+}
+
+int main1(int argc, char* argv[]) {
 	int command;
 
-	initNMASTPool();
 	do {
 		printMenu();
 		printf("command = ");
@@ -532,21 +274,21 @@ int main(int argc, char* argv[]) {
 
 		case 2:
 			//testFunction0();
-			testFunction2(std::cout);
+			// testFunction2(std::cout);
 			break;
 
 		case 3:
-			testDerivative();
+			// testDerivative();
 			//jniJLexerGetSpace();
 			//testGetSpaces();
 			break;
 
 		case 4:
-			testCalculate();
+			// testCalculate();
 			break;
 
 		case 5:
-			
+			testReduceOne(argv[1]);
 			break;
 
 		case 6:
@@ -562,7 +304,7 @@ int main(int argc, char* argv[]) {
 			break;
 
 		case 9:
-			testReduce();
+			// testReduce();
 			break;
 		}
 
@@ -577,7 +319,7 @@ int main(int argc, char* argv[]) {
 		//testReuseFunction(f);
 		//testCriteria2(f);
 	} while (command != 0);
-	releaseNMASTPool();
+	// releaseNMASTPool();
 
 	return 0;
 }
