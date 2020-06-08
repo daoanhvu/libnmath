@@ -25,6 +25,7 @@ namespace nmath{
 
 		Token* createToken(int _type, const char *_text, int len, int _col);
 		bool isNumericOperatorOREQ(char c);
+		bool parseNumber(const char* inStr, int len, int idx, int *type, int *outlen);
 		bool parserLogicOperator(const char *inStr, int idx, int *type, int *outlen);
 		bool checkNumericOperator(const char *mInputString, int mInputLen, int idx, int *type, int *textLength, vector<Token*> list);
 		bool parseSubtractSign(const char *mInputString, int mInputLen, int idx, int *type,

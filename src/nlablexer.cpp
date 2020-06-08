@@ -26,7 +26,7 @@ Token* NLabLexer::createToken(int _type, const char *_text, int len, int _col) {
 	/*
 		IMPORTANT: If you want to change this, PLEASE change function common:getPriorityOfType(int type) also
 	*/
-	switch(_type){
+	switch(_type) {
 		case OR:
 			tk->priority = 1;
 		break;
@@ -63,7 +63,7 @@ Token* NLabLexer::createToken(int _type, const char *_text, int len, int _col) {
 		default:
             tk->priority = 0;
 	}
-	tk->textLength = (unsigned char)((MAXTEXTLEN < len)?MAXTEXTLEN:len);
+	tk->textLength = (unsigned char)((MAXTEXTLEN < len) ? MAXTEXTLEN : len);
 	memcpy(tk->text, _text, tk->textLength);
 	tk->text[tk->textLength] = '\0';
 	return tk;
@@ -84,13 +84,13 @@ Token* NLabLexer::createToken(int _type, const char *_text, int len, int _col) {
 */
 size_t NLabLexer::lexicalAnalysis(const char *inStr, int len,
           bool appended, int start, std::vector<Token*> &tokens, int *lastMeanIdx) {
-  int chCode, type, k = 0;
-  int idx = start;
-  int nextIdx;
-  bool floatingPoint;
+    int chCode, type, k = 0;
+    int idx = start;
+    int nextIdx;
+    bool floatingPoint;
 
-  errorColumn = -1;
-  errorCode = NMATH_NO_ERROR;
+    errorColumn = -1;
+    errorCode = NMATH_NO_ERROR;
 	
 	while( idx < len ) {
 
@@ -104,63 +104,52 @@ size_t NLabLexer::lexicalAnalysis(const char *inStr, int len,
 			}else if( checkParenthesePrackets(inStr[idx], &type) ) {
                 tokens.push_back(createToken(type, inStr + idx, 1, idx));
 				idx++;
-			}else if( checkCommaSemi(inStr[idx], &type) ) {
+			} else if( checkCommaSemi(inStr[idx], &type) ) {
                 tokens.push_back(createToken(type, inStr + idx, 1, idx));
 				idx++;
-			}else if(parserLogicOperator(inStr, idx, &type, &k )) {
+			} else if(parserLogicOperator(inStr, idx, &type, &k )) {
                 tokens.push_back(createToken(type, inStr + idx, k, idx));
 				idx += k;
-			}else if(inStr[idx] == ':' ) {
+			} else if(inStr[idx] == ':' ) {
 				if(inStr[idx+1] == '-' ) {
                     tokens.push_back(createToken(ELEMENT_OF, inStr + idx, 2, idx));
 					idx += 2;
-				}else{ //ERROR: bad token found
+				} else { //ERROR: bad token found
 					errorColumn = idx;
 					errorCode = ERROR_BAD_TOKEN;
-                    *lastMeanIdx = idx - 1;
-					return 0;
-				}
-			}else if(isDigit(inStr[idx])) {
-				floatingPoint = false;
-				for(k = idx+1; k < len; k++) {
-					if(!isDigit(inStr[k])) {
-						if(inStr[k] == '.') {
-							//check if we got a floating point
-							if(floatingPoint){ //<- ERROR: the second floating point
-								errorColumn = k;
-								errorCode = ERROR_TOO_MANY_FLOATING_POINT;
-                                *lastMeanIdx = idx - 1;
-								return 0;
-							}
-							floatingPoint = true;
-						} else {
-							tokens.push_back(createToken(NUMBER, inStr + idx, k-idx, idx));
-							idx = k;
-							break;
-						}
+                    if(lastMeanIdx != nullptr) {
+						*lastMeanIdx = idx - 1;
 					}
+					return tokens.size();
 				}
-				if(idx < k){
-					tokens.push_back(createToken(NUMBER, inStr + idx, k-idx, idx));
-					idx = k;
+			} else if(isDigit(inStr[idx])) {
+				if(parseNumber(inStr, len, idx, &type, &k)) {
+					tokens.push_back(createToken(type, inStr + idx, k, idx));
+					idx += k;
+				} else {
+					// ERROR: Number format exception
+					if(lastMeanIdx != nullptr) {
+						*lastMeanIdx = idx - 1;
+					}
+					return tokens.size();
 				}
-			}else if( isFunctionName(inStr, len, idx, &type, &k ) ) {
+			} else if( isFunctionName(inStr, len, idx, &type, &k ) ) {
                 tokens.push_back(createToken(type, inStr + idx, k, idx));
 				idx += k;
-			}else if(idx>0 && (inStr[idx-1]==' ') && (inStr[idx]=='D') && (inStr[idx+1]==':') ){
+			} else if(idx>0 && (inStr[idx-1]==' ') && (inStr[idx]=='D') && (inStr[idx+1]==':') ){
                 tokens.push_back(createToken(DOMAIN_NOTATION, "DOMAIN_NOTATION", 14, idx));
 				idx += 2;
-			}else if( isAName(inStr, len, idx, &k) ) {
+			} else if( isAName(inStr, len, idx, &k) ) {
 				tokens.push_back(createToken(NAME, inStr + idx, k, idx));
 				idx += k;
-			}else if( (idx+1 < len ) && (inStr[idx]=='p' || inStr[idx]=='P') && (inStr[idx+1]=='i' || inStr[idx+1]=='I')
+			} else if( (idx+1 < len ) && (inStr[idx]=='p' || inStr[idx]=='P') && (inStr[idx+1]=='i' || inStr[idx+1]=='I')
 							&& ( (idx+1 == len-1) || !isASCIILetter(inStr[idx+2]) ) ) {
                 tokens.push_back(createToken(PI_TYPE, "3.14159265358979", 16, idx));
 				idx += 2;
-			}else if(inStr[idx]=='e' && ((idx==len-1) || !isASCIILetter(inStr[idx+1]))) {
+			} else if(inStr[idx]=='e' && ((idx==len-1) || !isASCIILetter(inStr[idx+1]))) {
                 tokens.push_back(createToken(E_TYPE, "2.718281828", 11, idx));
 				idx++;
-			}else
+			} else
 				idx++;
 
 		} else {
@@ -212,6 +201,45 @@ size_t NLabLexer::lexicalAnalysis(std::string inStr,
 
 	return lexicalAnalysis(inStr.c_str(), inStr.length(), appended, start, tokens, lastMeanIdx);
 
+}
+
+bool NLabLexer::parseNumber(const char* inStr, int len, int idx, int *type, int *outlen) {
+	bool floatingPoint = false;
+	int k;
+	if(isDigit(inStr[idx])) {
+		for(k = idx+1; k < len; k++) {
+			if(!isDigit(inStr[k])) {
+				if(inStr[k] == '.') {
+					//check if we got a floating point
+					if(floatingPoint) { //<- ERROR: the second floating point
+						errorColumn = k;
+						errorCode = ERROR_TOO_MANY_FLOATING_POINT;
+						return false;
+					}
+					floatingPoint = true;
+				} else {
+					char next = inStr[k];
+					if(next != ' ' && next != '+' && next != '-' && next != '*' && next != '/' && next != '^' && next != ')' && next != ']' ) {
+						// ERROR: Number format exception
+						errorColumn = k;
+						errorCode = ERROR_PARSING_NUMBER;
+						return false;
+					}
+					*type = NUMBER;
+					*outlen = k - idx;
+					return true;
+				}
+			}
+		}
+		
+		if(idx < k) {
+			// tokens.push_back(createToken(NUMBER, inStr + idx, k-idx, idx));
+			*type = NUMBER;
+			*outlen = k - idx;
+			return true;
+		}
+	}
+	return false;
 }
 
 /**
@@ -312,22 +340,22 @@ bool nmath::checkCommaSemi(char c, int *type) {
  * @see isNumericOperatorOREQ
  * @return TRUE if it's a numeric operator or equal sign
  */
-bool NLabLexer::checkNumericOperator(const char *mInputString, int mInputLen, int idx, int *type, int *textLength, vector<Token*> list) {
+bool NLabLexer::checkNumericOperator(const char *inStr, int inLen, int idx, int *type, int *textLength, vector<Token*> list) {
 	bool result = false;
 
-	if (idx >= mInputLen)
+	if (idx >= inLen)
 		return result;
 
 	*textLength = 1;
 
-	switch(mInputString[idx]) {
+	switch(inStr[idx]) {
 		case '+':
 			result = true;
 			*type = PLUS;
 		break;
 			
 		case '-':
-			result = parseSubtractSign(mInputString, mInputLen, idx, type, std::move(list), textLength);
+			result = parseSubtractSign(inStr, inLen, idx, type, std::move(list), textLength);
 		break;
 			
 		case '*':
@@ -346,11 +374,11 @@ bool NLabLexer::checkNumericOperator(const char *mInputString, int mInputLen, in
 		break;
 			
 		case '=':
-			if (idx == mInputLen - 1 || mInputString[idx + 1] != '>'){
+			if (idx == inLen - 1 || inStr[idx + 1] != '>'){
 				result = true;
 				*type = EQ;
 			}
-			else if (mInputString[idx + 1] == '>'){
+			else if (inStr[idx + 1] == '>'){
 				result = true;
 				*type = IMPLY;
 				*textLength = 2;
@@ -385,17 +413,17 @@ bool NLabLexer::isNumericOperatorOREQ(char c){
  * Example
 		-32.3		-a		->
  */
-bool NLabLexer::parseSubtractSign(const char *mInputString, int mInputLen, int idx, int *type,
+bool NLabLexer::parseSubtractSign(const char *inStr, int inLen, int idx, int *type,
 		vector<Token*> mList, int *outlen) {
 	bool result = false;
 	int k, floatingPoint;
 	size_t mSize = mList.size();
-	if (idx == (mInputLen - 1)) {
+	if (idx == (inLen - 1)) {
 		//the minus sign is placed at the end of the string, it's a error
 		return result;
 	}
 		
-	if(mInputString[idx+1] != '>') {
+	if(inStr[idx+1] != '>') {
 
 		/*
 			Check if it's a negative number.
@@ -403,12 +431,12 @@ bool NLabLexer::parseSubtractSign(const char *mInputString, int mInputLen, int i
 			maybe you will get the a negative number.
 		*/
 		if (((idx == 0) || nmath::contains<int>(mList[mSize-1]->type, setLeadNegativeNumber, LeadNegativeNumberSize))
-			&& (isDigit(mInputString[idx + 1]))) {
+			&& (isDigit(inStr[idx + 1]))) {
 				
 			floatingPoint = false;
-			for (k = idx + 1; k < mInputLen; k++){
-				if (!isDigit(mInputString[k])) {
-					if (mInputString[k] == '.') {
+			for (k = idx + 1; k < inLen; k++){
+				if (!isDigit(inStr[k])) {
+					if (inStr[k] == '.') {
 						//check if we got a floating point
 						if(floatingPoint) { //<- the second floating point
 							errorCode = ERROR_TOO_MANY_FLOATING_POINT;
@@ -458,68 +486,59 @@ bool NLabLexer::isLogicOperator(char c){
 	return TRUE
 	otherwise return FALSE
 */
-bool NLabLexer::isFunctionName(const char *mInputString, int mInputLen, int index, int *outType, int *outlen) {
+bool NLabLexer::isFunctionName(const char *inStr, int inLen, int index, int *outType, int *outlen) {
 	bool result = false;	
 	char c0, c1, c2;
 		
-	if(index+2 < mInputLen){
-		c0 = mInputString[index];
-		c1 = mInputString[index + 1];
-		c2 = mInputString[index + 2];
+	if(index+2 < inLen){
+		c0 = inStr[index];
+		c1 = inStr[index + 1];
+		c2 = inStr[index + 2];
 	}else
 		return result;
 			
-	if ((index + 5 < mInputLen) && c0 == 'c' && c1 == 'o' && c2 == 't' &&
-		(mInputString[index + 3] == 'a') && (mInputString[index + 4] == 'n')){
+	if ((index + 5 < inLen) && c0 == 'c' && c1 == 'o' && c2 == 't' &&
+		(inStr[index + 3] == 'a') && (inStr[index + 4] == 'n')){
 		(*outType) = COTAN;
 		*outlen = 5;
 		result = true;
-	}
-	else if ((index + 4 < mInputLen) && (c0 == 's' && c1 == 'q' && c2 == 'r' && mInputString[index + 3] == 't')){
+	} else if ((index + 4 < inLen) && (c0 == 's' && c1 == 'q' && c2 == 'r' && inStr[index + 3] == 't')){
 		(*outType) = SQRT;
 		*outlen = 4;
 		result = true;
-	}
-	else if ((index + 4 < mInputLen) && (c0 == 'a' && c1 == 't' && c2 == 'a' && mInputString[index + 3] == 'n')){
+	} else if ((index + 4 < inLen) && (c0 == 'a' && c1 == 't' && c2 == 'a' && inStr[index + 3] == 'n')){
 		(*outType) = ATAN;
 		*outlen = 4;
 		result = true;
-	}
-	else if ((index + 4 < mInputLen) && (c0 == 'a' && c1 == 's' && c2 == 'i' && mInputString[index + 3] == 'n')){
+	} else if ((index + 4 < inLen) && (c0 == 'a' && c1 == 's' && c2 == 'i' && inStr[index + 3] == 'n')){
 		(*outType) = ASIN;
 		*outlen = 4;
 		result = true;
-	}
-	else if ((index + 4 < mInputLen) && (c0 == 'a' && c1 == 'c' && c2 == 'o' && mInputString[index + 3] == 's')) {
+	} else if ((index + 4 < inLen) && (c0 == 'a' && c1 == 'c' && c2 == 'o' && inStr[index + 3] == 's')) {
 		(*outType) = ACOS;
 		*outlen = 4;
 		result = true;
-	}
-	else if ((index + 3 < mInputLen) && (c0 == 'a' && c1 == 'b' && c2 == 's')){
+	} else if ((index + 3 < inLen) && (c0 == 'a' && c1 == 'b' && c2 == 's')){
 		(*outType) = ABS;
 		*outlen = 3;
 		result = true;
-	}
-	else if ((index + 3 < mInputLen) && (c0 == 't' && c1 == 'a' && c2 == 'n')){
+	} else if ((index + 3 < inLen) && (c0 == 't' && c1 == 'a' && c2 == 'n')){
 		(*outType) = TAN;
 		*outlen = 3;
 		result = true;
-	}
-	else if ((index + 3 < mInputLen) && (c0 == 's' && c1 == 'i' && c2 == 'n')){
+	} else if ((index + 3 < inLen) && (c0 == 's' && c1 == 'i' && c2 == 'n')){
 		(*outType) = SIN;
 		*outlen = 3;
 		result = true;
-	}
-	else if ((index + 3 < mInputLen) && (c0 == 'c' && c1 == 'o' && c2 == 's')){
+	} else if ((index + 3 < inLen) && (c0 == 'c' && c1 == 'o' && c2 == 's')){
 		(*outType) = COS;
 		*outlen = 3;
 		result = true;
-	}
-	else if ((index + 3 < mInputLen) && (c0 == 'l' && c1 == 'o' && c2 == 'g')) {
+	} else if ((index + 3 < inLen) && (c0 == 'l' && c1 == 'o' && c2 == 'g')) {
 		(*outType) = LOG;
 		*outlen = 3;
 		result = true;
-	}else if(c0=='l' && c1=='n'){
+	} else if(c0=='l' && c1=='n'){
 		(*outType) = LN;
 		*outlen = 2;
 		result = true;
@@ -529,7 +548,7 @@ bool NLabLexer::isFunctionName(const char *mInputString, int mInputLen, int inde
 		The following token of a function name MUST be an open parenthese
 		TODO: I'm not sure if we need to check this
 	*/
-	if (result && ((*outlen + index) >= 0) && (mInputString[(*outlen + index)] != '(')) {
+	if (result && ((*outlen + index) >= 0) && (inStr[(*outlen + index)] != '(')) {
 		result = false;
 	}
 
@@ -574,9 +593,9 @@ bool NLabLexer::isAName(const char* inStr, int inputLen, int idx, int *tlen) {
 	return false;
 }
 
-bool NLabLexer::isDelimiterChar(char nextC) {
-	return nextC == ' ' || nextC == '+' || nextC == '-' || nextC == '*' || nextC == '/' || nextC == '^' || nextC == '='
-		   || nextC=='(' || nextC==')' || nextC=='[' || nextC==']' || nextC=='<' || nextC=='>'
-		   || nextC=='!' || nextC==',' || nextC==';';
+bool NLabLexer::isDelimiterChar(char ch) {
+	return ch == ' ' || ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '^' || ch == '='
+		   || ch=='(' || ch==')' || ch=='[' || ch==']' || ch=='<' || ch=='>'
+		   || ch=='!' || ch==',' || ch==';';
 
 }

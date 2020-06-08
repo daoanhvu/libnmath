@@ -7,7 +7,7 @@ LIBS = -lm -lpthread
 
 OBJS = $(OUTDIR)/internal_common.o $(OUTDIR)/utf8.o $(OUTDIR)/nlablexer.o $(OUTDIR)/logging.o $(OUTDIR)/StackUtil.o
 
-all: test
+all: test testNLabLexer
 
 $(OUTDIR)/%.o:  ../src/utf8.cpp ../src/nlablexer.cpp ../src/StackUtil.cpp
 	$(CPP) -g -c -o $(OUTDIR)/internal_common.o ../src/internal_common.cpp $(CFLAGS)
@@ -22,6 +22,9 @@ test: $(OBJS)
 	$(CPP) -g -o ../output/mac/testImageData ../test/testImageData.cpp -I../glm $(CFLAGS) $(LIBS)
 
 .PHONY: clean
+
+testNLabLexer: $(OBJS)
+	$(CPP) -g -o ../output/mac/$@ ../test/testNLabLexer.cpp $^ $(CFLAGS) $(LIBS)
 
 clean:
 	rm -f $(OUTDIR)/*.o

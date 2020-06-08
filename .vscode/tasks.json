@@ -2,7 +2,7 @@
     "tasks": [
         {
             "type": "shell",
-            "label": "build with makefile",
+            "label": "BuildAll",
             "command": "make",
             "args": [
                 "all"

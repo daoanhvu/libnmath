@@ -59,6 +59,10 @@ namespace nmath {
 
     /******************************************************************************************/
 
+    /**
+     *  Parse the an input token list to function expressed with NMAST
+     *  Return the errorCode 
+     */
     template <typename T>
     int NLabParser<T>::parseFunctionExpression(std::vector<Token*> tokens,
             std::vector<nmath::NMAST<T>* > &prefix,
@@ -137,6 +141,7 @@ namespace nmath {
 
     /**
         functionNotation: NAME LPAREN NAME (COMA NAME)* PRARENT;
+        @Param index the starting position in token list where this function need to check this pattern
         @return
             - If the tokens match the pattern the function will return the next index, this index equals
             input index plus the length of the matched tokens.
@@ -149,7 +154,7 @@ namespace nmath {
         int oldIndex = index;
         auto tokenCount = tokens.size();
 
-        if( (index < 0) || index >= tokenCount )
+        if( (index < 0) || (index >= tokenCount-3) )
             return index;
 
         *errorCode = ERROR_NOT_A_FUNCTION;

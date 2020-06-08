@@ -42,9 +42,10 @@ bool runTestCase(const GeneratedIndicesTestCase *test) {
 	}
 	nmath::ImageData<float> imageData(vertexCount, 3, 0, test->rowInfo, test->rowCount);
 	imageData.generateIndices();
-	std::vector<short> actualResult = imageData.getIndices();
-	if(actualResult.size() != test->expectedResultSize) {
-		std::cout << "\033[41m" << "Test failed! actual size: " << actualResult.size() << "\033[0m" << std::endl;
+	short* actualResult = imageData.getIndices();
+	unsigned int actualSize = imageData.indicesSize();
+	if(actualSize != test->expectedResultSize) {
+		std::cout << "\033[41m" << "Test failed! actual size: " << actualSize << "\033[0m" << std::endl;
 		return false;
 	} else {
 		for(auto i=0; i<test->expectedResultSize; i++) {

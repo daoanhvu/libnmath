@@ -16,7 +16,7 @@
             "environment": [],
             "externalConsole": false,
             "MIMode": "lldb",
-            "preLaunchTask": "build with makefile"
+            "preLaunchTask": "BuildAll"
         },
         {
             "name": "BuildIndicesGenerate",
@@ -30,6 +30,19 @@
             "externalConsole": false,
             "MIMode": "lldb",
             "preLaunchTask": "build with makefile"
+        },
+        {
+            "name": "TestNLabLexer",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/output/mac/testNLabLexer",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "BuildAll"
         }
     ]
 }
