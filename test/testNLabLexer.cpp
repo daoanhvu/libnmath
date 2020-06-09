@@ -131,6 +131,31 @@ void testLexicalAnalysis_double_fail() {
     }
 
 	std::cout << "===========================================================" << std::endl;
+
+	str = "12.54+a";
+	print_with_color(std::cout, "Test formula: " + str, FG_GREEN) << std::endl;
+	lexer.lexicalAnalysis(str, false, 0, mTokens, nullptr);
+	print_with_color(std::cout, "Number of token: ", FG_GREEN)  << mTokens.size() << std::endl;
+
+	errorCode = lexer.getErrorCode();
+	errorColumn = lexer.getErrorColumn();
+
+	if(mTokens.size() != 3) {
+		std::cout << "\033[31mTest failed!!! Token size = "<< mTokens.size() <<"\033[0m" << std::endl;
+		print_with_color(std::cout, "Test failed!!!!" + str, FG_RED) << std::endl;
+	}
+
+	if(errorCode != NMATH_NO_ERROR) {
+		std::cout << "\033[31mTest failed!!! errorCode = "<< errorCode <<"\033[0m" << std::endl;
+		print_with_color(std::cout, "Test failed!!!!" + str, FG_RED) << std::endl;
+		printError(errorColumn, errorCode);
+	}
+
+	for(int i=0; i<mTokens.size(); i++) {
+        delete mTokens[i];
+    }
+
+	std::cout << "===========================================================" << std::endl;
 }
 
 // Test 1
@@ -143,11 +168,20 @@ void testLexicalAnalysis() {
 	int errorColumn;
 
 	lexer.lexicalAnalysis(str, false, 0, mTokens, nullptr);
+	errorCode = lexer.getErrorCode();
+	errorColumn = lexer.getErrorColumn();
 	print_with_color(std::cout, "Number of token: ", FG_GREEN)  << mTokens.size() << std::endl;
 
 	if(mTokens.size() != 12) {
 		std::cout << "\033[31mTest failed!!!\033[0m" << std::endl;
 		print_with_color(std::cout, "Test failed!!!!" + str, FG_RED) << std::endl;
+	}
+
+	if( (errorCode != NMATH_NO_ERROR) || (errorColumn != -1)) {
+		print_with_color(std::cout, "Test failed!!!! " + str, FG_RED) << std::endl;
+		std::cout << "\033[31m\terrorCode = "<< errorCode << ", Expected: "<< NMATH_NO_ERROR <<"\033[0m" << std::endl;
+		std::cout << "\033[31m\terrorColumn = "<< errorColumn << ", Expected: " << -1 <<"\033[0m" << std::endl;
+		printError(errorColumn, errorCode);
 	}
 
 	for(int i=0; i<mTokens.size(); i++) {

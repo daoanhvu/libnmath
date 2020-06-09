@@ -36,6 +36,9 @@ namespace nmath {
 
 			case MINUS:
 				if (t.size() == 1) {
+					// This is because, in the postfix we have operand1 operand2 operator
+					// in this case, the operator is MINUS, it means operand1 - operand2 and if we miss one operand
+					// we assume that missing operand is always operand1 then we have -operand2
 					if ((t[0]) != nullptr)
 						(t[0])->sign = -1;
 				}
