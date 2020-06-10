@@ -16,7 +16,7 @@ namespace nmath {
         short dimension;
         // This is the offset of normal vector in a data tube
         short normalOffset;
-        std::vector<short> indices;
+        std::vector<unsigned short> indices;
 
         // This is vertices data
         std::vector<T> data;
@@ -76,10 +76,10 @@ namespace nmath {
             return size;
         }
 
-        unsigned int copyIndicesTo(short* anArray) {
-            short* source = &indices[0];
+        unsigned int copyIndicesTo(unsigned short* anArray) {
+            unsigned short* source = &indices[0];
             unsigned int size = indices.size();
-            memcpy(anArray, source, size * sizeof(short));
+            memcpy(anArray, source, size * sizeof(unsigned short));
             return size;
         }
 
@@ -98,17 +98,19 @@ namespace nmath {
             rowInfo.push_back(elementOnNewRow);
         }
 
+        
+        void generateIndicesForTriangleStrip();
         void generateIndices();
 
         void setNormalOffset(int _normalOffset) {
             this->normalOffset = _normalOffset;
         }
 
-        std::vector<short> getListIndices() const {
+        std::vector<unsigned short> getListIndices() const {
             return indices;
         }
 
-        short* getIndices() {
+        unsigned short* getIndices() {
             return &indices[0];
         }
 
@@ -147,8 +149,38 @@ namespace nmath {
     }
 
     template <typename T>
+    void ImageData<T>::generateIndicesForTriangleStrip() {
+		// Now build the index data
+        int rows = rowInfo.size();
+        int cols = rowInfo[0];
+		int numStripsRequired = rows - 1;
+		int numDegensRequired = 2 * (numStripsRequired - 1);
+		int verticesPerStrip = 2 * cols;
+		// short[] heightMapIndexData = new short[(verticesPerStrip * numStripsRequired)
+		//         + numDegensRequired];
+		 
+		for (auto y = 0; y<rows-1; y++) {
+			if (y > 0) {
+		        // Degenerate begin: repeat first vertex
+				indices.push_back((unsigned short)(y * cols));
+		    }
+		 
+		    for (int x = 0; x < cols; x++) {
+		        // One part of the strip
+		    	indices.push_back((unsigned short) ((y * cols) + x));
+		        indices.push_back((unsigned short) (((y + 1) * cols) + x));
+		    }
+		 
+		    if (y < rows - 2) {
+		        // Degenerate end: repeat last vertex
+		    	indices.push_back((unsigned short) (((y + 1) * cols) + (cols - 1)));
+		    }
+		}
+	}
+
+    template <typename T>
     void ImageData<T>::generateIndices() {
-        short count = 0;
+        unsigned short count = 0;
         indices.clear();
         int rowCount = rowInfo.size();
         int orientation = 0;
@@ -175,9 +207,9 @@ namespace nmath {
                             // degenerate
                             indices.push_back(count + vertexCountLine);
                         }
-                    
-                        int e = count + vertexCountLine + 1;
-                        int e1 = count + nexRowCount + 1;
+
+                        unsigned short e = count + vertexCountLine + 1;
+                        unsigned short e1 = count + nexRowCount + 1;
                         for(auto k=e; k<e1; k++) {
                             indices.push_back(k);
                             if(k == e1-1) {
