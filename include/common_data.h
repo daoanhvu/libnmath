@@ -163,7 +163,7 @@ namespace nmath {
 		// This is input expression
 		NMAST<T> *t;
 		std::string variables[4];
-		int varCount;
+		unsigned int varCount;
 		int error;
 		//This is input values
 		T values[MAX_VAR_COUNT];

@@ -43,6 +43,19 @@
             "externalConsole": false,
             "MIMode": "lldb",
             "preLaunchTask": "BuildAll"
+        },
+        {
+            "name": "TestNFunction",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/output/mac/testFunction",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "BuildAll"
         }
     ]
 }

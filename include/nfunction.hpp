@@ -47,11 +47,13 @@ namespace nmath {
 
             for(int i=0; i<prefix.size(); i++) {
                 if(needNormalVector) {
+                    // Now, we calculate the derivative of the function according to variable[0]
                     df[0] = getDerivativeByVariable(i, 0);
                     reduceParam.t = df[0];
                     reduce_t<T>((void*)&reduceParam);
                     df[0] = reduceParam.t;
 
+                    // And derivative of the function according to variable[1]
                     df[1] = getDerivativeByVariable(i, 1);
                     reduceParam.t = df[1];
                     reduce_t<T>((void*)&reduceParam);
@@ -161,15 +163,16 @@ namespace nmath {
             sp = new ImageData<T>(((df == nullptr)?3:6));
 
             param.t = prefix[prefixIndex];
+            param.varCount = variables.size();
             param.variables[0] = variables[0]->text;
             param.variables[1] = variables[1]->text;
             param.error = 0;
 
             param.values[0] = min[0];
-            while(param.values[0] < max[0] ) {
+            while(param.values[0] <= max[0] ) {
                 elementOnRow = 0;
                 param.values[1] = min[1];
-                while(param.values[1] < max[1]) {
+                while(param.values[1] <= max[1]) {
                     calc_t<T>((void*)&param);
                     z = param.retv;
 
@@ -184,6 +187,7 @@ namespace nmath {
                     /******** Now, calculate the normal vector at x, y, z **************/
                     if(df != nullptr) {
                         dparam0.t = df[0];
+                        dparam0.varCount = variables.size();
                         dparam0.variables[0] = variables[0]->text;
                         dparam0.variables[1] = variables[1]->text;
                         dparam0.error = 0;
@@ -192,6 +196,7 @@ namespace nmath {
                         calc_t<T>((void*)&dparam0);
 
                         dparam1.t = df[1];
+                        dparam1.varCount = variables.size();
                         dparam1.variables[0] = variables[0]->text;
                         dparam1.variables[1] = variables[1]->text;
                         dparam1.error = 0;

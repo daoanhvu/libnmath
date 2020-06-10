@@ -16,7 +16,7 @@ namespace nmath {
         short dimension;
         // This is the offset of normal vector in a data tube
         short normalOffset;
-        std::vector<short> indices;
+        std::vector<unsigned short> indices;
 
         // This is vertices data
         std::vector<T> data;
@@ -76,10 +76,10 @@ namespace nmath {
             return size;
         }
 
-        unsigned int copyIndicesTo(short* anArray) {
-            short* source = &indices[0];
+        unsigned int copyIndicesTo(unsigned short* anArray) {
+            unsigned short* source = &indices[0];
             unsigned int size = indices.size();
-            memcpy(anArray, source, size * sizeof(short));
+            memcpy(anArray, source, size * sizeof(unsigned short));
             return size;
         }
 
@@ -98,6 +98,10 @@ namespace nmath {
             rowInfo.push_back(elementOnNewRow);
         }
 
+        int getRowAt(int idx) { return rowInfo[idx]; }
+
+        unsigned int getRowCount() { return rowInfo.size(); }
+
         void generateIndices();
 
         void setNormalOffset(int _normalOffset) {
@@ -108,7 +112,7 @@ namespace nmath {
             return indices;
         }
 
-        short* getIndices() {
+        unsigned short* getIndices() {
             return &indices[0];
         }
 
