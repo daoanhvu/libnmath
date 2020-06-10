@@ -23,7 +23,7 @@ namespace nmath{
 		bool isLogicOperator(char c);
 		bool isDelimiterChar(char c);
 
-		Token* addToken(int _type, const char *_text, int len, int _col);
+		Token* createToken(int _type, const char *_text, int len, int _col);
 		bool isNumericOperatorOREQ(char c);
 		bool parserLogicOperator(const char *inStr, int idx, int *type, int *outlen);
 		bool checkNumericOperator(const char *mInputString, int mInputLen, int idx, int *type, int *textLength, vector<Token*> list);
