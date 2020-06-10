@@ -101,6 +101,8 @@ namespace nmath {
         int getRowAt(int idx) { return rowInfo[idx]; }
 
         unsigned int getRowCount() { return rowInfo.size(); }
+        
+        void generateIndicesForTriangleStrip();
 
         void generateIndices();
 
@@ -108,7 +110,7 @@ namespace nmath {
             this->normalOffset = _normalOffset;
         }
 
-        std::vector<short> getListIndices() const {
+        std::vector<unsigned short> getListIndices() const {
             return indices;
         }
 
@@ -151,8 +153,38 @@ namespace nmath {
     }
 
     template <typename T>
+    void ImageData<T>::generateIndicesForTriangleStrip() {
+		// Now build the index data
+        int rows = rowInfo.size();
+        int cols = rowInfo[0];
+		int numStripsRequired = rows - 1;
+		int numDegensRequired = 2 * (numStripsRequired - 1);
+		int verticesPerStrip = 2 * cols;
+		// short[] heightMapIndexData = new short[(verticesPerStrip * numStripsRequired)
+		//         + numDegensRequired];
+		 
+		for (auto y = 0; y<rows-1; y++) {
+			if (y > 0) {
+		        // Degenerate begin: repeat first vertex
+				indices.push_back((unsigned short)(y * cols));
+		    }
+		 
+		    for (int x = 0; x < cols; x++) {
+		        // One part of the strip
+		    	indices.push_back((unsigned short) ((y * cols) + x));
+		        indices.push_back((unsigned short) (((y + 1) * cols) + x));
+		    }
+		 
+		    if (y < rows - 2) {
+		        // Degenerate end: repeat last vertex
+		    	indices.push_back((unsigned short) (((y + 1) * cols) + (cols - 1)));
+		    }
+		}
+	}
+
+    template <typename T>
     void ImageData<T>::generateIndices() {
-        short count = 0;
+        unsigned short count = 0;
         indices.clear();
         int rowCount = rowInfo.size();
         int orientation = 0;
@@ -179,9 +211,9 @@ namespace nmath {
                             // degenerate
                             indices.push_back(count + vertexCountLine);
                         }
-                    
-                        int e = count + vertexCountLine + 1;
-                        int e1 = count + nexRowCount + 1;
+
+                        unsigned short e = count + vertexCountLine + 1;
+                        unsigned short e1 = count + nexRowCount + 1;
                         for(auto k=e; k<e1; k++) {
                             indices.push_back(k);
                             if(k == e1-1) {
