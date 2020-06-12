@@ -29,47 +29,47 @@ int main(int argc, char* argv[]) {
 	// testFunction0();
 
 	TestData test;
-	test.testNumber = 1;
-	test.epsilon = 0.5f;
-	test.values[0] = -1.0f;
-	test.values[1] = 1.0f;
-	test.values[2] = -1.0f;
-	test.values[3] = 1.0f;
+	// test.testNumber = 1;
+	// test.epsilon = 0.5f;
+	// test.values[0] = -1.0f;
+	// test.values[1] = 1.0f;
+	// test.values[2] = -1.0f;
+	// test.values[3] = 1.0f;
+	// test.expectedNumOfSpace = 1;
+	// test.expectedRowCount = 5;
+	// test.expectedVertexCount = 25;
+	// testGenerateIndices(test);
+
+	// test.testNumber = 2;
+	// test.epsilon = 0.1f;
+	// test.values[0] = -1.0f;
+	// test.values[1] = 1.0f;
+	// test.values[2] = -1.0f;
+	// test.values[3] = 1.0f;
+	// test.expectedNumOfSpace = 1;
+	// test.expectedRowCount = 20;
+	// testGenerateIndices(test);
+
+	// test.testNumber = 2;
+	// test.epsilon = 0.1f;
+	// test.values[0] = -1.0f;
+	// test.values[1] = 1.0f;
+	// test.values[2] = -1.0f;
+	// test.values[3] = 1.0f;
+	// test.expectedNumOfSpace = 1;
+	// test.expectedRowCount = 20;
+	// testGenerateIndices(test);
+
+	test.testNumber = 3;
+	test.epsilon = 1.0f;
+	test.values[0] = -0.5f;
+	test.values[1] = 0.5f;
+	test.values[2] = -0.5f;
+	test.values[3] = 0.5f;
 	test.expectedNumOfSpace = 1;
-	test.expectedRowCount = 5;
-	test.expectedVertexCount = 25;
+	test.expectedRowCount = 2;
+	test.expectedVertexCount = 4;
 	testGenerateIndices(test);
-
-	// test.testNumber = 2;
-	// test.epsilon = 0.1f;
-	// test.values[0] = -1.0f;
-	// test.values[1] = 1.0f;
-	// test.values[2] = -1.0f;
-	// test.values[3] = 1.0f;
-	// test.expectedNumOfSpace = 1;
-	// test.expectedRowCount = 20;
-	// testGenerateIndices(test);
-
-	// test.testNumber = 2;
-	// test.epsilon = 0.1f;
-	// test.values[0] = -1.0f;
-	// test.values[1] = 1.0f;
-	// test.values[2] = -1.0f;
-	// test.values[3] = 1.0f;
-	// test.expectedNumOfSpace = 1;
-	// test.expectedRowCount = 20;
-	// testGenerateIndices(test);
-
-	// test.testNumber = 3;
-	// test.epsilon = 1.0f;
-	// test.values[0] = -0.5f;
-	// test.values[1] = 0.5f;
-	// test.values[2] = -0.5f;
-	// test.values[3] = 0.5f;
-	// test.expectedNumOfSpace = 1;
-	// test.expectedRowCount = 2;
-	// test.expectedVertexCount = 4;
-	// testGenerateIndices(test);
 	return 0;
 }
 

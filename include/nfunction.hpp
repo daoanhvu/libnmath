@@ -204,13 +204,11 @@ namespace nmath {
                         dparam1.values[1] = param.values[1];
                         calc_t<T>((void*)&dparam1);
 
+                        // TODO: Check here
                         mod = sqrt(dparam0.retv*dparam0.retv + dparam1.retv*dparam1.retv + 1);
-                        // sp->data[sp->dataSize++] = dparam0.retv/mod;
-                        // sp->data[sp->dataSize++] = dparam1.retv/mod;
-                        // sp->data[sp->dataSize++] = -1/mod;
-                        sp->addData(dparam0.retv/mod);
-                        sp->addData(dparam1.retv/mod);
-                        sp->addData(-1/mod);
+                        sp->addData(-dparam0.retv/mod);
+                        sp->addData(-dparam1.retv/mod);
+                        sp->addData(1/mod);
                     }
                     /*******************************************/
 
