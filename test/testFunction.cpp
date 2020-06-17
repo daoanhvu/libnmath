@@ -61,14 +61,14 @@ int main(int argc, char* argv[]) {
 	// testGenerateIndices(test);
 
 	test.testNumber = 3;
-	test.epsilon = 1.0f;
+	test.epsilon = 0.5f;
 	test.values[0] = -0.5f;
 	test.values[1] = 0.5f;
 	test.values[2] = -0.5f;
 	test.values[3] = 0.5f;
 	test.expectedNumOfSpace = 1;
-	test.expectedRowCount = 2;
-	test.expectedVertexCount = 4;
+	test.expectedRowCount = 3;
+	test.expectedVertexCount = 9;
 	testGenerateIndices(test);
 	return 0;
 }
@@ -89,7 +89,7 @@ void testGenerateIndices(const TestData &test) {
 		return;
 	}
 
-	std::vector<nmath::ImageData<float>*> spaces = f.getSpace(test.values, test.epsilon, true);
+	std::vector<nmath::ImageData<float>*> spaces = f.getSpace(test.values, test.epsilon, true, false);
 	errorCode = f.getErrorCode();
 	if(errorCode != NMATH_NO_ERROR) {
 		print_with_color(std::cout, "Test failed! Cannot parse the expression " + inStr, FG_RED) << std::endl;
@@ -128,11 +128,12 @@ void testGenerateIndices(const TestData &test) {
 					std::cout << ", " << data[i];
 				}
 				std::cout <<"};"<< std::endl;
+				std::cout << "int vertexCount = " << imageData->getVertexCount() << ";" << std::endl;
+				std::cout << "\033[32m" << "Test passed" << "\033[0m" << std::endl;
 			} else {
-
+				print_with_color(std::cout, "Test failed!", FG_RED) << std::endl;
+				std::cout << "\033[31m\tVertexCount = "<< imageData->getVertexCount() << ", Expected: "<< test.expectedVertexCount <<"\033[0m" << std::endl;
 			}
-
-			std::cout << "\033[32m" << "Test passed" << "\033[0m" << std::endl;
 		} else {
 			//Failed
 			print_with_color(std::cout, "Test failed!", FG_RED) << std::endl;

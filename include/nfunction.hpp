@@ -28,7 +28,8 @@ namespace nmath {
 		int errorCode;
 		int errorColumn;
 
-        std::vector<ImageData<T>*> getSpaceFor2UnknownVariables(const T *inputInterval, T epsilon, bool needNormalVector) {
+        std::vector<ImageData<T>*> getSpaceFor2UnknownVariables(const T *inputInterval, T epsilon, 
+            bool needNormalVector, bool needNormalizeNormalVector) {
             std::vector<ImageData<T>*> lstData;
             ImageData<T> **tempList;
             ImageData<T> *sp;
@@ -62,27 +63,27 @@ namespace nmath {
 
                 if(criteria[i] == nullptr) {
                     if (needNormalVector)
-                        sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, &cc, df);
+                        sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, &cc, df, needNormalizeNormalVector);
                     else
-                        sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, &cc, nullptr);
+                        sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, &cc, nullptr, false);
                     lstData.push_back(sp);
                 } else {
                     outCriteria = (CompositeCriteria<T>*)criteria[i]->getInterval(inputInterval, this->strVars);
                     switch(outCriteria->logicOperator()) {
                         case AND:
                             if (needNormalVector)
-                                sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria, df);
+                                sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria, df, needNormalizeNormalVector);
                             else
-                                sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria, 0);
+                                sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria, 0, false);
                             lstData.push_back(sp);
                             break;
 
                         case OR:
                             for(int j=0; j<outCriteria->size(); j++) {
                                 if(needNormalVector)
-                                    sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, (CompositeCriteria<T>*)(outCriteria->get(j)), df);
+                                    sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, (CompositeCriteria<T>*)(outCriteria->get(j)), df, needNormalizeNormalVector);
                                 else
-                                    sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, (CompositeCriteria<T>*)(outCriteria->get(j)), 0);
+                                    sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, (CompositeCriteria<T>*)(outCriteria->get(j)), 0, false);
                                 lstData.push_back(sp);
                             }
                             break;
@@ -117,7 +118,7 @@ namespace nmath {
          * @return an object of FData, if df is not null then the returned object consists of x, y, z
          */
         ImageData<T>* getSpaceFor2WithANDComposite(int prefixIndex, const T *inputInterval,
-                                    T epsilon, const CompositeCriteria<T>* c, NMAST<T> **df) {
+                                    T epsilon, const CompositeCriteria<T>* c, NMAST<T> **df, bool needNormalizeNormalVector) {
             ImageData<T> *sp;
             DParam<T> param;
             DParam<T> dparam0;
@@ -128,12 +129,6 @@ namespace nmath {
             int j, k, elementOnRow;
             SimpleCriteria<T> *sc;
             std::string currentVar;
-
-            /*
-                We want the normal vector to be a unit vector 
-                so this value is used for normalizing normal vector
-            */
-            float mod;
 
             for(k=0; k<variables.size(); k++) {
                 currentVar = variables[k]->text;
@@ -205,10 +200,17 @@ namespace nmath {
                         calc_t<T>((void*)&dparam1);
 
                         // TODO: Check here
-                        mod = sqrt(dparam0.retv*dparam0.retv + dparam1.retv*dparam1.retv + 1);
-                        sp->addData(-dparam0.retv/mod);
-                        sp->addData(-dparam1.retv/mod);
-                        sp->addData(1/mod);
+                        if(needNormalizeNormalVector) {
+                            T mod = sqrt(dparam0.retv*dparam0.retv + dparam1.retv*dparam1.retv + 1);
+                            sp->addData(-dparam0.retv/mod);
+                            sp->addData(-dparam1.retv/mod);
+                            sp->addData(1/mod);
+                        } else {
+                            sp->addData(-dparam0.retv);
+                            sp->addData(-dparam1.retv);
+                            sp->addData((T)1);
+                        }
+                        
                     }
                     /*******************************************/
 
@@ -462,7 +464,8 @@ namespace nmath {
             return rp.retv;
         }
 
-        std::vector<ImageData<T>*> getSpace(const T *inputInterval, T epsilon, bool needNormalVector) {
+        std::vector<ImageData<T>*> getSpace(const T *inputInterval, T epsilon, 
+                bool needNormalVector, bool needNormalizeNormalVector) {
             std::vector<ImageData<T>*> lstData;
             ImageData<T> *sp;
             DParam<T> param;
@@ -594,7 +597,8 @@ namespace nmath {
                     break;
 
                 case 2L:
-                    lstData = getSpaceFor2UnknownVariables(inputInterval, epsilon, needNormalVector);
+                    lstData = getSpaceFor2UnknownVariables(inputInterval, epsilon, 
+                            needNormalVector, needNormalizeNormalVector);
                     break;
 
                 case 3L:
