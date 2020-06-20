@@ -264,9 +264,17 @@ namespace nmath {
             case MULTIPLY:
             case DIVIDE:
             case POWER:
+                /**
+                 * When we meet an arithmetic operator, let call it o1, 
+                 * C1: we check if there is an arithmetic operator o2
+                 * at the top of the stack and o2.priotiry >= o1.priority (*)
+                 * then we take o2 out of the stack, and take operand1 and operand2 from postfix
+                 * and do the calculate operand1 operator2 operand2 and then we push the result
+                 * back to the postfix
+                 * - Repeat (C1) until (*) not hold
+                 */ 
                 if(top >= 0) {
                     stItm = stack[top];
-                    // LOGI(2, "Token: type = %d, text=%s", tk->type, tk->text);
                     while(isAnOperatorType(stItm->type) && (stItm->priority) >= tk->priority) {
                         stItm = popFromStack(stack, &top);
                         if (mPrefix.size() == 1) {
