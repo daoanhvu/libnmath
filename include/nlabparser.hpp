@@ -71,6 +71,10 @@ namespace nmath {
             int *errorCode, int *errorColumn) {
         int k, l, idx = 0;
         *errorCode = ERROR_NOT_A_FUNCTION;
+        if(tokens.size() <= 0) {
+            *errorColumn = 0;
+            return *errorCode;
+        }
         *errorColumn = tokens[idx]->column;
         auto tokenCount = tokens.size();
         nmath::NMAST<T> *item;
@@ -154,11 +158,12 @@ namespace nmath {
         int oldIndex = index;
         auto tokenCount = tokens.size();
 
-        if( (index < 0) || (index >= tokenCount-3) )
-            return index;
-
         *errorCode = ERROR_NOT_A_FUNCTION;
         *errorColumn = tokens[index]->column;
+
+        if( (tokenCount < 4) || (index < 0) || (index >= tokenCount-3) )
+            return index;
+
         if(tokens[index]->type == NAME ) {
             *errorCode = ERROR_PARENTHESE_MISSING;
             if(tokens[index+1]->type == LPAREN) {
