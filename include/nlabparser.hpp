@@ -81,7 +81,14 @@ namespace nmath {
 
         /** This array will hold the variables of the function */
         if ((k = functionNotation(tokens, idx, variables, errorCode, errorColumn)) > idx) {
-            if(tokens[k]->type == EQ) {
+
+            if( *errorCode != NMATH_NO_ERROR ) {
+                return *errorCode;
+            }
+
+            *errorCode = ERROR_NOT_A_FUNCTION;
+
+            if(k<tokenCount && tokens[k]->type == EQ) {
                 k++;
                 do {
                     /*
@@ -447,7 +454,17 @@ namespace nmath {
                 *errorCode = ERROR_PARENTHESE_MISSING;
                 return nullptr;
             }
-            addFunction2Tree(mPrefix, stItm, nmastPool);
+
+            *errorCode = addFunction2Tree(mPrefix, stItm, nmastPool);
+            if(*errorCode != NMATH_NO_ERROR) {
+                clearStackWithoutFreeItem(stack, top+1);
+                free(stack);
+                for (int i = 0; i<mPrefix.size(); i++)
+                    clearTree(&(mPrefix[i]));
+                mPrefix.clear();
+                *errorColumn = (tk != nullptr) ? tk->column : -1;
+                return nullptr;
+            }
         }
 
         free(stack);

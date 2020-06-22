@@ -11,52 +11,52 @@ namespace nmath {
 	int clearStackWithoutFreeItem(Token **ls, int len);
 
 	template <typename T>
-	void addFunction2Tree(std::vector<nmath::NMAST<T>* > &t, Token *stItm, NMASTPool<T> *pool) {
+	int addFunction2Tree(std::vector<nmath::NMAST<T>* > &postfix, Token *stItm, NMASTPool<T> *pool) {
 		NMAST<T> *ast = nullptr;
 		// LOGI(2, "Type: %d (%s)", stItm->type, stItm->text);
 		switch (stItm->type) {
 			case PLUS:
-				if (t.size() > 1) {
+				if (postfix.size() > 1) {
 					ast = pool->get();
 					ast->type = stItm->type;
 					ast->text = "+";
 					ast->priority = stItm->priority;
-					ast->left = t[t.size() - 2];
-					ast->right = t[t.size() - 1];
-					if ((t[t.size() - 2]) != nullptr)
-						(t[t.size() - 2])->parent = ast;
-					if ((t[t.size() - 1]) != nullptr)
-						(t[t.size() - 1])->parent = ast;
+					ast->left = postfix[postfix.size() - 2];
+					ast->right = postfix[postfix.size() - 1];
+					if ((postfix[postfix.size() - 2]) != nullptr)
+						(postfix[postfix.size() - 2])->parent = ast;
+					if ((postfix[postfix.size() - 1]) != nullptr)
+						(postfix[postfix.size() - 1])->parent = ast;
 
-					t[t.size() - 2] = ast;
-					t[t.size() - 1] = nullptr;
-					t.pop_back();
+					postfix[postfix.size() - 2] = ast;
+					postfix[postfix.size() - 1] = nullptr;
+					postfix.pop_back();
 				}
 				break;
 
 			case MINUS:
-				if (t.size() == 1) {
+				if (postfix.size() == 1) {
 					// This is because, in the postfix we have operand1 operand2 operator
 					// in this case, the operator is MINUS, it means operand1 - operand2 and if we miss one operand
 					// we assume that missing operand is always operand1 then we have -operand2
-					if ((t[0]) != nullptr)
-						(t[0])->sign = -1;
+					if ((postfix[0]) != nullptr)
+						(postfix[0])->sign = -1;
 				}
 				else {
 					ast = pool->get();
 					ast->type = stItm->type;
 					ast->text = "-";
 					ast->priority = stItm->priority;
-					ast->left = t[t.size() - 2];
-					ast->right = t[t.size() - 1];
-					if ((t[t.size() - 2]) != nullptr)
-						(t[t.size() - 2])->parent = ast;
-					if ((t[t.size() - 1]) != nullptr)
-						(t[t.size() - 1])->parent = ast;
+					ast->left = postfix[postfix.size() - 2];
+					ast->right = postfix[postfix.size() - 1];
+					if ((postfix[postfix.size() - 2]) != nullptr)
+						(postfix[postfix.size() - 2])->parent = ast;
+					if ((postfix[postfix.size() - 1]) != nullptr)
+						(postfix[postfix.size() - 1])->parent = ast;
 
-					t[t.size() - 2] = ast;
-					t[t.size() - 1] = nullptr;
-					t.pop_back();
+					postfix[postfix.size() - 2] = ast;
+					postfix[postfix.size() - 1] = nullptr;
+					postfix.pop_back();
 				}
 				break;
 
@@ -70,20 +70,27 @@ namespace nmath {
 			case GTE:
 			case AND:
 			case OR:
+
+				// These operators are binary-operators so
+				// we need to check for the case missing operand
+				if(postfix.size() < 2) {
+					return ERROR_OPERAND_MISSING;
+				}
+
 				ast = pool->get();
 				ast->type = stItm->type;
 				ast->text = stItm->text;
 				ast->priority = stItm->priority;
-				ast->left = t[t.size() - 2];
-				ast->right = t[t.size() - 1];
-				if ((t[t.size() - 2]) != nullptr)
-					(t[t.size() - 2])->parent = ast;
-				if ((t[t.size() - 1]) != nullptr)
-					(t[t.size() - 1])->parent = ast;
+				ast->left  = postfix[postfix.size() - 2];
+				ast->right = postfix[postfix.size() - 1];
+				if ((postfix[postfix.size() - 2]) != nullptr)
+					(postfix[postfix.size() - 2])->parent = ast;
+				if ((postfix[postfix.size() - 1]) != nullptr)
+					(postfix[postfix.size() - 1])->parent = ast;
 
-				t[t.size() - 2] = ast;
-				t[t.size() - 1] = nullptr;
-				t.pop_back();
+				postfix[postfix.size() - 2] = ast;
+				postfix[postfix.size() - 1] = nullptr;
+				postfix.pop_back();
 				break;
 
 			case SIN:
@@ -99,11 +106,11 @@ namespace nmath {
 				ast->type = stItm->type;
 				ast->text = stItm->text;
 				ast->priority = stItm->priority;
-				ast->right = t[t.size() - 1];
-				if ((t[t.size() - 1]) != nullptr)
-					(t[t.size() - 1])->parent = ast;
+				ast->right = postfix[postfix.size() - 1];
+				if ((postfix[postfix.size() - 1]) != nullptr)
+					(postfix[postfix.size() - 1])->parent = ast;
 
-				t[t.size() - 1] = ast;
+				postfix[postfix.size() - 1] = ast;
 				break;
 
 			case LOG:
@@ -111,18 +118,20 @@ namespace nmath {
 				ast->type = stItm->type;
 				ast->text = stItm->text;
 				ast->priority = stItm->priority;
-				ast->left = t[t.size() - 2];
-				ast->right = t[t.size() - 1];
-				if ((t[t.size() - 2]) != nullptr)
-					(t[t.size() - 2])->parent = ast;
-				if ((t[t.size() - 1]) != nullptr)
-					(t[t.size() - 1])->parent = ast;
+				ast->left = postfix[postfix.size() - 2];
+				ast->right = postfix[postfix.size() - 1];
+				if ((postfix[postfix.size() - 2]) != nullptr)
+					(postfix[postfix.size() - 2])->parent = ast;
+				if ((postfix[postfix.size() - 1]) != nullptr)
+					(postfix[postfix.size() - 1])->parent = ast;
 
-				t[t.size() - 2] = ast;
-				t[t.size() - 1] = nullptr;
-				t.pop_back();
+				postfix[postfix.size() - 2] = ast;
+				postfix[postfix.size() - 1] = nullptr;
+				postfix.pop_back();
 				break;
 		}
+
+		return NMATH_NO_ERROR;
 	}
 
 }
