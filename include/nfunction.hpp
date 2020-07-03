@@ -387,27 +387,26 @@ namespace nmath {
         }
 
 		void release() {
-			int i;
 			if (text != nullptr) {
 				delete[] text;
 				text = nullptr;
 				textLen = 0;
 			}
 
-			for(i=0; i<prefix.size(); i++) {
+            for(unsigned int i=0; i < prefix.size(); i++) {
                 if(prefix[i] != nullptr) {
                     nmath::clearTree(&(prefix[i]));
                 }
-			}
-			prefix.clear();
+            }
+            prefix.clear();
 
-			for (i = 0; i < criteria.size(); i++) {
+			for (unsigned int i = 0; i < criteria.size(); i++) {
 				if (criteria[i] != nullptr)
 					delete criteria[i];
 			}
 			criteria.clear();
 
-            for (i = 0; i < mTokens.size(); i++) {
+            for (unsigned int i = 0; i < mTokens.size(); i++) {
                 if (mTokens[i] != nullptr)
                     delete mTokens[i];
             }
