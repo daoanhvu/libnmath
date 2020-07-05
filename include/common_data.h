@@ -131,7 +131,9 @@ namespace nmath {
 		NMAST<VT> *parent;
 		NMAST<VT> *left;
 		NMAST<VT> *right;
+		// This is the hight level of this node in the formula tree
 		char level;
+		int column;
 	};
 
 	/** ================================================================================================ */

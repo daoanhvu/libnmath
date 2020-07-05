@@ -182,6 +182,7 @@ namespace nmath {
                     NMAST<T>* var = nmastPool->get();
                     var->type = VARIABLE;
                     var->text = tokens[index+2]->text;
+                    var->column = tokens[index+2]->column;
                     variables.push_back(var);
                     index += 3;
                     while( (index+1<tokenCount) && (tokens[index]->type == COMMA)
@@ -190,6 +191,7 @@ namespace nmath {
                         var = nmastPool->get();
                         var->type = VARIABLE;
                         var->text = tokens[index+1]->text;
+                        var->column = tokens[index+1]->column;
                         variables.push_back(var);
                         index += 2;
                     }
@@ -248,6 +250,7 @@ namespace nmath {
                 ast->value = val;
                 ast->type = tk->type;
                 ast->text = tk->text;
+                ast->column = tk->column;
                 mPrefix.push_back(ast);
                 idx++;
             break;
@@ -257,6 +260,7 @@ namespace nmath {
                 ast->value = E;
                 ast->text = "e";
                 ast->type = E_TYPE;
+                ast->column = tk->column;
                 mPrefix.push_back(ast); //add this item to prefix
                 idx++;
             break;
@@ -266,6 +270,7 @@ namespace nmath {
                 ast->value = PI;
                 ast->text = "3.14159";
                 ast->type = PI_TYPE;
+                ast->column = tk->column;
                 mPrefix.push_back(ast); //add this item to prefix
                 idx++;
             break;
@@ -295,6 +300,7 @@ namespace nmath {
                             ast = nmastPool->get();
                             ast->type = stItm->type;
                             ast->text = stItm->text;
+                            ast->column = stItm->column;
                             ast->priority = stItm->priority;
                             ast->left = mPrefix[mPrefix.size() - 2];
                             ast->right = mPrefix[mPrefix.size() - 1];
@@ -418,6 +424,7 @@ namespace nmath {
                 ast = nmastPool->get();
                 ast->text = tk->text;
                 ast->type = tk->type;
+                ast->column = tk->column;
                 mPrefix.push_back(ast);
                 idx++;
             break;
@@ -549,6 +556,7 @@ namespace nmath {
                     ast = nmastPool->get();
                     ast->value = val;
                     ast->type = tk->type;
+                    ast->column = tk->column;
                     mDomain.push_back(ast);
                     index++;
                     break;
@@ -568,6 +576,7 @@ namespace nmath {
                             ast = nmastPool->get();
                             ast->type = tokenItm->type;
                             ast->priority = tokenItm->priority;
+                            ast->column = tokenItm->column;
                             ast->left = mDomain[mDomain.size() - 2];
                             ast->right = mDomain[mDomain.size() - 1];
                             if((ast->type == LT || ast->type == LTE || ast->type == GT || ast->type == GTE )
@@ -751,6 +760,7 @@ namespace nmath {
                             */
                             ast = nmastPool->get();
                             ast->text = tk->text;
+                            ast->column = tk->column;
                             if ((tokens[index + 2]->type == LPAREN) && (tokens[index + 6]->type == RPAREN))
                                 ast->type = GT_LT;
                             else if ((tokens[index + 2]->type == LPRACKET) && (tokens[index + 6]->type == RPAREN))
@@ -792,6 +802,7 @@ namespace nmath {
                                 //OPERATOR
                                 ast = nmastPool->get();
                                 ast->type = tokens[index + 1]->type;
+                                ast->column = tokens[index + 1]->column;
                                 ast->text = tk->text; //Variable or NAME is stored at operator node
                                 ast->value = parseDouble<T>(tokens[index+2]->text, 0, tokens[index+2]->textLength, errorCode);
 
@@ -803,6 +814,7 @@ namespace nmath {
                             ast->text= tk->text;
                             ast->value = 0;
                             ast->type = tk->type;
+                            ast->column = tk->column;
                             mDomain.push_back(ast);
                             index++;
                         }

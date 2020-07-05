@@ -19,6 +19,7 @@ namespace nmath {
 				if (postfix.size() > 1) {
 					ast = pool->get();
 					ast->type = stItm->type;
+					ast->column = stItm->column;
 					ast->text = "+";
 					ast->priority = stItm->priority;
 					ast->left = postfix[postfix.size() - 2];
@@ -45,6 +46,7 @@ namespace nmath {
 				else {
 					ast = pool->get();
 					ast->type = stItm->type;
+					ast->column = stItm->column;
 					ast->text = "-";
 					ast->priority = stItm->priority;
 					ast->left = postfix[postfix.size() - 2];
@@ -80,6 +82,7 @@ namespace nmath {
 				ast = pool->get();
 				ast->type = stItm->type;
 				ast->text = stItm->text;
+				ast->column = stItm->column;
 				ast->priority = stItm->priority;
 				ast->left  = postfix[postfix.size() - 2];
 				ast->right = postfix[postfix.size() - 1];
@@ -105,6 +108,7 @@ namespace nmath {
 				ast = pool->get();
 				ast->type = stItm->type;
 				ast->text = stItm->text;
+				ast->column = stItm->column;
 				ast->priority = stItm->priority;
 				ast->right = postfix[postfix.size() - 1];
 				if ((postfix[postfix.size() - 1]) != nullptr)
@@ -117,6 +121,7 @@ namespace nmath {
 				ast = pool->get();
 				ast->type = stItm->type;
 				ast->text = stItm->text;
+				ast->column = stItm->column;
 				ast->priority = stItm->priority;
 				ast->left = postfix[postfix.size() - 2];
 				ast->right = postfix[postfix.size() - 1];
