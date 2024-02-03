@@ -10,7 +10,11 @@
 #include "nlablexer.h"
 #include "nlabparser.hpp"
 #include "compositecriteria.hpp"
-#include "calculus.hpp"
+#ifdef _NO_THREAD
+    #include "calculus_no_thread.hpp"
+#else
+    #include "calculus.hpp"
+#endif
 
 namespace nmath {
 	template <typename T>
@@ -51,13 +55,13 @@ namespace nmath {
                     // Now, we calculate the derivative of the function according to variable[0]
                     df[0] = getDerivativeByVariable(i, 0);
                     reduceParam.t = df[0];
-                    reduce_t<T>((void*)&reduceParam);
+                    reduce_t<T>(&reduceParam);
                     df[0] = reduceParam.t;
 
                     // And derivative of the function according to variable[1]
                     df[1] = getDerivativeByVariable(i, 1);
                     reduceParam.t = df[1];
-                    reduce_t<T>((void*)&reduceParam);
+                    reduce_t<T>(&reduceParam);
                     df[1] = reduceParam.t;
                 }
 
@@ -168,7 +172,7 @@ namespace nmath {
                 elementOnRow = 0;
                 param.values[1] = min[1];
                 while(param.values[1] <= max[1]) {
-                    calc_t<T>((void*)&param);
+                    calc_t<T>(&param);
                     z = param.retv;
 
                     /*
@@ -182,22 +186,22 @@ namespace nmath {
                     /******** Now, calculate the normal vector at x, y, z **************/
                     if(df != nullptr) {
                         dparam0.t = df[0];
-                        dparam0.varCount = variables.size();
+                        dparam0.varCount = (unsigned int)variables.size();
                         dparam0.variables[0] = variables[0]->text;
                         dparam0.variables[1] = variables[1]->text;
                         dparam0.error = 0;
                         dparam0.values[0] = param.values[0];
                         dparam0.values[1] = param.values[1];
-                        calc_t<T>((void*)&dparam0);
+                        calc_t<T>(&dparam0);
 
                         dparam1.t = df[1];
-                        dparam1.varCount = variables.size();
+                        dparam1.varCount = (unsigned int)variables.size();
                         dparam1.variables[0] = variables[0]->text;
                         dparam1.variables[1] = variables[1]->text;
                         dparam1.error = 0;
                         dparam1.values[0] = param.values[0];
                         dparam1.values[1] = param.values[1];
-                        calc_t<T>((void*)&dparam1);
+                        calc_t<T>(&dparam1);
 
                         // TODO: Check here
                         if(needNormalizeNormalVector) {
@@ -276,7 +280,7 @@ namespace nmath {
                 for (i = 0; i < domain.size(); i++) {
                     c = nullptr;
                     if (domain[i] != nullptr) {
-                        c = nmath::buildCriteria(domain[i]);
+                        c = buildCriteria(domain[i]);
                         //atemp to normalize criteria so that it hold criteria for all variable in every it's element
                         if ( (c!=nullptr) && c->getCClassType() == COMPOSITE &&
                              ((CompositeCriteria<T>*)c)->logicOperator() == OR) {
@@ -458,7 +462,7 @@ namespace nmath {
                 i++;
             }
             rp.varCount = variables.size();
-            calc_t<T>((void*)&rp);
+            calc_t<T>(&rp);
             this->errorCode = rp.error;
             return rp.retv;
         }
@@ -486,7 +490,7 @@ namespace nmath {
                         param.values[0] = inputInterval[0];
                         param.t = this->prefix[0];
                         while (param.values[0] <= inputInterval[1]) {
-                            calc_t<T>((void*)&param);
+                            calc_t<T>(&param);
                             y = param.retv;
 
                             sp->addData(param.values[0]);
@@ -498,7 +502,7 @@ namespace nmath {
 
                         if ((lastX < inputInterval[1]) && (param.values[0] > inputInterval[1])) {
                             param.values[0] = inputInterval[1];
-                            calc_t<T>((void*)&param);
+                            calc_t<T>(&param);
                             y = param.retv;
                             sp->addData(param.values[0]);
                             sp->addData(y);
@@ -533,7 +537,7 @@ namespace nmath {
                             param.t = prefix[0];
                             rightVal = sc->getRightValue();
                             while (param.values[0] <= rightVal) {
-                                calc_t<T>((void*)&param);
+                                calc_t<T>(&param);
                                 y = param.retv;
                                 sp->addData(param.values[0]);
                                 sp->addData(y);
@@ -544,7 +548,7 @@ namespace nmath {
 
                             if ((lastX < rightVal) && (param.values[0] > rightVal)) {
                                 param.values[0] = rightVal;
-                                calc_t<T>((void*)&param);
+                                calc_t<T>(&param);
                                 y = param.retv;
                                 sp->addData(param.values[0]);
                                 sp->addData(y);
@@ -580,7 +584,7 @@ namespace nmath {
 
                                 if ((lastX < rightVal) && (param.values[0] > rightVal)) {
                                     param.values[0] = rightVal;
-                                    calc_t<T>((void*)&param);
+                                    calc_t<T>(&param);
                                     y = param.retv;
                                     sp->addData(param.values[0]);
                                     sp->addData(y);

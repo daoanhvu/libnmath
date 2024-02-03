@@ -257,7 +257,7 @@ namespace nmath {
 
             case E_TYPE:
                 ast = nmastPool->get();
-                ast->value = E;
+                ast->value = (T)E;
                 ast->text = "e";
                 ast->type = E_TYPE;
                 ast->column = tk->column;
@@ -267,7 +267,7 @@ namespace nmath {
 
             case PI_TYPE:
                 ast = nmastPool->get();
-                ast->value = PI;
+                ast->value = (T)PI;
                 ast->text = "3.14159";
                 ast->type = PI_TYPE;
                 ast->column = tk->column;
@@ -486,7 +486,7 @@ namespace nmath {
         auto isEndExp = false;
         int i, index, top = -1, allocLen=0;
         Token* tk = nullptr;
-        double val = 0, val2 = 0;
+        T val = 0, val2 = 0;
         Token **stack = nullptr;
         Token *tokenItm = nullptr;
         NMAST<T> *ast;
@@ -543,14 +543,14 @@ namespace nmath {
                             }
                             break;
                         case PI_TYPE:
-                            val = PI;
+                            val = (T)PI;
                             break;
                         case E_TYPE:
-                            val = E;
+                            val = (T)E;
                             break;
 
                         default:
-                            val = 0;
+                            val = (T)0;
                     }
 
                     ast = nmastPool->get();
@@ -722,10 +722,10 @@ namespace nmath {
                                     break;
 
                                 case PI_TYPE:
-                                    val = PI;
+                                    val = (T)PI;
                                     break;
                                 case E_TYPE:
-                                    val = E;
+                                    val = (T)E;
                                     break;
                             }
 
@@ -744,10 +744,10 @@ namespace nmath {
                                     break;
 
                                 case PI_TYPE:
-                                    val2 = PI;
+                                    val2 = (T)PI;
                                     break;
                                 case E_TYPE:
-                                    val2 = E;
+                                    val2 = (T)E;
                                     break;
                             }
                             /* ========END parsing floating point values=====*/
@@ -876,10 +876,10 @@ namespace nmath {
                 break;
 
             case PI_TYPE:
-                val1 = PI;
+                val1 = (T)PI;
                 break;
             case E_TYPE:
-                val1 = E;
+                val1 = (T)E;
                 break;
             default:
                 val1 = (T)0;
@@ -895,10 +895,10 @@ namespace nmath {
                 break;
 
             case PI_TYPE:
-                val2 = PI;
+                val2 = (T)PI;
                 break;
             case E_TYPE:
-                val2 = E;
+                val2 = (T)E;
                 break;
 
             default:

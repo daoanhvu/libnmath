@@ -14,6 +14,7 @@ option(LIBTYPE SHARED)
 option(ADDTESTS off)
 
 include_directories(${PROJECT_SOURCE_DIR}/include )
+
 set( NMATH_SRC
     ${PROJECT_SOURCE_DIR}/src/nlablexer.cpp
     ${PROJECT_SOURCE_DIR}/src/internal_common.cpp
@@ -36,7 +37,7 @@ elseif ("${TARGET}" STREQUAL "Linux")
 	add_library(nmath2 ${LIBTYPE} ${NMATH_SRC})
 	target_link_libraries(nmath2 pthread)
 elseif ("${TARGET}" STREQUAL "Windows")
-	# Windows
+	add_definitions(-D_NO_THREAD)
 	add_library(nmath2 ${LIBTYPE} ${NMATH_SRC})
 else()
 	message("Invalid target!!!")

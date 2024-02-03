@@ -186,7 +186,7 @@ namespace nmath {
     void ImageData<T>::generateIndices() {
         unsigned short count = 0;
         indices.clear();
-        int rowCount = rowInfo.size();
+        int rowCount = (int)rowInfo.size();
         int orientation = 0;
         unsigned int count_pass = 0;
         for(int i=0; i<rowCount-1; i++) {
