@@ -38,7 +38,25 @@ namespace nmath {
 
     template <typename T>
     Complex<T>& operator +(double r, const Complex<T>& c) {
-        Complex result(0, 0);
+        Complex result((T)r + c.real, c.image);
+        return result;
+    }
+
+    template <typename T>
+    Complex<T>& operator +(float r, const Complex<T>& c) {
+        Complex result((T)r + c.real, c.image);
+        return result;
+    }
+
+    template <typename T>
+    Complex<T>& operator +(const Complex<T>& c, double r) {
+        Complex result((T)r + c.real, c.image);
+        return result;
+    }
+
+    template <typename T>
+    Complex<T>& operator +(const Complex<T>& c1, const Complex<T>& c2) {
+        Complex result(c1.real + c2.real, c1.image + c2.image);
         return result;
     }
 }

@@ -4,3 +4,6 @@ include/.DS_Store
 src/.DS_Store
 alogirithms/ouput
 output/
+build/
+TankGame/TankGame/Debug/*
+TankGame/.vs/

@@ -7,7 +7,7 @@
 
 #define POOL_CAPACITY 32
 
-#ifdef _ADEBUG
+#ifdef ANDROID_DEBUG
 	#include <android/log.h>
 	#define LOG_TAG "NMATH_COMMON"
 	#define LOG_LEVEL 10
@@ -15,35 +15,34 @@
 	#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
 #endif
 
-using namespace nmath;
+namespace nmath {
+	const int FUNCTIONS[] = {SIN, COS, TAN, COTAN, ASIN, ACOS, ATAN, LOG, LN, SQRT};
+	const int FUNCTION_COUNT = 10;
 
-const int FUNCTIONS[] = {SIN, COS, TAN, COTAN, ASIN, ACOS, ATAN, LOG, LN, SQRT};
-const int FUNCTION_COUNT = 10;
+	const int OPERATORS[] = {PLUS,MINUS,MULTIPLY,DIVIDE,POWER};
+	const int OPERATOR_COUNT = 5;
 
-const int OPERATORS[] = {PLUS,MINUS,MULTIPLY,DIVIDE,POWER};
-const int OPERATOR_COUNT = 5;
+	const int COMPARING_OPERATORS[] = {LT,LTE,EQ,GT,GTE};
+	const int COMPARING_OPERATORS_COUNT = 5;
 
-const int COMPARING_OPERATORS[] = {LT,LTE,EQ,GT,GTE};
-const int COMPARING_OPERATORS_COUNT = 5;
+	#ifdef DEBUG
+	int gNumberOfDynamicObject = 0;
+	int numberOfDynamicObject(){
+		return gNumberOfDynamicObject;
+	}
+	void incNumberOfDynamicObject(){
+		gNumberOfDynamicObject++;
+	}
+	void descNumberOfDynamicObject(){
+		gNumberOfDynamicObject--;
+	}
+	void descNumberOfDynamicObjectBy(int k){
+		gNumberOfDynamicObject -= k;
+	}
+	#endif
 
-#ifdef DEBUG
-int gNumberOfDynamicObject = 0;
-int numberOfDynamicObject(){
-	return gNumberOfDynamicObject;
-}
-void incNumberOfDynamicObject(){
-	gNumberOfDynamicObject++;
-}
-void descNumberOfDynamicObject(){
-	gNumberOfDynamicObject--;
-}
-void descNumberOfDynamicObjectBy(int k){
-	gNumberOfDynamicObject -= k;
-}
-#endif
-
-/** internal use */
-int nmath::pushASTStack(NMASTList *sk, NMAST* ele) {
+	/** internal use */
+int pushASTStack(NMASTList *sk, NMAST* ele) {
 	NMAST** tmpP;
 
 	if(sk == NULL)
@@ -70,7 +69,7 @@ int nmath::pushASTStack(NMASTList *sk, NMAST* ele) {
 }
 
 /** internal use */
-NMAST* nmath::popASTStack(NMASTList *sk){
+NMAST* popASTStack(NMASTList *sk){
 	NMAST* ele;
 	if(sk == NULL || sk->size == 0)
 		return NULL;
@@ -80,7 +79,7 @@ NMAST* nmath::popASTStack(NMASTList *sk){
 }
 
 
-int nmath::isPrime(long n){
+int isPrime(long n){
 	long i, sq;
 	if(n<2) return 0;
 	if(n==2) return 1;
@@ -91,132 +90,132 @@ int nmath::isPrime(long n){
 	return 1;
 }
 
-/* Greatest Common Divisor*/
-long nmath::gcd(long a, long b){
-	long c;
-	while(a !=0 ){
-		c = a;
-		a = b % a;
-		b = c;
-	}
-	return b;
-}
-
-long nmath::lcm(long a, long b){
-	return (a*b)/nmath::gcd(a, b);
-}
-
-double nmath::parseDouble(const char *str, int start, int end, int *error){
-	int i;
-	double val = 0;
-	char isFloatingPoint = 0;
-	long floating = 1;
-	char negative = 1;
-
-	*error = -1;
-	if(str == NULL)
-		return 0;
-		
-	if(str[start] == '-'){
-		negative = -1;
-		start++;
+	/* Greatest Common Divisor*/
+	long gcd(long a, long b){
+		long c;
+		while(a !=0 ){
+			c = a;
+			a = b % a;
+			b = c;
+		}
+		return b;
 	}
 
-	for(i=start; i<end; i++){
+	long lcm(long a, long b){
+		return (a*b)/nmath::gcd(a, b);
+	}
 
-		if(str[i]=='\0')
+	double parseDouble(const char *str, int start, int end, int *error){
+		int i;
+		double val = 0;
+		char isFloatingPoint = 0;
+		long floating = 1;
+		char negative = 1;
+
+		*error = -1;
+		if(str == NULL)
 			return 0;
+			
+		if(str[start] == '-'){
+			negative = -1;
+			start++;
+		}
 
-		if((str[i]<48) || (str[i]>57)){
-			if( str[i] == 46 && isFloatingPoint==0)
-				isFloatingPoint = 1;
-			else{
-				*error = ERROR_PARSE;
-				/*printf(" Floating point ERROR F\n");*/
+		for(i=start; i<end; i++){
+
+			if(str[i]=='\0')
 				return 0;
+
+			if((str[i]<48) || (str[i]>57)){
+				if( str[i] == 46 && isFloatingPoint==0)
+					isFloatingPoint = 1;
+				else{
+					*error = ERROR_PARSE;
+					/*printf(" Floating point ERROR F\n");*/
+					return 0;
+				}
+			}else{
+				if(isFloatingPoint){
+					floating *= 10;
+					val = val + (double)(str[i] - 48)/floating;
+				}else
+					val = val * 10 + (str[i] - 48);
 			}
-		}else{
-			if(isFloatingPoint){
-				floating *= 10;
-				val = val + (double)(str[i] - 48)/floating;
-			}else
-				val = val * 10 + (str[i] - 48);
+		}
+		(*error) = 0;
+		return val*negative;
+	}
+
+	void clearTree(NMAST **prf){
+		
+		if((*prf) == NULL)
+			return;
+		
+		if((*prf)->left != NULL)
+			nmath::clearTree(&((*prf)->left));
+		if((*prf)->right != NULL)
+			nmath::clearTree(&((*prf)->right));
+			
+		free(*prf);
+		(*prf) = NULL;
+	}
+
+	void clearTreeContent(NMAST *prf){
+		if(prf == NULL)
+			return;
+		
+		if(prf->left != NULL){
+			nmath::clearTreeContent(prf->left);
+			free(prf->left);
+			prf->left = NULL;
+		}
+
+		if(prf->right != NULL){
+			nmath::clearTreeContent(prf->right);
+			free(prf->right);
+			prf->right = NULL;
 		}
 	}
-	(*error) = 0;
-	return val*negative;
-}
 
-void nmath::clearTree(NMAST **prf){
-	
-	if((*prf) == NULL)
-		return;
-	
-	if((*prf)->left != NULL)
-		nmath::clearTree(&((*prf)->left));
-	if((*prf)->right != NULL)
-		nmath::clearTree(&((*prf)->right));
-		
-	free(*prf);
-	(*prf) = NULL;
-}
-
-void nmath::clearTreeContent(NMAST *prf){
-	if(prf == NULL)
-		return;
-	
-	if(prf->left != NULL){
-		nmath::clearTreeContent(prf->left);
-		free(prf->left);
-		prf->left = NULL;
+	long l_cast(double val, double *fr){
+		(*fr) = val - (long)val;
+		return (long)val;
 	}
 
-	if(prf->right != NULL){
-		nmath::clearTreeContent(prf->right);
-		free(prf->right);
-		prf->right = NULL;
+	int l_castF(float val, float *fr){
+		(*fr) = val - (int)val;
+		return (int)val;
 	}
-}
 
-long nmath::l_cast(double val, double *fr){
-	(*fr) = val - (long)val;
-	return (long)val;
-}
+	int contains(int type, const int *aset, int len){
+		int i;
+		for(i=0; i<len; i++)
+			if(type == aset[i])
+				return TRUE;
+		return FALSE;
+	}
 
-int nmath::l_castF(float val, float *fr){
-	(*fr) = val - (int)val;
-	return (int)val;
-}
+	double logab(double a, double b, int *error){
+		(*error) = 0;
+		if( (b > 0.0) && (a > 0.0) && (a != 1.0))
+			return log(b)/log(a);
 
-int nmath::contains(int type, const int *aset, int len){
-	int i;
-	for(i=0; i<len; i++)
-		if(type == aset[i])
-			return TRUE;
-	return FALSE;
-}
-
-double nmath::logab(double a, double b, int *error){
-	(*error) = 0;
-	if( (b > 0.0) && (a > 0.0) && (a != 1.0))
-		return log(b)/log(a);
-
-	(*error) = ERROR_LOG;
-	return 0;
-}
+		(*error) = ERROR_LOG;
+		return 0;
+	}
 
 
-float nmath::logabF(float a, float b, int *error){
-	(*error) = 0;
-	if( (b > 0.0f) && (a > 0.0f) && (a != 1.0f))
-		return log(b)/log(a);
+	float logabF(float a, float b, int *error){
+		(*error) = 0;
+		if( (b > 0.0f) && (a > 0.0f) && (a != 1.0f))
+			return log(b)/log(a);
 
-	(*error) = ERROR_LOG;
-	return 0;
-}
+		(*error) = ERROR_LOG;
+		return 0;
+	}
 
 
-char nmath::getPriorityOfType(int type) {
+char getPriorityOfType(int type) {
 	switch(type){
 		case OR:
 			return (char)1;
@@ -256,7 +255,7 @@ char nmath::getPriorityOfType(int type) {
 	}
 }
 
-double nmath::doCalculate(double val1, double val2, int type, int *error) {
+double doCalculate(double val1, double val2, int type, int *error) {
 	(*error) = 0;
 	switch(type){
 		case PLUS:
@@ -336,7 +335,7 @@ double nmath::doCalculate(double val1, double val2, int type, int *error) {
 	return 0;
 }
 
-float nmath::doCalculateF(float val1, float val2, int type, int *error) {
+float doCalculateF(float val1, float val2, int type, int *error) {
 	(*error) = 0;
 	switch(type){
 		case PLUS:
@@ -556,3 +555,4 @@ std::ostream& nmath::printNMAST(const NMAST *ast, int level, std::ostream& os) {
 	return os;
 }
 #endif
+}

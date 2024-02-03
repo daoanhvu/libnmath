@@ -19,7 +19,7 @@ namespace nmath {
     class NMASTPool {
     private:
         int gPoolSize = 0;
-        nmath::NMAST<T>* AST_POOL[POOL_CAPACITY];
+        NMAST<T>* AST_POOL[POOL_CAPACITY];
 #ifdef _WIN32
         HANDLE poolMutex;
 #else
@@ -38,6 +38,10 @@ namespace nmath {
         }
 
         virtual ~NMASTPool() {
+            clear();
+        }
+
+        void clear() {
 #ifdef _WIN32
             WaitForSingleObject(poolMutex,INFINITE);
 #else
@@ -53,11 +57,11 @@ namespace nmath {
 #ifdef _WIN32
 #else
             pthread_mutex_unlock(&poolMutex);
-#endif
+#endif            
         }
 
         NMAST<T>* get() {
-            nmath::NMAST<T> *node;
+            NMAST<T> *node;
 
 #ifdef _WIN32
             WaitForSingleObject(poolMutex,INFINITE);
