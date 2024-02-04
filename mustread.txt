@@ -1,3 +1,8 @@
+BUILD WITH CMAKE:
+    cd build
+    cmake .. -DLIBTYPE=STATIC -DADDTESTS=on -DNO_THREAD=yes -DTARGET=Windows
+    cmake --build . --config Release
+
 http://www.gametutorials.com/tutorials/opengl-tutorials/
 http://www.swiftless.com/tutorials/opengl4/1-opengl-window.html
 https://github.com/PatrickChin/Gema/blob/master/winmain.cpp
