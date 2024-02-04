@@ -15,7 +15,7 @@ namespace nmath {
 
     template <typename T>
     void clearPool() {
-        gPool.clear();
+        gPool<T>.clear();
     }
 
     template <typename T>

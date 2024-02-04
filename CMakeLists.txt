@@ -34,6 +34,7 @@ elseif ("${TARGET}" STREQUAL "macOS")
 	add_library(nmath2 ${LIBTYPE} ${NMATH_SRC})
 	target_link_libraries(nmath2 pthread)
 elseif ("${TARGET}" STREQUAL "Linux")
+	add_definitions(-D_NO_THREAD)
 	add_library(nmath2 ${LIBTYPE} ${NMATH_SRC})
 	target_link_libraries(nmath2 pthread)
 elseif ("${TARGET}" STREQUAL "Windows")
@@ -48,13 +49,14 @@ if( DEFINED ADDTESTS )
 	include_directories(
 		${PROJECT_SOURCE_DIR}/include
 		${PROJECT_SOURCE_DIR}/test
+		${PROJECT_SOURCE_DIR}/../../../programs/glm-0.9.9.8/glm
 	)
-	set( TEST_SRC
+	set( TESTGL_SRC
 		${PROJECT_SOURCE_DIR}/src/logging.cpp
 		${PROJECT_SOURCE_DIR}/test/testNLabLexer.cpp
 	)
-	add_executable(testNLabLexer ${TEST_SRC})
-	target_link_libraries(testNLabLexer nmath2)
+	add_executable(testGL ${TESTGL_SRC})
+	target_link_libraries(testGL OpenGL GL glfw GLEW glut nmath2)
 
 	include_directories(
 		${PROJECT_SOURCE_DIR}/include
