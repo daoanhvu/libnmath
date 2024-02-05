@@ -47,25 +47,28 @@ struct FuncitonInputData {
 
 // Shader Program
 GLuint shaderProgram;
+const GLuint POSITION_LOCATION = 0;
+const GLuint NORMAL_LOCATION = 1;
+const GLuint COLOR_LOCATION = 2;
 
 // Window dimensions
-const GLuint WIDTH = 800, HEIGHT = 600;
+GLuint gWindowWidth = 800;
+GLuint gWindowHeight = 600;
 
 // Mouse movement variables
-float lastX = WIDTH / 2.0f;
-float lastY = HEIGHT / 2.0f;
+float lastX = gWindowWidth / 2.0f;
+float lastY = gWindowHeight / 2.0f;
 float pitch = 0.0f;
 float yaw = -90.0f;
 bool firstMouse = true;
 
 // Camera front vector
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-
 // Camera position
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-
 // Camera up vector
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+glm::mat4 gProjection;
 
 void mouseCallback(GLFWwindow *window, double xpos, double ypos) {
     
@@ -104,6 +107,9 @@ void mouseCallback(GLFWwindow *window, double xpos, double ypos) {
 }
 
 void framebufferSizeCallback(GLFWwindow *window, int width, int height) {
+    gWindowWidth = width;
+    gWindowHeight = height;
+    gProjection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 100.0f);
     glViewport(0, 0, width, height);
 }
 
@@ -151,12 +157,15 @@ int main(int argc, const char* argv[]) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Create a GLFW windows
-    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "NautilusMath Demo", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(gWindowWidth, gWindowHeight, "NautilusMath Demo", nullptr, nullptr);
     if (window == nullptr) {
         std::cerr << "Could not create windows" << std::endl;
         glfwTerminate();
         return -1;
     }
+    // Set up the view matrix and projection matrix (you might want to set these up according to your needs)
+    glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+    gProjection = glm::perspective(glm::radians(45.0f), (float)gWindowWidth / (float)gWindowHeight, 0.1f, 100.0f);
 
     // Make the window context current
     glfwMakeContextCurrent(window);
@@ -231,10 +240,26 @@ int main(int argc, const char* argv[]) {
     }
 
     std::vector<VBO *> vboObjects(spaces.size());
+    for (int i=0; i<spaces.size(); i++) {
+        vboObjects[i] = new VBO(spaces[i], POSITION_LOCATION, COLOR_LOCATION, NORMAL_LOCATION);
+    }
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
+        // Process events
+        glfwPollEvents();
+        // Clear the color buffer and depth buffer
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // Use the shader program
+        glUseProgram(shaderProgram);
 
+        for (int i=0; i<vboObjects.size(); i++) {
+            vboObjects[i]->render();
+        }
+
+        // Swap the buffers
+        glfwSwapBuffers(window);
     }
 
     // Cleanup

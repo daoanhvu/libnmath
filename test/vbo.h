@@ -12,8 +12,9 @@ const int stride4FloatInByte = 4 * sizeof(float);
 class VBO {
     private:
         GLuint vaoId;
-        // position, color and element bufferId
-        GLuint bufferIds[3];
+        // position, color bufferId
+        GLuint positionColorBufferIds[2];
+        GLuint elementBufferId;
         float *vertices;
         short *indices;
         int indexCount;
@@ -21,17 +22,26 @@ class VBO {
         int verticeCount;
         GLsizei strideInByte;
 
+        // shader's variables locations
+        GLuint positionLocation;
+        GLuint colorLocation;
+        GLuint normalLocation;
+
     public:
-        VBO(nmath::ImageData<float> &imageData) {
+        VBO(const nmath::ImageData<float> *imageData, GLuint posLocation, GLuint cLocation, GLuint norLocation) {
             int positionOffset = 0;
             int colorOffset = 3 * sizeof(float);
-            int normalOffset = 6 * sizeof(float);	
+            int normalOffset = 6 * sizeof(float);
 
-            unsigned int *indices;
-            unsigned int buff_len;
+            this->positionLocation = posLocation;
+            this->colorLocation = cLocation;
+            this->normalLocation = norLocation;
+
+            
             int floatStride = 9;
-            //TODO
-            float *verticesBufferData = nullptr;
+            //TODO: generate vertices from ImageData object
+            float *verticesBufferData = imageData->getData();
+            float *verticesColorData = imageData->getColors();
 
             //Bind position, color, normal
             strideInByte = floatStride * sizeof(float);
@@ -39,12 +49,19 @@ class VBO {
             glGenVertexArrays(1, &vaoId);
             glBindVertexArray(vaoId);
 
-            glGenBuffers(3, &bufferIds);
-            glBindBuffer(GL_ARRAY_BUFFER, bufferIds[0]);
+            glGenBuffers(2, positionColorBufferIds);
+            glBindBuffer(GL_ARRAY_BUFFER, positionColorBufferIds[0]);
             glBufferData(GL_ARRAY_BUFFER, verticeCount * strideInByte, verticesBufferData, GL_STATIC_DRAW);
 
-            glEnableVertexAttribArray(location.positionLocation);
-	        glVertexAttribPointer(location.positionLocation, //Attribute index
+            unsigned int *indices;
+            unsigned int indexLen;
+            glGenBuffers(1, &elementBufferId);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferId);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexLen * sizeof(unsigned short), indices , GL_STATIC_DRAW);
+            delete[] indices;
+
+            glEnableVertexAttribArray(posLocation);
+	        glVertexAttribPointer(posLocation, //Attribute index
 				3,  //Number of component per this attribute of vertex
 				GL_FLOAT,
 				GL_FALSE,
@@ -52,8 +69,8 @@ class VBO {
 				//(void*)(uintptr_t)0); //TODO:Hard code here!!!!!
 				reinterpret_cast<void*>(positionOffset));
 
-            glEnableVertexAttribArray(location.colorLocation);
-		    glVertexAttribPointer(location.colorLocation, //Attribute index
+            glEnableVertexAttribArray(posLocation);
+		    glVertexAttribPointer(colorLocation, //Attribute index
 			3,  //Number of component per vertex
 			GL_FLOAT,
 			GL_FALSE,
@@ -61,8 +78,8 @@ class VBO {
 			// (void*)(uintptr_t)colorOffset);
 			reinterpret_cast<void*>(colorOffset));
 
-            glEnableVertexAttribArray(location.normalLocation);
-		    glVertexAttribPointer(location.normalLocation, //Attribute index
+            glEnableVertexAttribArray(normalLocation);
+		    glVertexAttribPointer(normalLocation, //Attribute index
 					3,  //Number of component per vertex
 					GL_FLOAT,
 					GL_FALSE,
@@ -81,48 +98,48 @@ class VBO {
                 verticeCount = 0;
             }
             glDeleteVertexArrays(1, &vaoId);
-            glDeleteBuffers(1, &vboId);
+            glDeleteBuffers(2, positionColorBufferIds);
         }
 
         void render() {
-            glBindBuffer(GL_ARRAY_BUFFER, bufferIds[0]);
-            glEnableVertexAttribArray(shaderVarLocation.positionLocation);
-            glVertexAttribPointer(shaderVarLocation.positionLocation, //Attribute index
+            glBindBuffer(GL_ARRAY_BUFFER, positionColorBufferIds[0]);
+            glEnableVertexAttribArray(positionLocation);
+            glVertexAttribPointer(positionLocation, //Attribute index
                         3,  //Number of component per this attribute of vertex
                         GL_FLOAT,
                         GL_FALSE,
                         stride3FloatInByte,
                         reinterpret_cast<void*>(0));
 
-            glEnableVertexAttribArray(shaderVarLocation.normalLocation);
-            glVertexAttribPointer(shaderVarLocation.normalLocation, //Attribute index
+            glEnableVertexAttribArray(normalLocation);
+            glVertexAttribPointer(normalLocation, //Attribute index
                         3,  //Number of component per normal vector
                         GL_FLOAT,
                         GL_FALSE,
                         stride3FloatInByte,
                         reinterpret_cast<void*>(3));
 
-            glBindBuffer(GL_ARRAY_BUFFER, bufferIds[1]);
-            glEnableVertexAttribArray(shaderVarLocation.colorLocation);
-            glVertexAttribPointer(shaderVarLocation.colorLocation, //Attribute index
+            glBindBuffer(GL_ARRAY_BUFFER, positionColorBufferIds[1]);
+            glEnableVertexAttribArray(colorLocation);
+            glVertexAttribPointer(colorLocation, //Attribute index
                     4,  //Number of component per color. We have red, green, blue and alpha
                     GL_FLOAT,
                     GL_FALSE,
                     stride4FloatInByte,
                     0);
             // Bind buffer for indices
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferIds[0]);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferId);
             glDrawElements(
-                    GL_TRIANGLE_TRIP,      // mode
-                    indexCount,    // count
-                    GL_UNSIGNED_SHORT,   // type
+                    GL_TRIANGLE_STRIP,  // mode
+                    indexCount,         // count
+                    GL_UNSIGNED_SHORT,  // type
                     NULL);
 
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glDisableVertexAttribArray(shaderVarLocation.positionLocation);
-            glDisableVertexAttribArray(shaderVarLocation.normalLocation);
-            glDisableVertexAttribArray(shaderVarLocation.colorLocation);
+            glDisableVertexAttribArray(positionLocation);
+            glDisableVertexAttribArray(normalLocation);
+            glDisableVertexAttribArray(colorLocation);
         }
 };
 

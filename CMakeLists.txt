@@ -83,8 +83,7 @@ if( DEFINED ADDTESTS )
 			${PROJECT_SOURCE_DIR}/../../../programs/glm-0.9.9.8/glm
 		)
 		set( TESTGL_SRC
-			${PROJECT_SOURCE_DIR}/src/logging.cpp
-			${PROJECT_SOURCE_DIR}/test/testNLabLexer.cpp
+			${PROJECT_SOURCE_DIR}/test/testglm.cpp
 		)
 		add_executable(testGL ${TESTGL_SRC})
 		target_link_libraries(testGL OpenGL GL glfw GLEW nmath2)

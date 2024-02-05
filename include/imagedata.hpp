@@ -4,10 +4,17 @@
 #include <iostream>
 #include <vector>
 
+
+void intColorToFloats(int color, float colors[4]) {
+    const float MAX_COLOR_VALUE = 255.0f;
+    colors[0] = (color & 0xFF) / MAX_COLOR_VALUE;
+    colors[1] = ((color >> 8) & 0xFF) / MAX_COLOR_VALUE;
+    colors[2] = ((color >> 16) & 0xFF) / MAX_COLOR_VALUE;
+    colors[3] = ((color >> 24) & 0xFF) / MAX_COLOR_VALUE;
+}
 /**
  *   This class is used to support OpenGL to generate vertices for rendering   
  */
-
 namespace nmath {
     template <typename T>
 	class ImageData {
@@ -41,6 +48,7 @@ namespace nmath {
 
         }
 
+        // TODO: Should I hold colors like this, it takes memory
         void setColor(int color) {
             const float MAX_COLOR_VALUE = 255.0f;
             float red = (color & 0xFF) / MAX_COLOR_VALUE;
@@ -83,15 +91,28 @@ namespace nmath {
             return size;
         }
 
-        unsigned int copyColorTo(float* anArray) {
-            float* source = &colors[0];
-            unsigned int size = colors.size();
-            memcpy(anArray, source, size * sizeof(float));
+        unsigned int copyDataWithColorTo(int color, T* anArray) {
+            float* source = &data[0];
+            float colors[4];
+            unsigned int  float4Size = 4 * sizeof(float);
+            intColorToFloats(color, colors);
+            unsigned int size = data.size();
+            int stride = size / vertexCount;
+            unsigned int  strideTSize = stride * sizeof(T);
+            for (auto i=0; i<vertexCount; i++) {
+                auto index = i * stride;
+                memcpy(anArray + index, source + index, strideTSize);
+                memcpy(anArray + index + stride, colors, float4Size);
+            }
             return size;
         }
 
         T* getData() {
-            return &data[0];
+            return data.data();
+        }
+
+        float* getColors() const {
+            return &colors[0];
         }
 
         void addRow(int elementOnNewRow) {
