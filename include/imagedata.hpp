@@ -23,11 +23,8 @@ namespace nmath {
         short dimension;
         // This is the offset of normal vector in a data tube
         short normalOffset;
-        std::vector<unsigned short> indices;
-
         // This is vertices data
         std::vector<T> data;
-        std::vector<float> colors;
         /**
 		 * rowInfo holds the number of element on each row
 		 * rowCount is the number of row
@@ -48,28 +45,11 @@ namespace nmath {
 
         }
 
-        // TODO: Should I hold colors like this, it takes memory
-        void setColor(int color) {
-            const float MAX_COLOR_VALUE = 255.0f;
-            float red = (color & 0xFF) / MAX_COLOR_VALUE;
-            float green = ((color >> 8) & 0xFF) / MAX_COLOR_VALUE;
-            float blue = ((color >> 16) & 0xFF) / MAX_COLOR_VALUE;
-            float alpha = ((color >> 24) & 0xFF) / MAX_COLOR_VALUE;
-
-            auto vc = data.size() / this->dimension;
-            for(auto i=0; i<vc; i++) {
-                colors.push_back(red);
-                colors.push_back(green);
-                colors.push_back(blue);
-                colors.push_back(alpha);
-            }
-        }
-
         void calculateVertexCount() {
             this->vertexCount = data.size() / this->dimension;
         }
 
-        unsigned int getVertexCount() {
+        unsigned int getVertexCount() const {
             return vertexCount;
         }
 
@@ -84,15 +64,8 @@ namespace nmath {
             return size;
         }
 
-        unsigned int copyIndicesTo(unsigned short* anArray) {
-            unsigned short* source = &indices[0];
-            unsigned int size = indices.size();
-            memcpy(anArray, source, size * sizeof(unsigned short));
-            return size;
-        }
-
-        unsigned int copyDataWithColorTo(int color, T* anArray) {
-            float* source = &data[0];
+        unsigned int copyDataWithColorTo(int color, T* anArray) const {
+            const T* source = &data[0];
             float colors[4];
             unsigned int  float4Size = 4 * sizeof(float);
             intColorToFloats(color, colors);
@@ -104,15 +77,11 @@ namespace nmath {
                 memcpy(anArray + index, source + index, strideTSize);
                 memcpy(anArray + index + stride, colors, float4Size);
             }
-            return size;
+            return vertexCount * (stride + 4);
         }
 
         T* getData() {
             return data.data();
-        }
-
-        float* getColors() const {
-            return &colors[0];
         }
 
         void addRow(int elementOnNewRow) {
@@ -123,33 +92,33 @@ namespace nmath {
 
         unsigned int getRowCount() { return rowInfo.size(); }
         
-        void generateIndicesForTriangleStrip();
+        unsigned short* generateIndicesForTriangleStrip();
 
-        void generateIndices();
+        unsigned short* generateIndices(unsigned int &len);
 
         void setNormalOffset(int _normalOffset) {
             this->normalOffset = _normalOffset;
         }
 
-        std::vector<unsigned short> getListIndices() const {
-            return indices;
-        }
+        // std::vector<unsigned short> getListIndices() const {
+        //     return indices;
+        // }
 
-        unsigned short* getIndices() {
-            return &indices[0];
-        }
+        // unsigned short* getIndices() const {
+        //     return indices.data();
+        // }
 
-        unsigned int indicesSize() const {
-            return indices.size();
-        }
+        // unsigned int indicesSize() const {
+        //     return indices.size();
+        // }
 
         // This is for testing purpose
         void printIndices(std::ostream &out) {
-            out << std::endl;
-            for(auto i=0; i<indices.size(); i++) {
-                out << " " << indices[i];
-            }
-            out << std::endl;
+            // out << std::endl;
+            // for(auto i=0; i<indices.size(); i++) {
+            //     out << " " << indices[i];
+            // }
+            // out << std::endl;
         }
 	};
 
@@ -174,7 +143,7 @@ namespace nmath {
     }
 
     template <typename T>
-    void ImageData<T>::generateIndicesForTriangleStrip() {
+    unsigned short* ImageData<T>::generateIndicesForTriangleStrip() {
 		// Now build the index data
         int rows = rowInfo.size();
         int cols = rowInfo[0];
@@ -183,7 +152,7 @@ namespace nmath {
 		int verticesPerStrip = 2 * cols;
 		// short[] heightMapIndexData = new short[(verticesPerStrip * numStripsRequired)
 		//         + numDegensRequired];
-		 
+		std::vector<unsigned short> indices;  
 		for (auto y = 0; y<rows-1; y++) {
 			if (y > 0) {
 		        // Degenerate begin: repeat first vertex
@@ -201,12 +170,17 @@ namespace nmath {
 		    	indices.push_back((unsigned short) (((y + 1) * cols) + (cols - 1)));
 		    }
 		}
+
+        unsigned int indSize = sizeof(unsigned short) * indices.size();
+        unsigned short* results = new unsigned short[indices.size()];
+        memcpy(results, indices.data(), indSize);
+        return results;
 	}
 
     template <typename T>
-    void ImageData<T>::generateIndices() {
+    unsigned short* ImageData<T>::generateIndices(unsigned int &len) {
         unsigned short count = 0;
-        indices.clear();
+        std::vector<unsigned short> indices;
         int rowCount = (int)rowInfo.size();
         int orientation = 0;
         unsigned int count_pass = 0;
@@ -296,6 +270,12 @@ namespace nmath {
                 indices.pop_back();
             }
         }
+
+        unsigned int indSize = sizeof(unsigned short) * indices.size();
+        unsigned short* results = new unsigned short[indices.size()];
+        memcpy(results, indices.data(), indSize);
+
+        return results;
     }
 }
 

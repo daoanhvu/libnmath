@@ -111,14 +111,15 @@ void testGenerateIndices(const TestData &test) {
 			for(auto i=0; i<rowCount; i++) {
 				std::cout << "Row[" << i << "]: " <<  imageData->getRowAt(i) << std::endl;
 			}
-			imageData->generateIndices();
-			std::cout << std::endl << "Indices( length = " << imageData->indicesSize() <<  ") " << std::endl;
-			unsigned short *indices = imageData->getIndices();
+			unsigned int indexLen;
+			unsigned short* indices = imageData->generateIndices(indexLen);
+			std::cout << std::endl << "Indices( length = " << indexLen <<  ") " << std::endl;
 			std::cout << "unsigned short indices[] = {";
-			for(auto i=0; i<imageData->indicesSize(); i++) {
+			for(auto i=0; i<indexLen; i++) {
 				std::cout << ", " << indices[i];
 			}
 			std::cout <<"};"<< std::endl;
+			delete[] indices;
 
 			if(imageData->getVertexCount() == test.expectedVertexCount) {
 				auto vertexDataSize = imageData->vertexListSize();
