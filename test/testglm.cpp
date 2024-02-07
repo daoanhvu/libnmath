@@ -12,111 +12,10 @@
 #include <nfunction.hpp>
 #include <SimpleCriteria.hpp>
 #include <imagedata.hpp>
-#include "vbo.h"
+#include <shader.h>
+#include <vbo_mapper.h>
 
 #define NMATH_SUCCESS 0
-
-// Vertex Shader
-const char* vertexShaderSource = R"(
-    #version 330 core
-    layout (location = 0) in vec3 aPos;
-    layout (location = 1) in vec3 vertexNormal_modelspace;
-    layout (location = 2) in vec4 vertexColor;
-    uniform mat4 model;
-    uniform mat4 view;
-    uniform mat4 mvp;
-    uniform vec3 lightPos;
-    uniform vec3 lightColor;
-    uniform int useNormal;
-    
-    // Output data ; will be interpolated for each fragment.
-    out vec3 Position_worldspace;
-    out vec3 Normal_cameraspace;
-    out vec4 Color_vertex;
-    out vec3 EyeDirection_cameraspace;
-    out vec3 LightDirection_cameraspace;
-    out int oUseNormal;
-
-    void main() {
-        gl_Position = mvp * vec4(aPos, 1.0);
-        // Position of the vertex, in worldspace : M * position
-        Position_worldspace = (model * vec4(vertexPosition_modelspace, 1.0)).xyz;
-
-        // Vector that goes from the vertex to the camera, in camera space.
-        // In camera space, the camera is at the origin (0,0,0).
-        vec3 vertexPosition_cameraspace = ( view * model * vec4(vertexPosition_modelspace, 1.0)).xyz;
-        EyeDirection_cameraspace = vec3(0,0,0) - vertexPosition_cameraspace;
-
-        // Vector that goes from the vertex to the light, in camera space. M is ommited because it's identity.
-        vec3 LightPosition_cameraspace = ( view * vec4(lightPos, 1.0)).xyz;
-        LightDirection_cameraspace = LightPosition_cameraspace + EyeDirection_cameraspace;
-
-        oUserNormal = useNormal;
-        if (useNormal == 1) {
-            // Only correct if ModelMatrix does not scale the model ! 
-            // Use its inverse transpose if not.
-            Normal_cameraspace = (view * model * vec4(vertexNormal_modelspace, 0.0)).xyz;
-        }
-
-        Color_vertex = vertexColor;
-    }
-)";
-
-// Fragment Shader
-const char* fragmentShaderSource = R"(
-    #version 330 core
-    in vec3 Position_worldspace;
-    in vec3 Normal_cameraspace;
-    in vec4 Color_vertex;
-    in vec3 EyeDirection_cameraspace;
-    in vec3 LightDirection1_cameraspace;
-    in vec3 LightDirection2_cameraspace;
-    in int oUseNormal;
-
-    // Values that stay constant for the whole mesh.
-    uniform mat4 MV;
-    uniform vec3 lightPos_worldspace;
-    uniform vec3 lightColor;
-
-    struct LightSource {
-        vec3 position_world;
-        vec3 direction_camera;
-        vec3 lightColor;
-        vec3 diffuseColor;
-        vec3 ambientColor;
-        vec3 specularColor;
-    };
-
-    out vec4 FragColor;
-    LightSource light;
-
-    void main() {
-        float LightPower = 20.0f;
-        float specularPower = 10.0f;
-
-        if(oUseNormal == 1) {
-            vec3 MaterialDiffuseColor = Color_vertex;
-            light.position_world = lightPos1_worldspace;
-            light.direction_camera = LightDirection1_cameraspace;
-            light.specularColor = vec3(0.9,0.9,0.9);
-            light.ambientColor = vec3(0.4,0.4,0.4) * MaterialDiffuseColor;
-            light.lightColor = lightColor;
-
-            float distance = length( light.position_world - Position_worldspace );
-            float distance2 = distance * distance;
-            vec3 lightCamNormal = normalize( light.direction_camera );
-            float cosTheta = clamp(dot(n, l), 0, 1);
-            vec3 R = reflect(-lightCamNormal, n);
-            float cosAlpha = clamp( dot( E,R ), 0,1 );
-            vec3 diffuseReflection = MaterialDiffuseColor * light.lightColor * LightPower * cosTheta / distance2;
-            vec3 specularReflection = light.specularColor * light.lightColor * 3 * specularPower * pow(cosAlpha,5) / distance2;
-
-            FragColor = light.lightColor + light.ambientColor * 5.0;
-        } else {
-            FragColor = Color_vertex;
-        }
-    } 
-)";
 
 struct FuncitonInputData {
 
@@ -135,8 +34,8 @@ const GLuint NORMAL_LOCATION = 1;
 const GLuint COLOR_LOCATION = 2;
 
 // Window dimensions
-GLuint gWindowWidth = 800;
-GLuint gWindowHeight = 600;
+GLuint gWindowWidth = 1600;
+GLuint gWindowHeight = 800;
 
 // Mouse movement variables
 float lastX = gWindowWidth / 2.0f;
@@ -216,6 +115,7 @@ std::vector<nmath::ImageData<float>*> generateIndices(const FuncitonInputData &i
 		}
 		return emptySpaces;
 	}
+    std::cout << "Done getting space from function.\n" << std::endl;
 
     return spaces;
 }
@@ -257,47 +157,13 @@ int main(int argc, const char* argv[]) {
         return -1;
     }
 
-    // Vertex Shader
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
-    glCompileShader(vertexShader);
+    glm::mat4 ModelMatrix, MVP;
+	ShaderVarLocation shaderVarLocation;
+	GLuint programID = loadShaders( "shaders/vertex.shader", "shaders/fragment.shader");
 
-    // Check for vertex shader compilation errors
-    int success;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
-        std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-
-    // Fragment Shader
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
-    glCompileShader(fragmentShader);
-
-    // Check for fragment shader compilation errors
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
-        std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-
-    // Shader Program
-    shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    // Check for shader program linking errors
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
-        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-    }
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    shaderVarLocation.pointSizeLocation = 0;
+    shaderVarLocation.normalLocation    = 1;
+    shaderVarLocation.colorLocation     = 2;
 
     //Now, prepare VBO object
     int errorCode = 0;
@@ -309,54 +175,74 @@ int main(int argc, const char* argv[]) {
     f.values[3] = -1.0f;
     f.epsilon = 0.01f;
 
+    // Prepare Coordinator VBO
+    float coordinatorData[] = {
+        0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+
+        0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+
+        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+        };
+    VBO *coordinator = fromDataToVBO(coordinatorData, 6, 6, shaderVarLocation);
+
     std::vector<nmath::ImageData<float>*> spaces = generateIndices(f, errorCode);
 
     if (errorCode != NMATH_SUCCESS) {
+        std::cerr << "Failed calculate spaces from function." << std::endl;
         glDeleteProgram(shaderProgram);
         return -1;
     }
 
+    std::cout << "Number of space generated: " << spaces.size() << std::endl;
+
     std::vector<VBO *> vboObjects(spaces.size());
     for (int i=0; i<spaces.size(); i++) {
-        vboObjects[i] = new VBO(spaces[i], POSITION_LOCATION, COLOR_LOCATION, NORMAL_LOCATION);
+        vboObjects[i] = fromImageDataToVBO(spaces[i], shaderVarLocation);
     }
 
-    GLuint mvpMatrixId = glGetUniformLocation(shaderProgram, "MVP");
-	GLuint viewMatrixId = glGetUniformLocation(shaderProgram, "view");
-	GLuint modelMatrixId = glGetUniformLocation(shaderProgram, "model");
-	GLuint useNormalLocation = glGetUniformLocation(shaderProgram, "useNormal");
-	GLuint lightPos1ID = glGetUniformLocation(shaderProgram, "lightPos_worldspace");
-	GLuint lightColor1ID = glGetUniformLocation(shaderProgram, "lightColor");
+    std::cout << "Getting shader's locations...\n" << std::endl;
+    shaderVarLocation.mvpMatrixId = glGetUniformLocation(shaderProgram, "MVP");
+	shaderVarLocation.viewMatrixId = glGetUniformLocation(shaderProgram, "V");
+	shaderVarLocation.modelMatrixId = glGetUniformLocation(shaderProgram, "M");
+	shaderVarLocation.useNormalLocation = glGetUniformLocation(shaderProgram, "useNormal");
+	shaderVarLocation.lightPos1ID = glGetUniformLocation(shaderProgram, "lightPos_worldspace");
+	shaderVarLocation.lightColor1ID = glGetUniformLocation(shaderProgram, "lightColor");
 
-	glm::vec3 lightPos = glm::vec3(7,7,7);
+	glm::vec3 lightPos = glm::vec3(2.7f,5.0f,4.0f);
 	glm::vec3 lightColor = glm::vec3(0.5f, 0.5f, 0.1f);
+
+    std::cout << "Start render loop...\n" << std::endl;
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
         // Process events
         glfwPollEvents();
         // Clear the color buffer and depth buffer
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         // Use the shader program
         glUseProgram(shaderProgram);
 
-        glUniform3f(lightPos1ID, lightPos.x, lightPos.y, lightPos.z);
-		glUniform3f(lightColor1ID, lightColor.x, lightColor.y, lightColor.z);
+        glUniform3f(shaderVarLocation.lightPos1ID, lightPos.x, lightPos.y, lightPos.z);
+		glUniform3f(shaderVarLocation.lightColor1ID, lightColor.x, lightColor.y, lightColor.z);
 
-		// glUniform1i(shaderVarLocation.useNormalLocation, 10);
-		// glUniform1i(shaderVarLocation.useLightingLocation, 10);
+        // Create a rotation quaternion based on mouse movement
+        glm::quat rotation = glm::quat(glm::vec3(glm::radians(pitch), glm::radians(yaw), 0.0f));
 
-
+        coordinator->render(shaderVarLocation, gProjection, view);
         for (int i=0; i<vboObjects.size(); i++) {
-            vboObjects[i]->render();
+            vboObjects[i]->applyRotation(rotation);
+            vboObjects[i]->render(shaderVarLocation, gProjection, view);
         }
 
         // Swap the buffers
         glfwSwapBuffers(window);
     }
-
-    // Cleanup
+    // Clean up
+    delete coordinator;
     for (int i=0; i<spaces.size(); i++) {
         if (vboObjects[i] != nullptr) {
             delete vboObjects[i];
@@ -364,10 +250,10 @@ int main(int argc, const char* argv[]) {
     }
 
     glDeleteProgram(shaderProgram);
-
+    std::cout << "Going to terminate window...\n" << std::endl;
     // Terminate GLFW
     glfwTerminate();
-
+    std::cout << "Terminated window...\n" << std::endl;
     // Release function data
     for(auto i=0; i< spaces.size(); i++) {
         delete spaces[i];

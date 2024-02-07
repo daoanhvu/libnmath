@@ -3,15 +3,8 @@
 
 #include <iostream>
 #include <vector>
+#include <cstring>
 
-
-void intColorToFloats(int color, float colors[4]) {
-    const float MAX_COLOR_VALUE = 255.0f;
-    colors[0] = (color & 0xFF) / MAX_COLOR_VALUE;
-    colors[1] = ((color >> 8) & 0xFF) / MAX_COLOR_VALUE;
-    colors[2] = ((color >> 16) & 0xFF) / MAX_COLOR_VALUE;
-    colors[3] = ((color >> 24) & 0xFF) / MAX_COLOR_VALUE;
-}
 /**
  *   This class is used to support OpenGL to generate vertices for rendering   
  */
@@ -60,24 +53,30 @@ namespace nmath {
         unsigned int copyDataTo(T* anArray) {
             T* source = &data[0];
             unsigned int size = data.size();
-            memcpy(anArray, source, size * sizeof(T));
+            memcpy(anArray, (void*)source, size * sizeof(T));
             return size;
         }
 
-        unsigned int copyDataWithColorTo(int color, T* anArray) const {
+        unsigned int copyDataWithColorTo(float red, float green, float blue, T* anArray) const {
             const T* source = &data[0];
-            float colors[4];
-            unsigned int  float4Size = 4 * sizeof(float);
-            intColorToFloats(color, colors);
             unsigned int size = data.size();
             int stride = size / vertexCount;
             unsigned int  strideTSize = stride * sizeof(T);
             for (auto i=0; i<vertexCount; i++) {
                 auto index = i * stride;
-                memcpy(anArray + index, source + index, strideTSize);
-                memcpy(anArray + index + stride, colors, float4Size);
+                anArray[index] = source[index];
+                anArray[index + 1] = source[index + 1];
+                anArray[index + 2] = source[index + 2];
+
+                anArray[index + 3] = source[index + 3];
+                anArray[index + 4] = source[index + 4];
+                anArray[index + 5] = source[index + 5];
+
+                anArray[index + 6] = red;
+                anArray[index + 7] = green;
+                anArray[index + 8] = blue;
             }
-            return vertexCount * (stride + 4);
+            return vertexCount * 9;
         }
 
         T* getData() {
@@ -98,27 +97,6 @@ namespace nmath {
 
         void setNormalOffset(int _normalOffset) {
             this->normalOffset = _normalOffset;
-        }
-
-        // std::vector<unsigned short> getListIndices() const {
-        //     return indices;
-        // }
-
-        // unsigned short* getIndices() const {
-        //     return indices.data();
-        // }
-
-        // unsigned int indicesSize() const {
-        //     return indices.size();
-        // }
-
-        // This is for testing purpose
-        void printIndices(std::ostream &out) {
-            // out << std::endl;
-            // for(auto i=0; i<indices.size(); i++) {
-            //     out << " " << indices[i];
-            // }
-            // out << std::endl;
         }
 	};
 
@@ -173,7 +151,7 @@ namespace nmath {
 
         unsigned int indSize = sizeof(unsigned short) * indices.size();
         unsigned short* results = new unsigned short[indices.size()];
-        memcpy(results, indices.data(), indSize);
+        memcpy(results, (void*)(indices.data()), indSize);
         return results;
 	}
 
@@ -273,7 +251,8 @@ namespace nmath {
 
         unsigned int indSize = sizeof(unsigned short) * indices.size();
         unsigned short* results = new unsigned short[indices.size()];
-        memcpy(results, indices.data(), indSize);
+        memcpy(results, (void*)(indices.data()), indSize);
+        len = indices.size();
 
         return results;
     }
