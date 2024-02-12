@@ -29,12 +29,9 @@ struct FuncitonInputData {
 
 // Shader Program
 GLuint shaderProgram;
-const GLuint POSITION_LOCATION = 0;
-const GLuint NORMAL_LOCATION = 1;
-const GLuint COLOR_LOCATION = 2;
 
 // Window dimensions
-GLuint gWindowWidth = 1600;
+GLuint gWindowWidth = 1000;
 GLuint gWindowHeight = 800;
 
 // Mouse movement variables
@@ -50,11 +47,17 @@ glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 // Camera up vector
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+glm::vec3 centerPos = glm::vec3(0.0f, 0.0f, 0.0f);
 glm::mat4 gProjection;
+const auto xAxis = glm::vec3(1.0f, 0.0f, 0.0f);
+const auto yAxis = glm::vec3(0.0f, 1.0f, 0.0f);
+const auto zAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 
 void mouseCallback(GLFWwindow *window, double xpos, double ypos) {
     
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) != GLFW_PRESS) {
+        lastX = xpos;
+        lastY = ypos;
         return;
     }
 
@@ -141,7 +144,7 @@ int main(int argc, const char* argv[]) {
         return -1;
     }
     // Set up the view matrix and projection matrix (you might want to set these up according to your needs)
-    glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+    glm::mat4 view = glm::lookAt(cameraPos, centerPos, cameraUp);
     gProjection = glm::perspective(glm::radians(45.0f), (float)gWindowWidth / (float)gWindowHeight, 0.1f, 100.0f);
 
     // Make the window context current
@@ -159,9 +162,15 @@ int main(int argc, const char* argv[]) {
 
     glm::mat4 ModelMatrix, MVP;
 	ShaderVarLocation shaderVarLocation;
-	GLuint programID = loadShaders( "shaders/vertex.shader", "shaders/fragment.shader");
+	shaderProgram = loadShaders( "shaders/vertex_test.shader", "shaders/fragment_test.shader");
 
-    shaderVarLocation.pointSizeLocation = 0;
+    if (shaderProgram == GL_ZERO) {
+        glfwTerminate();
+        std::cerr << "Load shaders FAILED!" << std::endl;
+        return -1;
+    }
+
+    shaderVarLocation.positionLocation  = 0;
     shaderVarLocation.normalLocation    = 1;
     shaderVarLocation.colorLocation     = 2;
 
@@ -177,87 +186,95 @@ int main(int argc, const char* argv[]) {
 
     // Prepare Coordinator VBO
     float coordinatorData[] = {
-        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f,
 
-        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
 
-        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-        1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
         };
-    VBO *coordinator = fromDataToVBO(coordinatorData, 6, 9, shaderVarLocation, false);
+    VBO *coordinator = fromDataToVBO(coordinatorData, 6, 6, shaderVarLocation, false);
 
-    std::vector<nmath::ImageData<float>*> spaces = generateIndices(f, errorCode);
+    // std::vector<nmath::ImageData<float>*> spaces = generateIndices(f, errorCode);
+    // if (errorCode != NMATH_SUCCESS) {
+    //     std::cerr << "Failed calculate spaces from function." << std::endl;
+    //     glDeleteProgram(shaderProgram);
+    //     return -1;
+    // }
 
-    if (errorCode != NMATH_SUCCESS) {
-        std::cerr << "Failed calculate spaces from function." << std::endl;
-        glDeleteProgram(shaderProgram);
-        return -1;
-    }
+    // std::cout << "Number of space generated: " << spaces.size() << std::endl;
 
-    std::cout << "Number of space generated: " << spaces.size() << std::endl;
-
-    std::vector<VBO *> vboObjects(spaces.size());
-    for (int i=0; i<spaces.size(); i++) {
-        vboObjects[i] = fromImageDataToVBO(spaces[i], shaderVarLocation);
-    }
+    // std::vector<VBO *> vboObjects(spaces.size());
+    // for (int i=0; i<spaces.size(); i++) {
+    //     vboObjects[i] = fromImageDataToVBO(spaces[i], shaderVarLocation);
+    // }
 
     std::cout << "Getting shader's locations...\n" << std::endl;
-    shaderVarLocation.mvpMatrixId = glGetUniformLocation(shaderProgram, "MVP");
+    shaderVarLocation.perspectiveMatrixId = glGetUniformLocation(shaderProgram, "P");
 	shaderVarLocation.viewMatrixId = glGetUniformLocation(shaderProgram, "V");
 	shaderVarLocation.modelMatrixId = glGetUniformLocation(shaderProgram, "M");
-	shaderVarLocation.useNormalLocation = glGetUniformLocation(shaderProgram, "useNormal");
-	shaderVarLocation.lightPos1ID = glGetUniformLocation(shaderProgram, "lightPos_worldspace");
+	shaderVarLocation.useNormalID = glGetUniformLocation(shaderProgram, "useNormal");
+	shaderVarLocation.lightPos1ID = glGetUniformLocation(shaderProgram, "lightPos");
 	shaderVarLocation.lightColor1ID = glGetUniformLocation(shaderProgram, "lightColor");
 
-	glm::vec3 lightPos = glm::vec3(2.7f,5.0f,4.0f);
+	glm::vec3 lightPos = glm::vec3(2.7f,2.0f,3.0f);
 	glm::vec3 lightColor = glm::vec3(0.5f, 0.5f, 0.1f);
 
     std::cout << "Start render loop...\n" << std::endl;
+
+    // Enable depth testing
+    glEnable(GL_DEPTH_TEST);
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
         // Process events
         glfwPollEvents();
         // Clear the color buffer and depth buffer
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         // Use the shader program
         glUseProgram(shaderProgram);
 
         glUniform3f(shaderVarLocation.lightPos1ID, lightPos.x, lightPos.y, lightPos.z);
 		glUniform3f(shaderVarLocation.lightColor1ID, lightColor.x, lightColor.y, lightColor.z);
+        glUniformMatrix4fv(shaderVarLocation.perspectiveMatrixId, 1, GL_FALSE, glm::value_ptr(gProjection));
+        glUniformMatrix4fv(shaderVarLocation.viewMatrixId, 1, GL_FALSE, glm::value_ptr(view));
 
         // Create a rotation quaternion based on mouse movement
-        glm::quat rotation = glm::quat(glm::vec3(glm::radians(pitch), glm::radians(yaw), 0.0f));
+        // glm::quat rotation = glm::quat(glm::vec3(glm::radians(pitch), glm::radians(yaw), 0.0f));
 
-        coordinator->render(shaderVarLocation, gProjection, view);
-        for (int i=0; i<vboObjects.size(); i++) {
-            vboObjects[i]->applyRotation(rotation);
-            vboObjects[i]->render(shaderVarLocation, gProjection, view);
-        }
+        coordinator->applyRotation(glm::radians(pitch), xAxis, glm::radians(yaw), yAxis, 0.0f, zAxis);
+        coordinator->render(shaderVarLocation);
+        // for (int i=0; i<vboObjects.size(); i++) {
+        //     vboObjects[i]->applyRotation(glm::radians(yaw), xAxis, glm::radians(pitch), yAxis, 0.0f, zAxis);
+        //     vboObjects[i]->render(shaderVarLocation, gProjection, view);
+        // }
 
         // Swap the buffers
         glfwSwapBuffers(window);
     }
     // Clean up
     delete coordinator;
-    for (int i=0; i<spaces.size(); i++) {
-        if (vboObjects[i] != nullptr) {
-            delete vboObjects[i];
-        }
-    }
+    // for (int i=0; i<spaces.size(); i++) {
+    //     if (vboObjects[i] != nullptr) {
+    //         delete vboObjects[i];
+    //     }
+    // }
 
+    glDisableVertexAttribArray(shaderVarLocation.positionLocation);
+    glDisableVertexAttribArray(shaderVarLocation.normalLocation);
+    glDisableVertexAttribArray(shaderVarLocation.colorLocation);
     glDeleteProgram(shaderProgram);
     std::cout << "Going to terminate window...\n" << std::endl;
     // Terminate GLFW
     glfwTerminate();
     std::cout << "Terminated window...\n" << std::endl;
     // Release function data
-    for(auto i=0; i< spaces.size(); i++) {
-        delete spaces[i];
-    }
+    // for(auto i=0; i< spaces.size(); i++) {
+    //     delete spaces[i];
+    // }
 
 	return 0;
 }

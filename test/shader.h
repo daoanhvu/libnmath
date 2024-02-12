@@ -27,10 +27,11 @@ typedef struct tagLocation {
     
     //uniform variables
     GLuint mvpMatrixId;
+    GLuint perspectiveMatrixId;
     GLuint viewMatrixId;
     GLuint modelMatrixId;
 	GLuint modelViewMatrixId;
-    GLuint useNormalLocation;
+    GLuint useNormalID;
     GLuint useLightingLocation;
     GLuint pointSizeLocation;
     GLuint lightPos1ID;

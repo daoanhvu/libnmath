@@ -14,7 +14,7 @@ class VBO {
     private:
         GLuint vaoId;
         // position, color bufferId
-        GLuint positionColorBufferIds[2];
+        GLuint positionColorBufferId;
         GLuint elementBufferId;
         unsigned int indexCount;
         // This is THE number of vertice in the VBO, NOT the number of float in [vertices]
@@ -29,6 +29,7 @@ class VBO {
         bool hasNormal;
         GLuint normalLocation;
         glm::mat4 rotationMatrix;
+        glm::mat4 translationMatrix;
         glm::mat4 modelMatrix;
         GLuint drawType;
 
@@ -37,18 +38,21 @@ class VBO {
                 const unsigned short* indices, unsigned int _indexCount, 
                 ShaderVarLocation locations, bool _hasNormal) {
 
-            this->positionLocation = locations.positionLocation;
-            this->colorLocation = locations.colorLocation;
-            this->normalLocation = locations.normalLocation;
-            this->hasNormal = _hasNormal;
+            this->rotationMatrix = glm::mat4(1.0f);
+            this->translationMatrix = glm::mat4(1.0f);
+            this->modelMatrix = glm::mat4(1.0f);
 
+            this->positionLocation = locations.positionLocation;
+            this->normalLocation = locations.normalLocation;
+            this->colorLocation = locations.colorLocation;
+            this->hasNormal = _hasNormal;
             this->verticeCount = _verticeCount;
             
             glGenVertexArrays(1, &vaoId);
-            glBindVertexArray(vaoId);
+            glGenBuffers(1, &positionColorBufferId);
 
             positionOffset = 0;
-            normalOffset = 0;
+            normalOffset = -1;
             colorOffset = 3 * sizeof(float);
 
             int floatStride = 6;
@@ -58,11 +62,8 @@ class VBO {
                 colorOffset = 6 * sizeof(float);
             }
             strideInBytes = floatStride * sizeof(float);
-
-            glGenBuffers(2, positionColorBufferIds);
-            std::cout << "GOT HERE 2 " << std::endl;
-            glBindBuffer(GL_ARRAY_BUFFER, positionColorBufferIds[0]);
-            std::cout << "GOT HERE 3 " << std::endl;
+            glBindVertexArray(vaoId);
+            glBindBuffer(GL_ARRAY_BUFFER, positionColorBufferId);
             glBufferData(GL_ARRAY_BUFFER, verticeCount * strideInBytes, bufferData, GL_STATIC_DRAW);
             std::cout << "Done preparing array buffer data " << std::endl;
 
@@ -103,6 +104,9 @@ class VBO {
 			strideInBytes,
 			// (void*)(uintptr_t)colorOffset);
 			reinterpret_cast<void*>(colorOffset));
+
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindVertexArray(0);
         }
 
         virtual ~VBO() {
@@ -111,32 +115,30 @@ class VBO {
 
         void release() {
             glDeleteVertexArrays(1, &vaoId);
-            glDeleteBuffers(2, positionColorBufferIds);
-            // delete element data
+            glDeleteBuffers(1, &positionColorBufferId);
             glDeleteBuffers(1, &elementBufferId);
             std::cout << "Done releasing VBO" << std::endl;
         }
 
-        void applyRotation(float roll, glm::vec3 xAxis, float pitch, 
-            glm::vec3 yAxis, float yaw, const glm::vec3 &zAxis) {
-            rotationMatrix = glm::rotate(rotationMatrix, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
-            // Handle y-axis rotation
-            rotationMatrix = glm::rotate(rotationMatrix, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
+        void applyRotation(float xRadian, const glm::vec3 &xAxis, float yRadian, const glm::vec3 &yAxis, float zRadian, const glm::vec3 &zAxis) {
+            const float zeroFloat = 0.0f;
+            glm::mat4 rotMat = glm::mat4(1.0f);
+            if (xRadian != zeroFloat)
+                rotMat = glm::rotate(rotMat, xRadian, xAxis);
+            if (yRadian != zeroFloat)
+                rotMat = glm::rotate(rotMat, yRadian, yAxis);
+            if (zRadian != zeroFloat)
+                rotMat = glm::rotate(rotMat, zRadian, zAxis);
+            
+            modelMatrix = translationMatrix * rotMat;
         }
 
-        void render(const ShaderVarLocation &shaderVarLocation, const glm::mat4 &projectionMatrix, 
-				const glm::mat4 &viewMatrix) {
+        void render(const ShaderVarLocation &shaderVarLocation) {
 
-            glm::mat4 MVP = projectionMatrix * viewMatrix * modelMatrix;
-
-            glUniform1f(shaderVarLocation.useNormalLocation, (normalOffset>=0)?1.0f:0.0f);
-            // Send our transformation to the currently bound shader,
-            // in the "MVP" uniform
-            glUniformMatrix4fv(shaderVarLocation.mvpMatrixId, 1, GL_FALSE, glm::value_ptr(MVP));
+            glUniform1f(shaderVarLocation.useNormalID, hasNormal ? 1.0f : 0.0f);
             glUniformMatrix4fv(shaderVarLocation.modelMatrixId, 1, GL_FALSE, glm::value_ptr(modelMatrix));
-            glUniformMatrix4fv(shaderVarLocation.viewMatrixId, 1, GL_FALSE, glm::value_ptr(viewMatrix));
-
-            glBindBuffer(GL_ARRAY_BUFFER, positionColorBufferIds[0]);
+            glBindVertexArray(this->vaoId);
+            glBindBuffer(GL_ARRAY_BUFFER, positionColorBufferId);
             glEnableVertexAttribArray(positionLocation);
             glVertexAttribPointer(positionLocation, //Attribute index
                         3,  //Number of component per this attribute of vertex
@@ -145,15 +147,16 @@ class VBO {
                         strideInBytes,
                         reinterpret_cast<void*>(0));
 
-            glEnableVertexAttribArray(normalLocation);
-            glVertexAttribPointer(normalLocation, //Attribute index
-                        3,  //Number of component per normal vector
-                        GL_FLOAT,
-                        GL_FALSE,
-                        strideInBytes,
-                        reinterpret_cast<void*>(normalOffset));
+            if (normalOffset > 0) {
+                glEnableVertexAttribArray(normalLocation);
+                glVertexAttribPointer(normalLocation, //Attribute index
+                            3,  //Number of component per normal vector
+                            GL_FLOAT,
+                            GL_FALSE,
+                            strideInBytes,
+                            reinterpret_cast<void*>(normalOffset));
+            }
 
-            glBindBuffer(GL_ARRAY_BUFFER, positionColorBufferIds[1]);
             glEnableVertexAttribArray(colorLocation);
             glVertexAttribPointer(colorLocation, //Attribute index
                     3,  //Number of component per color. We have red, green, blue and alpha
@@ -161,6 +164,7 @@ class VBO {
                     GL_FALSE,
                     strideInBytes,
                     reinterpret_cast<void*>(colorOffset));
+
             // Bind buffer for indices
             if (this->indexCount > 0) {
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferId);
@@ -175,10 +179,8 @@ class VBO {
                 glDrawArrays(GL_LINES, 0, verticeCount);
             }
 
+            glBindVertexArray(0);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glDisableVertexAttribArray(positionLocation);
-            glDisableVertexAttribArray(normalLocation);
-            glDisableVertexAttribArray(colorLocation);
         }
 };
 
