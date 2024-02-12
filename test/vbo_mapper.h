@@ -8,6 +8,6 @@
 
 VBO* fromImageDataToVBO(nmath::ImageData<float> *imageData, ShaderVarLocation locations);
 VBO* fromDataVectorToVBO(std::vector<float> bufferData, int stride, ShaderVarLocation locations);
-VBO* fromDataToVBO(const float *bufferData, int verticeCount, int stride, ShaderVarLocation locations);
+VBO* fromDataToVBO(const float *bufferData, int verticeCount, int stride, ShaderVarLocation locations, bool useNormal);
 
 #endif

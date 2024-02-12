@@ -28,6 +28,7 @@ VBO* fromDataVectorToVBO(std::vector<float> bufferData, int stride, ShaderVarLoc
     return nullptr;
 }
 
-VBO* fromDataToVBO(const float *bufferData, int verticeCount, int stride, ShaderVarLocation locations) {
-    return new VBO(bufferData, verticeCount, nullptr, 0, locations, false);
+VBO* fromDataToVBO(const float *bufferData, int verticeCount, 
+int stride, ShaderVarLocation locations, bool useNormal) {
+    return new VBO(bufferData, verticeCount, nullptr, 0, locations, useNormal);
 }

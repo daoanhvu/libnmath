@@ -177,16 +177,16 @@ int main(int argc, const char* argv[]) {
 
     // Prepare Coordinator VBO
     float coordinatorData[] = {
-        0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
 
-        0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
 
-        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-        1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+        1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
         };
-    VBO *coordinator = fromDataToVBO(coordinatorData, 6, 6, shaderVarLocation);
+    VBO *coordinator = fromDataToVBO(coordinatorData, 6, 9, shaderVarLocation, false);
 
     std::vector<nmath::ImageData<float>*> spaces = generateIndices(f, errorCode);
 

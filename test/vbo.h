@@ -28,6 +28,7 @@ class VBO {
         GLuint colorLocation;
         bool hasNormal;
         GLuint normalLocation;
+        glm::mat4 rotationMatrix;
         glm::mat4 modelMatrix;
         GLuint drawType;
 
@@ -116,9 +117,11 @@ class VBO {
             std::cout << "Done releasing VBO" << std::endl;
         }
 
-        void applyRotation(const glm::quat &rotQuat) {
-            // Create a rotation matrix from the quaternion
-            this->modelMatrix = glm::mat4_cast(rotQuat);
+        void applyRotation(float roll, glm::vec3 xAxis, float pitch, 
+            glm::vec3 yAxis, float yaw, const glm::vec3 &zAxis) {
+            rotationMatrix = glm::rotate(rotationMatrix, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
+            // Handle y-axis rotation
+            rotationMatrix = glm::rotate(rotationMatrix, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
         }
 
         void render(const ShaderVarLocation &shaderVarLocation, const glm::mat4 &projectionMatrix, 
@@ -126,7 +129,7 @@ class VBO {
 
             glm::mat4 MVP = projectionMatrix * viewMatrix * modelMatrix;
 
-            glUniform1i(shaderVarLocation.useNormalLocation, (normalOffset>=0)?1:0);
+            glUniform1f(shaderVarLocation.useNormalLocation, (normalOffset>=0)?1.0f:0.0f);
             // Send our transformation to the currently bound shader,
             // in the "MVP" uniform
             glUniformMatrix4fv(shaderVarLocation.mvpMatrixId, 1, GL_FALSE, glm::value_ptr(MVP));
