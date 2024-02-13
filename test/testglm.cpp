@@ -218,8 +218,8 @@ int main(int argc, const char* argv[]) {
 	shaderVarLocation.lightPos1ID = glGetUniformLocation(shaderProgram, "lightPos");
 	shaderVarLocation.lightColor1ID = glGetUniformLocation(shaderProgram, "lightColor");
 
-	glm::vec3 lightPos = glm::vec3(2.7f,2.0f,3.0f);
-	glm::vec3 lightColor = glm::vec3(0.5f, 0.5f, 0.1f);
+	glm::vec3 lightPos = glm::vec3(3.7f,2.0f,3.0f);
+	glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
 
     std::cout << "Start render loop...\n" << std::endl;
 
