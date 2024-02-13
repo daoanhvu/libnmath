@@ -44,7 +44,7 @@ bool firstMouse = true;
 // Camera front vector
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 // Camera position
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraPos = glm::vec3(0.5f, 1.0f, 3.5f);
 // Camera up vector
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 centerPos = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -118,7 +118,6 @@ std::vector<nmath::ImageData<float>*> generateIndices(const FuncitonInputData &i
 		}
 		return emptySpaces;
 	}
-    std::cout << "Done getting space from function.\n" << std::endl;
 
     return spaces;
 }
@@ -177,12 +176,12 @@ int main(int argc, const char* argv[]) {
     //Now, prepare VBO object
     int errorCode = 0;
     FuncitonInputData f;
-    f.functionText = "f(x,y)=sin(x) + 3*y/4";
+    f.functionText = "f(x,y)=sin(x) + y";
     f.values[0] = -1.0f;
     f.values[1] = 1.0f;
     f.values[2] = -1.0f;
-    f.values[3] = -1.0f;
-    f.epsilon = 0.01f;
+    f.values[3] = 1.0f;
+    f.epsilon = 0.1f;
 
     // Prepare Coordinator VBO
     float coordinatorData[] = {
@@ -197,19 +196,19 @@ int main(int argc, const char* argv[]) {
         };
     VBO *coordinator = fromDataToVBO(coordinatorData, 6, 6, shaderVarLocation, false);
 
-    // std::vector<nmath::ImageData<float>*> spaces = generateIndices(f, errorCode);
-    // if (errorCode != NMATH_SUCCESS) {
-    //     std::cerr << "Failed calculate spaces from function." << std::endl;
-    //     glDeleteProgram(shaderProgram);
-    //     return -1;
-    // }
+    std::vector<nmath::ImageData<float>*> spaces = generateIndices(f, errorCode);
+    if (errorCode != NMATH_SUCCESS) {
+        std::cerr << "Failed calculate spaces from function." << std::endl;
+        glDeleteProgram(shaderProgram);
+        return -1;
+    }
 
     // std::cout << "Number of space generated: " << spaces.size() << std::endl;
 
-    // std::vector<VBO *> vboObjects(spaces.size());
-    // for (int i=0; i<spaces.size(); i++) {
-    //     vboObjects[i] = fromImageDataToVBO(spaces[i], shaderVarLocation);
-    // }
+    std::vector<VBO *> vboObjects(spaces.size());
+    for (int i=0; i<spaces.size(); i++) {
+        vboObjects[i] = fromImageDataToVBO(spaces[i], shaderVarLocation);
+    }
 
     std::cout << "Getting shader's locations...\n" << std::endl;
     shaderVarLocation.perspectiveMatrixId = glGetUniformLocation(shaderProgram, "P");
@@ -226,6 +225,9 @@ int main(int argc, const char* argv[]) {
 
     // Enable depth testing
     glEnable(GL_DEPTH_TEST);
+
+    float pitchRad;
+    float yawRad;
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
@@ -245,23 +247,26 @@ int main(int argc, const char* argv[]) {
         // Create a rotation quaternion based on mouse movement
         // glm::quat rotation = glm::quat(glm::vec3(glm::radians(pitch), glm::radians(yaw), 0.0f));
 
-        coordinator->applyRotation(glm::radians(pitch), xAxis, glm::radians(yaw), yAxis, 0.0f, zAxis);
+        pitchRad = glm::radians(pitch);
+        yawRad = glm::radians(yaw);
+
+        coordinator->applyRotation(pitchRad, xAxis, yawRad, yAxis, 0.0f, zAxis);
         coordinator->render(shaderVarLocation);
-        // for (int i=0; i<vboObjects.size(); i++) {
-        //     vboObjects[i]->applyRotation(glm::radians(yaw), xAxis, glm::radians(pitch), yAxis, 0.0f, zAxis);
-        //     vboObjects[i]->render(shaderVarLocation, gProjection, view);
-        // }
+        for (int i=0; i<vboObjects.size(); i++) {
+            vboObjects[i]->applyRotation(pitchRad, xAxis, yawRad, yAxis, 0.0f, zAxis);
+            vboObjects[i]->render(shaderVarLocation);
+        }
 
         // Swap the buffers
         glfwSwapBuffers(window);
     }
     // Clean up
     delete coordinator;
-    // for (int i=0; i<spaces.size(); i++) {
-    //     if (vboObjects[i] != nullptr) {
-    //         delete vboObjects[i];
-    //     }
-    // }
+    for (int i=0; i<spaces.size(); i++) {
+        if (vboObjects[i] != nullptr) {
+            delete vboObjects[i];
+        }
+    }
 
     glDisableVertexAttribArray(shaderVarLocation.positionLocation);
     glDisableVertexAttribArray(shaderVarLocation.normalLocation);
@@ -272,9 +277,9 @@ int main(int argc, const char* argv[]) {
     glfwTerminate();
     std::cout << "Terminated window...\n" << std::endl;
     // Release function data
-    // for(auto i=0; i< spaces.size(); i++) {
-    //     delete spaces[i];
-    // }
+    for(auto i=0; i< spaces.size(); i++) {
+        delete spaces[i];
+    }
 
 	return 0;
 }

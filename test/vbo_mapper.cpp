@@ -2,7 +2,7 @@
 #include <iostream>
 
 VBO* fromImageDataToVBO(nmath::ImageData<float> *imageData, ShaderVarLocation locations) {
-    // It needs 3 floats for position, 3 floats for normal and 4 floats for color
+    // It needs 3 floats for position, 3 floats for normal and 3 floats for color
     int floatStride = 9;
     unsigned int verticeCount = imageData->getVertexCount();
     std::cout << "Going to generate buffer data, number of vertices: " << verticeCount << std::endl;
@@ -13,8 +13,14 @@ VBO* fromImageDataToVBO(nmath::ImageData<float> *imageData, ShaderVarLocation lo
     unsigned int bufferLen = imageData->copyDataWithColorTo(red, green, blue, verticesBufferData);
     std::cout << "Done generate buffer data, buffer len: " << bufferLen << std::endl;
     unsigned int indexCount;
-    unsigned short *indices = imageData->generateIndices(indexCount);
+    unsigned short *indices = imageData->generateIndicesForTriangleStrip(indexCount);
     std::cout << "Generate indices DONE, indexCount = " << indexCount << std::endl;
+    std::cout << "Row count " << imageData->getRowCount() << std::endl;
+    std::cout << "indices = [\n";
+    for (auto i=0; i<indexCount; ++i) {
+        std::cout << indices[i] << ",";
+    }
+    std::cout << "]\n";
     VBO* vbo = new VBO(verticesBufferData, verticeCount, indices, indexCount, locations, true);
 
     //Now we can release memory for vertices data

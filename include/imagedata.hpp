@@ -60,21 +60,22 @@ namespace nmath {
         unsigned int copyDataWithColorTo(float red, float green, float blue, T* anArray) const {
             const T* source = &data[0];
             unsigned int size = data.size();
-            int stride = size / vertexCount;
+            int stride = 9;
             unsigned int  strideTSize = stride * sizeof(T);
+            unsigned int t = 0;
             for (auto i=0; i<vertexCount; i++) {
-                auto index = i * stride;
-                anArray[index] = source[index];
-                anArray[index + 1] = source[index + 1];
-                anArray[index + 2] = source[index + 2];
+                auto index = i * 6;
+                anArray[t++] = source[index];
+                anArray[t++] = source[index + 1];
+                anArray[t++] = source[index + 2];
 
-                anArray[index + 3] = source[index + 3];
-                anArray[index + 4] = source[index + 4];
-                anArray[index + 5] = source[index + 5];
+                anArray[t++] = source[index + 3];
+                anArray[t++] = source[index + 4];
+                anArray[t++] = source[index + 5];
 
-                anArray[index + 6] = red;
-                anArray[index + 7] = green;
-                anArray[index + 8] = blue;
+                anArray[t++] = red;
+                anArray[t++] = green;
+                anArray[t++] = blue;
             }
             return vertexCount * 9;
         }
@@ -91,7 +92,7 @@ namespace nmath {
 
         unsigned int getRowCount() { return rowInfo.size(); }
         
-        unsigned short* generateIndicesForTriangleStrip();
+        unsigned short* generateIndicesForTriangleStrip(unsigned int &len);
 
         unsigned short* generateIndices(unsigned int &len);
 
@@ -121,7 +122,7 @@ namespace nmath {
     }
 
     template <typename T>
-    unsigned short* ImageData<T>::generateIndicesForTriangleStrip() {
+    unsigned short* ImageData<T>::generateIndicesForTriangleStrip(unsigned int &len) {
 		// Now build the index data
         int rows = rowInfo.size();
         int cols = rowInfo[0];
@@ -152,6 +153,7 @@ namespace nmath {
         unsigned int indSize = sizeof(unsigned short) * indices.size();
         unsigned short* results = new unsigned short[indices.size()];
         memcpy(results, (void*)(indices.data()), indSize);
+        len = indices.size();
         return results;
 	}
 
