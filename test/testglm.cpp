@@ -17,7 +17,7 @@
 
 #define NMATH_SUCCESS 0
 
-struct FuncitonInputData {
+struct FunctionInputData {
 
 	std::string functionText;
 	float epsilon;
@@ -84,8 +84,8 @@ void mouseCallback(GLFWwindow *window, double xpos, double ypos) {
     if (pitch < -89.0f) pitch = -89.0f;
 
     // Calculate the new front vector using Quaternions
-    glm::quat orientation = glm::quat(glm::vec3(glm::radians(pitch), glm::radians(yaw), 0.0f));  
-    cameraFront = glm::normalize(orientation * glm::vec3(0.0f, 0.0f, -1.0f));
+    // glm::quat orientation = glm::quat(glm::vec3(glm::radians(pitch), glm::radians(yaw), 0.0f));  
+    // cameraFront = glm::normalize(orientation * glm::vec3(0.0f, 0.0f, -1.0f));
 
     lastX = xpos;
     lastY = ypos;
@@ -98,7 +98,7 @@ void framebufferSizeCallback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-std::vector<nmath::ImageData<float>*> generateIndices(const FuncitonInputData &input, int &errorCode) {
+std::vector<nmath::ImageData<float>*> generateIndices(const FunctionInputData &input, int &errorCode) {
 	nmath::NFunction<float> f;
 	nmath::NLabLexer lexer;
 	nmath::NLabParser<float> parser;
@@ -122,7 +122,53 @@ std::vector<nmath::ImageData<float>*> generateIndices(const FuncitonInputData &i
     return spaces;
 }
 
+bool isFunctionParam(const char* param) {
+    if (strcmp("-f", param) == 0) {
+        return true;
+    }
+
+    if (strcmp("--function", param) == 0) {
+        return true;
+    }
+    return false;
+}
+
 int main(int argc, const char* argv[]) {
+
+    if (argc <= 2) {
+        std::cerr << "Not enough parameter(" << argc << ")" << std::endl;
+        return -1;
+    }
+
+    int funcIdx = -1;
+    for (int i=1; i<argc; ++i) {
+        if (isFunctionParam(argv[i])) {
+            funcIdx = i + 1;
+            break;
+        }
+    }
+    
+    if ((funcIdx == -1) || (funcIdx >= argc)) {
+        std::cerr << "Missing function." << std::endl;
+        std::cerr << "Add -f or --function followed by a function expression such as f(x,y) = sin(x) + y/2" << std::endl;
+        return -1;
+    }
+
+    int errorCode = 0;
+    FunctionInputData f;
+    f.functionText = argv[funcIdx];
+    f.values[0] = -1.0f;
+    f.values[1] = 1.0f;
+    f.values[2] = -1.0f;
+    f.values[3] = 1.0f;
+    f.epsilon = 0.1f;
+    std::vector<nmath::ImageData<float>*> spaces = generateIndices(f, errorCode);
+    if (errorCode != NMATH_SUCCESS) {
+        std::cerr << "Failed calculate spaces from function with error code: " << errorCode << std::endl;
+        return -1;
+    }
+
+    // std::cout << "Number of space generated: " << spaces.size() << std::endl;
 	
     // init GLFW
     if (!glfwInit()) {
@@ -173,16 +219,6 @@ int main(int argc, const char* argv[]) {
     shaderVarLocation.normalLocation    = 1;
     shaderVarLocation.colorLocation     = 2;
 
-    //Now, prepare VBO object
-    int errorCode = 0;
-    FuncitonInputData f;
-    f.functionText = "f(x,y)=sin(x) + y";
-    f.values[0] = -1.0f;
-    f.values[1] = 1.0f;
-    f.values[2] = -1.0f;
-    f.values[3] = 1.0f;
-    f.epsilon = 0.1f;
-
     // Prepare Coordinator VBO
     float coordinatorData[] = {
         0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
@@ -195,15 +231,6 @@ int main(int argc, const char* argv[]) {
         1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
         };
     VBO *coordinator = fromDataToVBO(coordinatorData, 6, 6, shaderVarLocation, false);
-
-    std::vector<nmath::ImageData<float>*> spaces = generateIndices(f, errorCode);
-    if (errorCode != NMATH_SUCCESS) {
-        std::cerr << "Failed calculate spaces from function." << std::endl;
-        glDeleteProgram(shaderProgram);
-        return -1;
-    }
-
-    // std::cout << "Number of space generated: " << spaces.size() << std::endl;
 
     std::vector<VBO *> vboObjects(spaces.size());
     for (int i=0; i<spaces.size(); i++) {
@@ -250,7 +277,7 @@ int main(int argc, const char* argv[]) {
         pitchRad = glm::radians(pitch);
         yawRad = glm::radians(yaw);
 
-        coordinator->applyRotation(pitchRad, xAxis, yawRad, yAxis, 0.0f, zAxis);
+        // coordinator->applyRotation(pitchRad, xAxis, yawRad, yAxis, 0.0f, zAxis);
         coordinator->render(shaderVarLocation);
         for (int i=0; i<vboObjects.size(); i++) {
             vboObjects[i]->applyRotation(pitchRad, xAxis, yawRad, yAxis, 0.0f, zAxis);

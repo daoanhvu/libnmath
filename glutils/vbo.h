@@ -1,6 +1,7 @@
 #ifndef _VBO_H_
 #define _VBO_H_
 
+#include <iostream>
 #include <vector>
 #include <GL/glew.h>
 #include <shader.h>

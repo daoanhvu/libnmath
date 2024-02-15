@@ -88,11 +88,13 @@ namespace nmath {
             rowInfo.push_back(elementOnNewRow);
         }
 
+        const int* getRowInfo() const {
+            return rowInfo.data();
+        }
+
         int getRowAt(int idx) { return rowInfo[idx]; }
 
         unsigned int getRowCount() { return rowInfo.size(); }
-        
-        unsigned short* generateIndicesForTriangleStrip(unsigned int &len);
 
         unsigned short* generateIndices(unsigned int &len);
 
@@ -120,42 +122,6 @@ namespace nmath {
     template <typename T>
     ImageData<T>::~ImageData() {
     }
-
-    template <typename T>
-    unsigned short* ImageData<T>::generateIndicesForTriangleStrip(unsigned int &len) {
-		// Now build the index data
-        int rows = rowInfo.size();
-        int cols = rowInfo[0];
-		int numStripsRequired = rows - 1;
-		int numDegensRequired = 2 * (numStripsRequired - 1);
-		int verticesPerStrip = 2 * cols;
-		// short[] heightMapIndexData = new short[(verticesPerStrip * numStripsRequired)
-		//         + numDegensRequired];
-		std::vector<unsigned short> indices;  
-		for (auto y = 0; y<rows-1; y++) {
-			if (y > 0) {
-		        // Degenerate begin: repeat first vertex
-				indices.push_back((unsigned short)(y * cols));
-		    }
-		 
-		    for (int x = 0; x < cols; x++) {
-		        // One part of the strip
-		    	indices.push_back((unsigned short) ((y * cols) + x));
-		        indices.push_back((unsigned short) (((y + 1) * cols) + x));
-		    }
-		 
-		    if (y < rows - 2) {
-		        // Degenerate end: repeat last vertex
-		    	indices.push_back((unsigned short) (((y + 1) * cols) + (cols - 1)));
-		    }
-		}
-
-        unsigned int indSize = sizeof(unsigned short) * indices.size();
-        unsigned short* results = new unsigned short[indices.size()];
-        memcpy(results, (void*)(indices.data()), indSize);
-        len = indices.size();
-        return results;
-	}
 
     template <typename T>
     unsigned short* ImageData<T>::generateIndices(unsigned int &len) {

@@ -1,6 +1,44 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <cstring>
+#include <vector>
 #include "graphutil.h"
+
+unsigned short* buildIndicesForGLTriangleStrip(const int* rowInfo, int rowInfoSize, unsigned int &len) {
+	int rows = rowInfoSize;
+	int cols = rowInfo[0];
+	std::vector<unsigned short> indices;  
+	for (auto y = 0; y<rows-1; y++) {
+		if (y > 0) {
+			// Degenerate begin: repeat first vertex
+			indices.push_back((unsigned short)(y * cols));
+		}
+		
+		for (int x = 0; x < cols; x++) {
+			// One part of the strip
+			indices.push_back((unsigned short) ((y * cols) + x));
+			indices.push_back((unsigned short) (((y + 1) * cols) + x));
+		}
+		
+		if (y < rows - 2) {
+			// Degenerate end: repeat last vertex
+			indices.push_back((unsigned short) (((y + 1) * cols) + (cols - 1)));
+		}
+	}
+
+	unsigned int indSize = sizeof(unsigned short) * indices.size();
+	unsigned short* results = new unsigned short[indices.size()];
+	memcpy(results, (void*)(indices.data()), indSize);
+	len = indices.size();
+
+	return results;
+}
+
+unsigned short* buildIndicesForGLTriangleStrip(std::vector<int> rowInfo, unsigned int &len) {
+	// Now build the index data
+	int rows = rowInfo.size();	
+	return buildIndicesForGLTriangleStrip(rowInfo.data(), rows, len);
+}
 
 /**
  * Just use this for quadratic vertex matrix

@@ -65,11 +65,15 @@ if( DEFINED ADDTESTS )
 		include_directories(
 			${PROJECT_SOURCE_DIR}/include
 			${PROJECT_SOURCE_DIR}/test
+			${PROJECT_SOURCE_DIR}/glutils
 			${PROJECT_SOURCE_DIR}/../nautilusnet/glm
 			${PROJECT_SOURCE_DIR}/../glew-2.2.0-win32/glew-2.2.0/include
 			${GLFW_DIR}/include
 		)
 		set( TESTGL_SRC
+			${PROJECT_SOURCE_DIR}/glutils/shader.cpp
+			${PROJECT_SOURCE_DIR}/glutils/vbo_mapper.cpp
+			${PROJECT_SOURCE_DIR}/glutils/graphutil.cpp
 			${PROJECT_SOURCE_DIR}/test/testglm.cpp
 		)
 		add_executable(testGL ${TESTGL_SRC})
@@ -80,11 +84,13 @@ if( DEFINED ADDTESTS )
 		include_directories(
 			${PROJECT_SOURCE_DIR}/include
 			${PROJECT_SOURCE_DIR}/test
+			${PROJECT_SOURCE_DIR}/glutils
 			${PROJECT_SOURCE_DIR}/../../../programs/glm-0.9.9.8/glm
 		)
 		set( TESTGL_SRC
-			${PROJECT_SOURCE_DIR}/test/shader.cpp
-			${PROJECT_SOURCE_DIR}/test/vbo_mapper.cpp
+			${PROJECT_SOURCE_DIR}/glutils/shader.cpp
+			${PROJECT_SOURCE_DIR}/glutils/vbo_mapper.cpp
+			${PROJECT_SOURCE_DIR}/glutils/graphutil.cpp
 			${PROJECT_SOURCE_DIR}/test/testglm.cpp
 		)
 		add_executable(testGL ${TESTGL_SRC})

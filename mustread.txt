@@ -1,6 +1,7 @@
 BUILD WITH CMAKE:
     cd build
     cmake .. -DLIBTYPE=STATIC -DADDTESTS=on -DNO_THREAD=yes -DTARGET=Windows
+    cmake .. -DLIBTYPE=STATIC -DADDTESTS=on -DNO_THREAD=yes -DTARGET=Linux
     cmake --build . --config Release
 
 http://www.gametutorials.com/tutorials/opengl-tutorials/
