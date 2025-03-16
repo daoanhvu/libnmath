@@ -103,12 +103,12 @@
 
 namespace nmath {
 
-    const int FUNCTIONS[] = {SIN, COS, TAN, COTAN, ASIN, ACOS, ATAN, LOG, LN, SQRT};
-    const int FUNCTION_COUNT = 10;
-    const int OPERATORS[] = {PLUS,MINUS,MULTIPLY,DIVIDE,POWER};
-    const int OPERATOR_COUNT = 5;
-    const int COMPARING_OPERATORS[] = {LT,LTE,EQ,GT,GTE};
-    const int COMPARING_OPERATORS_COUNT = 5;
+  const int FUNCTIONS[] = {SIN, COS, TAN, COTAN, ASIN, ACOS, ATAN, LOG, LN, SQRT};
+  const int FUNCTION_COUNT = 10;
+  const int OPERATORS[] = {PLUS,MINUS,MULTIPLY,DIVIDE,POWER};
+  const int OPERATOR_COUNT = 5;
+  const int COMPARING_OPERATORS[] = {LT,LTE,EQ,GT,GTE};
+  const int COMPARING_OPERATORS_COUNT = 5;
 
 	struct Token {
 		int type;

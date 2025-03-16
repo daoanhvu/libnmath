@@ -12,116 +12,124 @@ namespace nmath {
     template <typename T>
 	class ImageData {
 	private:
-        unsigned int vertexCount;
-        short dimension;
-        // This is the offset of normal vector in a data tube
-        short normalOffset;
-        // This is vertices data
-        std::vector<T> data;
-        /**
+    unsigned int vertexCount;
+    short dimension;
+    // This is the offset of normal vector in a data tube
+    short normalOffset;
+    // This is vertices data
+    std::vector<T> data;
+    /**
 		 * rowInfo holds the number of element on each row
 		 * rowCount is the number of row
 		*/
 		std::vector<int> rowInfo;
 	public:
 		ImageData();
-        ImageData(short dim);
-        ImageData(unsigned int vcount, short dim, short noffs, const int* rows, int rowCount);
+    ImageData(short dim);
+    ImageData(unsigned int vcount, short dim, short noffs, const int* rows, int rowCount);
 		virtual ~ImageData();
 
-        T operator[] (int idx) {
-            return data[idx];
-        }
+    T operator[] (int idx) {
+        return data[idx];
+    }
 
-        void addData(T val) {
-            data.push_back(val);
+    void addData(T val) {
+        data.push_back(val);
 
-        }
+    }
 
-        void calculateVertexCount() {
-            this->vertexCount = data.size() / this->dimension;
-        }
+    void calculateVertexCount() {
+      this->vertexCount = data.size() / this->dimension;
+    }
 
-        unsigned int getVertexCount() const {
-            return vertexCount;
-        }
+    unsigned int getVertexCount() const {
+      return vertexCount;
+    }
 
-        unsigned int vertexListSize() {
-            return data.size();
-        }
+    unsigned int vertexListSize() {
+      return data.size();
+    }
 
-        unsigned int copyDataTo(T* anArray) {
-            T* source = &data[0];
-            unsigned int size = data.size();
-            memcpy(anArray, (void*)source, size * sizeof(T));
-            return size;
-        }
+    unsigned int copyDataTo(T* anArray) {
+      T* source = &data[0];
+      unsigned int size = data.size();
+      memcpy(anArray, (void*)source, size * sizeof(T));
+      return size;
+    }
 
-        unsigned int copyDataWithColorTo(float red, float green, float blue, T* anArray) const {
-            const T* source = &data[0];
-            unsigned int size = data.size();
-            int stride = 9;
-            unsigned int  strideTSize = stride * sizeof(T);
-            unsigned int t = 0;
-            for (auto i=0; i<vertexCount; i++) {
-                auto index = i * 6;
-                anArray[t++] = source[index];
-                anArray[t++] = source[index + 1];
-                anArray[t++] = source[index + 2];
+    unsigned int copyDataWithColorTo(float red, float green, float blue, T* anArray) const {
+      const T* source = &data[0];
+      unsigned int size = data.size();
+      int stride = 9;
+      unsigned int  strideTSize = stride * sizeof(T);
+      unsigned int t = 0;
+      for (auto i=0; i<vertexCount; i++) {
+        auto index = i * 6;
+        anArray[t++] = source[index];
+        anArray[t++] = source[index + 1];
+        anArray[t++] = source[index + 2];
 
-                anArray[t++] = source[index + 3];
-                anArray[t++] = source[index + 4];
-                anArray[t++] = source[index + 5];
+        anArray[t++] = source[index + 3];
+        anArray[t++] = source[index + 4];
+        anArray[t++] = source[index + 5];
 
-                anArray[t++] = red;
-                anArray[t++] = green;
-                anArray[t++] = blue;
-            }
-            return vertexCount * 9;
-        }
+        anArray[t++] = red;
+        anArray[t++] = green;
+        anArray[t++] = blue;
+      }
+      return vertexCount * 9;
+    }
 
-        T* getData() {
-            return data.data();
-        }
+    T* getData() {
+      return data.data();
+    }
 
-        void addRow(int elementOnNewRow) {
-            rowInfo.push_back(elementOnNewRow);
-        }
+    short getDimension() {
+      return dimension;
+    }
 
-        const int* getRowInfo() const {
-            return rowInfo.data();
-        }
+    void addRow(int elementOnNewRow) {
+      rowInfo.push_back(elementOnNewRow);
+    }
 
-        int getRowAt(int idx) { return rowInfo[idx]; }
+    const int* getRowInfo() const {
+      return rowInfo.data();
+    }
 
-        unsigned int getRowCount() { return rowInfo.size(); }
+    int getRowAt(int idx) { return rowInfo[idx]; }
 
-        unsigned short* generateIndices(unsigned int &len);
+    unsigned int getRowCount() { return rowInfo.size(); }
 
-        void setNormalOffset(int _normalOffset) {
-            this->normalOffset = _normalOffset;
-        }
+    unsigned short* generateIndices(unsigned int &len);
+
+    short getNormalOffset() {
+      return normalOffset;
+    }
+    
+    void setNormalOffset(int _normalOffset) {
+      this->normalOffset = _normalOffset;
+    }
 	};
 
-    template <typename T>
-    ImageData<T>::ImageData():vertexCount(0), dimension(0), normalOffset(-1) {
-    }
+  template <typename T>
+  ImageData<T>::ImageData():vertexCount(0), dimension(0), normalOffset(-1) {
+  }
 
-    template <typename T>
-    ImageData<T>::ImageData(short dim):vertexCount(0), dimension(dim), normalOffset(-1) {
-    }
+  template <typename T>
+  ImageData<T>::ImageData(short dim):vertexCount(0), dimension(dim), normalOffset(-1) {
+  }
 
-    template <typename T>
-    ImageData<T>::ImageData(unsigned int vcount, short dim, short noffs, const int* rows, int rowCount)
-        :vertexCount(vcount), dimension(dim), normalOffset(noffs) {
-        for(auto i=0; i<rowCount; i++) {
-            rowInfo.push_back(rows[i]);
-        }
-    }
+  template <typename T>
+  ImageData<T>::ImageData(unsigned int vcount, short dim, short noffs, const int* rows, int rowCount)
+      :vertexCount(vcount), dimension(dim), normalOffset(noffs) {
+      for(auto i=0; i<rowCount; i++) {
+          rowInfo.push_back(rows[i]);
+      }
+  }
 
-    template <typename T>
-    ImageData<T>::~ImageData() {
-    }
+  template <typename T>
+  ImageData<T>::~ImageData() {
+  }
 
     template <typename T>
     unsigned short* ImageData<T>::generateIndices(unsigned int &len) {

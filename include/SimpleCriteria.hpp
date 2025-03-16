@@ -8,7 +8,7 @@
 
 namespace nmath {
 
-    template <typename T>
+  template <typename T>
 	class SimpleCriteria: public Criteria<T> {
 		private:
 			/** GT_LT, GTE_LT, GT_LTE, GTE_LTE */
@@ -186,7 +186,7 @@ namespace nmath {
 			// Criteria<T>* andCompositeSelf(CompositeCriteria<T> &c);
 
 		public:
-			SimpleCriteria<T>(): Criteria<T>(NMathCClassType::SIMPLE) {
+			SimpleCriteria<T>(): Criteria<T>(SIMPLE) {
 				this->rightInfinity = true;
 				this->leftInfinity = true;
 				this->available = true;
@@ -196,7 +196,7 @@ namespace nmath {
 			}
 
 			SimpleCriteria<T>(int type, std::string var, T lval, T rval,
-											bool leftInfinity, bool rightInfinity): Criteria<T>(NMathCClassType::SIMPLE) {
+											bool leftInfinity, bool rightInfinity): Criteria<T>(SIMPLE) {
 				this->type = type;
 				this->variable = var;
 				this->leftVal = lval;

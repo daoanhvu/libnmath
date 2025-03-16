@@ -2,6 +2,7 @@ BUILD WITH CMAKE:
     cd build
     cmake .. -DLIBTYPE=STATIC -DADDTESTS=on -DNO_THREAD=yes -DTARGET=Windows
     cmake .. -DLIBTYPE=STATIC -DADDTESTS=on -DNO_THREAD=yes -DTARGET=Linux
+    cmake .. -DLIBTYPE=STATIC -DADDTESTS=on -DNO_THREAD=yes -DTARGET=macOS -DPROJECT_SOURCE_DIR=/Users/vudao/projects/libnmath/src
     cmake --build . --config Release
 
 http://www.gametutorials.com/tutorials/opengl-tutorials/

@@ -7,16 +7,15 @@
 
 #include "common.hpp"
 
+#define SIMPLE 1
+#define COMPOSITE 2
+
+typedef int NMathCClassType;
+
 // #include "SimpleCriteria.hpp"
 //#include "compositecriteria.hpp"
 
 namespace nmath {
-	template <typename T> class SimpleCriteria;
-	template <typename T> class CompositeCriteria;
-
-	enum NMathCClassType {
-		SIMPLE, COMPOSITE
-	};
 
 	template <typename T>
 	class Criteria {
@@ -49,10 +48,14 @@ namespace nmath {
 			virtual Criteria<T>* getInterval(const T *values, const std::vector<std::string> &variables) { return nullptr; }
 			virtual Criteria<T>& normalize(std::vector<NMAST<T>* > variables) = 0;
 	};
+  template <typename T> class SimpleCriteria;
+	template <typename T> class CompositeCriteria;
 
 #ifdef _PCDEBUG
-	std::istream& operator >>(std::istream& is, const Criteria& c);
-	std::ostream& operator <<(std::ostream& os, const Criteria& c);
+  template <typename T>
+	std::istream& operator >>(std::istream& is, const Criteria<T>& c);
+  template <typename T>
+	std::ostream& operator <<(std::ostream& os, const Criteria<T>& c);
 #endif
 
 	template <typename T>

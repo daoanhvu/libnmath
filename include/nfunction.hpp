@@ -24,6 +24,13 @@ namespace nmath {
 		unsigned int textLen;
 
 		std::vector<Token*> mTokens;
+    /**
+     * This is the posfix notation of the function
+     * TODO: the name 'prefix' is a mistake, it should be postfix
+     * because the expression is in postfix notation
+     * 
+     * Example: x^2 + 1 => x 2 ^ 1 +
+    */
 		std::vector<NMAST<T>* > prefix;
 		std::vector<Criteria<T>*> criteria;
 		std::vector<NMAST<T>* > variables;
@@ -32,96 +39,97 @@ namespace nmath {
 		int errorCode;
 		int errorColumn;
 
-        std::vector<ImageData<T>*> getSpaceFor2UnknownVariables(const T *inputInterval, T epsilon, 
-            bool needNormalVector, bool needNormalizeNormalVector) {
-            std::vector<ImageData<T>*> lstData;
-            ImageData<T> **tempList;
-            ImageData<T> *sp;
-            DParam<T> param;
-            DParam<T> reduceParam;
-            CompositeCriteria<T> *outCriteria;
-            SimpleCriteria<T> *sc;
-            NMAST<T> *df[2] = {0, 0};
+    std::vector<ImageData<T>*> getSpaceFor2UnknownVariables(const T *inputInterval, T epsilon, 
+      bool needNormalVector, bool needNormalizeNormalVector) {
+      std::vector<ImageData<T>*> lstData;
+      ImageData<T> **tempList;
+      ImageData<T> *sp;
+      DParam<T> param;
+      DParam<T> reduceParam;
+      CompositeCriteria<T> *outCriteria;
+      SimpleCriteria<T> *sc;
+      NMAST<T> *df[2] = {0, 0};
 
-            CompositeCriteria<T> cc;
-            cc.setOperator(AND);
-            sc = new SimpleCriteria<T>(GTE_LTE, variables[0]->text, inputInterval[0], inputInterval[1], false, false);
-            cc.add(sc);
-            sc = new SimpleCriteria<T>(GTE_LTE, variables[1]->text, inputInterval[2], inputInterval[3], false, false);
-            cc.add(sc);
+      CompositeCriteria<T> cc;
+      cc.setOperator(AND);
+      sc = new SimpleCriteria<T>(GTE_LTE, variables[0]->text, inputInterval[0], inputInterval[1], false, false);
+      cc.add(static_cast<Criteria<T>*>(sc));
+      sc = new SimpleCriteria<T>(GTE_LTE, variables[1]->text, inputInterval[2], inputInterval[3], false, false);
+      cc.add(static_cast<Criteria<T>*>(sc));
 
-            for(int i=0; i<prefix.size(); i++) {
-                if(needNormalVector) {
-                    // Now, we calculate the derivative of the function according to variable[0]
-                    df[0] = getDerivativeByVariable(i, 0);
-                    reduceParam.t = df[0];
-                    reduce_t<T>(&reduceParam);
-                    df[0] = reduceParam.t;
+      for(int i=0; i<prefix.size(); i++) {
+        if(needNormalVector) {
+            // Now, we calculate the derivative of the function according to variable[0]
+            df[0] = getDerivativeByVariable(i, 0);
+            reduceParam.t = df[0];
+            reduce_t<T>(&reduceParam);
+            df[0] = reduceParam.t;
 
-                    // And derivative of the function according to variable[1]
-                    df[1] = getDerivativeByVariable(i, 1);
-                    reduceParam.t = df[1];
-                    reduce_t<T>(&reduceParam);
-                    df[1] = reduceParam.t;
-                }
-
-                if(criteria[i] == nullptr) {
-                    if (needNormalVector)
-                        sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, &cc, df, needNormalizeNormalVector);
-                    else
-                        sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, &cc, nullptr, false);
-                    lstData.push_back(sp);
-                } else {
-                    outCriteria = (CompositeCriteria<T>*)criteria[i]->getInterval(inputInterval, this->strVars);
-                    switch(outCriteria->logicOperator()) {
-                        case AND:
-                            if (needNormalVector)
-                                sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria, df, needNormalizeNormalVector);
-                            else
-                                sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria, 0, false);
-                            lstData.push_back(sp);
-                            break;
-
-                        case OR:
-                            for(int j=0; j<outCriteria->size(); j++) {
-                                if(needNormalVector)
-                                    sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, (CompositeCriteria<T>*)(outCriteria->get(j)), df, needNormalizeNormalVector);
-                                else
-                                    sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, (CompositeCriteria<T>*)(outCriteria->get(j)), 0, false);
-                                lstData.push_back(sp);
-                            }
-                            break;
-
-                        default:
-                            break;
-                    }
-                }
-
-                //free derivative trees
-                if(df[0] != 0) {
-                    clearTree(df);
-                }
-
-                if(df[1] != 0) {
-                    clearTree(df+1);
-                }
-
-            } //end for
-
-            return lstData;
+            // And derivative of the function according to variable[1]
+            df[1] = getDerivativeByVariable(i, 1);
+            reduceParam.t = df[1];
+            reduce_t<T>(&reduceParam);
+            df[1] = reduceParam.t;
         }
-        /**
-         *
-         * @param prefixIndex
-         * @param inputInterval
-         * @param epsilon
-         * @param c the AND CompositeCriteria, because every SimpleCriteria holds criteria for a single variable
-         * so the number of SimpleCriteria in c is most likely the number of variable this function.
-         * Example: f(x,y) = sin(x) + y^2, x > 0 AND 0 < y < 0.5
-         * @param df the derivative of this function, this is used for calculating normal vectors
-         * @return an object of FData, if df is not null then the returned object consists of x, y, z
-         */
-        ImageData<T>* getSpaceFor2WithANDComposite(int prefixIndex, const T *inputInterval,
+
+        if(criteria[i] == nullptr) {
+            if (needNormalVector)
+                sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, &cc, df, needNormalizeNormalVector);
+            else
+                sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, &cc, nullptr, false);
+            lstData.push_back(sp);
+        } else {
+          outCriteria = (CompositeCriteria<T>*)criteria[i]->getInterval(inputInterval, this->strVars);
+          switch(outCriteria->logicOperator()) {
+            case AND:
+              if (needNormalVector)
+                  sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria, df, needNormalizeNormalVector);
+              else
+                  sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria, 0, false);
+              lstData.push_back(sp);
+              break;
+
+              case OR:
+                for(int j=0; j<outCriteria->size(); j++) {
+                    if(needNormalVector)
+                        sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, (CompositeCriteria<T>*)(outCriteria->get(j)), df, needNormalizeNormalVector);
+                    else
+                        sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, (CompositeCriteria<T>*)(outCriteria->get(j)), 0, false);
+                    lstData.push_back(sp);
+                }
+                break;
+
+              default:
+                  break;
+            }
+        }
+
+        //free derivative trees
+        if(df[0] != 0) {
+            clearTree(df);
+        }
+
+        if(df[1] != 0) {
+            clearTree(df+1);
+        }
+
+      } //end for
+
+      return lstData;
+    }
+
+      /**
+       *
+       * @param prefixIndex
+       * @param inputInterval
+       * @param epsilon
+       * @param c the AND CompositeCriteria, because every SimpleCriteria holds criteria for a single variable
+       * so the number of SimpleCriteria in c is most likely the number of variable this function.
+       * Example: f(x,y) = sin(x) + y^2, x > 0 AND 0 < y < 0.5
+       * @param df the derivative of this function, this is used for calculating normal vectors
+       * @return an object of FData, if df is not null then the returned object consists of x, y, z
+       */
+      ImageData<T>* getSpaceFor2WithANDComposite(int prefixIndex, const T *inputInterval,
                                     T epsilon, const CompositeCriteria<T>* c, NMAST<T> **df, bool needNormalizeNormalVector) {
             ImageData<T> *sp;
             DParam<T> param;
@@ -245,11 +253,11 @@ namespace nmath {
 		int getErrorColumn() { return errorColumn; }
 
 
-        int toString(char *str, int buflen) {
-            int start = 0;
-            nmath::toString(prefix[0], str, &start, buflen);
-            return start;
-        }
+    int toString(char *str, int buflen) {
+        int start = 0;
+        nmath::toString(prefix[0], str, &start, buflen);
+        return start;
+    }
 
         int parse(const char *str, unsigned int len, NLabLexer *mLexer, NLabParser<T> *mParser) {
             int i;
@@ -397,12 +405,12 @@ namespace nmath {
 				textLen = 0;
 			}
 
-            for(unsigned int i=0; i < prefix.size(); i++) {
-                if(prefix[i] != nullptr) {
-                    nmath::clearTree(&(prefix[i]));
-                }
-            }
-            prefix.clear();
+      for(unsigned int i=0; i < prefix.size(); i++) {
+          if(prefix[i] != nullptr) {
+              nmath::clearTree(&(prefix[i]));
+          }
+      }
+      prefix.clear();
 
 			for (unsigned int i = 0; i < criteria.size(); i++) {
 				if (criteria[i] != nullptr)
@@ -417,26 +425,26 @@ namespace nmath {
 			mTokens.clear();
 		}
 
-        int reduce() {
-            DParam<T> dp;
-            int i;
+    int reduce() {
+      DParam<T> dp;
+      int i;
 
-            for(i=0; i<prefix.size(); i++) {
-                dp.t = prefix[i];
-                dp.error = 0;
-                nmath::reduce_t<T>(&dp);
-                prefix[i] = dp.t;
-            }
-            return 0;
-        }
+      for(i=0; i<prefix.size(); i++) {
+          dp.t = prefix[i];
+          dp.error = 0;
+          nmath::reduce_t<T>(&dp);
+          prefix[i] = dp.t;
+      }
+      return 0;
+    }
 
-        T getPrefixValue(int idx) {
-            return prefix[idx]->value;
-        }
+    T getPrefixValue(int idx) {
+      return prefix[idx]->value;
+    }
 
-        size_t prefixSize() const {
-            return prefix.size();
-        }
+    size_t prefixSize() const {
+        return prefix.size();
+    }
 
         /**
          *
@@ -467,24 +475,36 @@ namespace nmath {
             return rp.retv;
         }
 
-        std::vector<ImageData<T>*> getSpace(const T *inputInterval, T epsilon, 
-                bool needNormalVector, bool needNormalizeNormalVector) {
-            std::vector<ImageData<T>*> lstData;
-            ImageData<T> *sp;
-            DParam<T> param;
-            SimpleCriteria<T>* sc;
-            CompositeCriteria<T>* cc;
-            Criteria<T>* outCriteria;
-            T y, lastX, rightVal;
-            int elementOnRow = 0;
-            auto valLen = this->variables.size();
+    /**
+     * This method is used to calculate value of the function at every point in the input interval, 
+     * value step is based on the input epsilon
+     * PARAM: inputInterval, the interval of the input variable, 
+     *    the number of element in this array must be twice the number of variables of the function
+     *    Example: f(x, y) = x^2 + y^2, the inputInterval must be {x_min, x_max, y_min, y_max}
+     * PARAM: epsilon, the step of the input variable 
+     * PARAM: needNormalVector, if true, the output will contain normal vector at each point
+     * PARAM: needNormalizeNormalVector, if true, the normal vector will be normalized
+     * 
+     * RETURN: a list of ImageData, each ImageData object contains the value of the function at 
+     *   each point in the input interval. The ImageData object also contains the row information so that
+     *   we can build the indices for triangle strip later
+     */
+    std::vector<ImageData<T>*> getSpace(const T *inputInterval, T epsilon, bool needNormalVector, bool needNormalizeNormalVector) {
+      std::vector<ImageData<T>*> lstData;
+      ImageData<T> *sp;
+      DParam<T> param;
+      SimpleCriteria<T>* sc;
+      CompositeCriteria<T>* cc;
+      Criteria<T>* outCriteria;
+      T y, lastX, rightVal;
+      int elementOnRow = 0;
+      auto valLen = this->variables.size();
 
-            switch (valLen) {
-                case 1L:
+      switch (valLen) {
+        case 1L:
                     if (criteria.size() <= 0L) {
 
                         sp = new ImageData<T>(2);
-
                         param.error = NMATH_NO_ERROR;
                         param.variables[0] = variables[0]->text;
                         param.values[0] = inputInterval[0];
@@ -614,7 +634,7 @@ namespace nmath {
             return lstData;
         }
 
-        NMAST<T>* getVariable(int index) { return variables[index]; }
+    NMAST<T>* getVariable(int index) { return variables[index]; }
 		char* getText() const { return text; }
 		size_t getVarCount() const { return variables.size(); }
 
@@ -653,24 +673,24 @@ namespace nmath {
          * TODO:
          * */
 		NMAST<T>* getPrefixList() const { return prefix[0]; }
-        NMAST<T>* getPrefix(int idx) const { return prefix[idx]; }
+    NMAST<T>* getPrefix(int idx) const { return prefix[idx]; }
 		Criteria<T>* getCriteria(int index) const { return criteria[index]; }
 
-        friend std::ostream& operator<< (std::ostream& os, const NFunction& f) {
-            os << "\n Function: " << f.getText() << "\n";
-            os << "Number of variable: " << (int)f.getVarCount() << "\n";
-            size_t sz = f.prefixSize();
-            for(size_t i=0; i<sz; i++) {
-                os << "Prefix Expresion "<< i <<": \t \n";
-                    printNMAST(f.getPrefix(i), 0, os);
-            //         if(f.getCriteriaList()->list[i] != NULL) {
-            //             os << "\n \t Criteria: \n";
-            //             os << (*f.getCriteriaList()->list[i]) << "\n";
-            //         }
-            }
+    friend std::ostream& operator<< (std::ostream& os, const NFunction& f) {
+      os << "\n Function: " << f.getText() << "\n";
+      // os << "Number of variable: " << static_cast<int>(f.getVarCount()) << "\n";
+      size_t sz = f.prefixSize();
+      for(size_t i=0; i<sz; i++) {
+          os << "Prefix Expresion "<< i <<": \t \n";
+              printNMAST(f.getPrefix(i), 0, os);
+      //         if(f.getCriteriaList()->list[i] != NULL) {
+      //             os << "\n \t Criteria: \n";
+      //             os << (*f.getCriteriaList()->list[i]) << "\n";
+      //         }
+      }
 
-            return os;
-        }
+      return os;
+    }
 	};
 }
 
