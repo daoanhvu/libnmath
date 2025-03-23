@@ -59,58 +59,58 @@ namespace nmath {
 
       for(int i=0; i<prefix.size(); i++) {
         if(needNormalVector) {
-            // Now, we calculate the derivative of the function according to variable[0]
-            df[0] = getDerivativeByVariable(i, 0);
-            reduceParam.t = df[0];
-            reduce_t<T>(&reduceParam);
-            df[0] = reduceParam.t;
+          // Now, we calculate the derivative of the function according to variable[0]
+          df[0] = getDerivativeByVariable(i, 0);
+          reduceParam.t = df[0];
+          reduce_t<T>(&reduceParam);
+          df[0] = reduceParam.t;
 
-            // And derivative of the function according to variable[1]
-            df[1] = getDerivativeByVariable(i, 1);
-            reduceParam.t = df[1];
-            reduce_t<T>(&reduceParam);
-            df[1] = reduceParam.t;
+          // And derivative of the function according to variable[1]
+          df[1] = getDerivativeByVariable(i, 1);
+          reduceParam.t = df[1];
+          reduce_t<T>(&reduceParam);
+          df[1] = reduceParam.t;
         }
 
         if(criteria[i] == nullptr) {
-            if (needNormalVector)
-                sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, &cc, df, needNormalizeNormalVector);
-            else
-                sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, &cc, nullptr, false);
-            lstData.push_back(sp);
+          if (needNormalVector)
+            sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, &cc, df, needNormalizeNormalVector);
+          else
+            sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, &cc, nullptr, false);
+          lstData.push_back(sp);
         } else {
           outCriteria = (CompositeCriteria<T>*)criteria[i]->getInterval(inputInterval, this->strVars);
           switch(outCriteria->logicOperator()) {
             case AND:
               if (needNormalVector)
-                  sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria, df, needNormalizeNormalVector);
+                sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria, df, needNormalizeNormalVector);
               else
-                  sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria, 0, false);
+                sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, outCriteria, 0, false);
               lstData.push_back(sp);
               break;
 
               case OR:
                 for(int j=0; j<outCriteria->size(); j++) {
-                    if(needNormalVector)
-                        sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, (CompositeCriteria<T>*)(outCriteria->get(j)), df, needNormalizeNormalVector);
-                    else
-                        sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, (CompositeCriteria<T>*)(outCriteria->get(j)), 0, false);
-                    lstData.push_back(sp);
+                  if(needNormalVector)
+                    sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, (CompositeCriteria<T>*)(outCriteria->get(j)), df, needNormalizeNormalVector);
+                  else
+                    sp = getSpaceFor2WithANDComposite(i, inputInterval, epsilon, (CompositeCriteria<T>*)(outCriteria->get(j)), 0, false);
+                  lstData.push_back(sp);
                 }
                 break;
 
               default:
-                  break;
+                break;
             }
         }
 
         //free derivative trees
         if(df[0] != 0) {
-            clearTree(df);
+          clearTree(df);
         }
 
         if(df[1] != 0) {
-            clearTree(df+1);
+          clearTree(df+1);
         }
 
       } //end for
@@ -390,7 +390,7 @@ namespace nmath {
             }
 
             for(i=0; i<domain.size(); i++) {
-                nmath::clearTree(&(domain[i]));
+              nmath::clearTree(&(domain[i]));
             }
 
             domain.clear();
@@ -406,9 +406,9 @@ namespace nmath {
 			}
 
       for(unsigned int i=0; i < prefix.size(); i++) {
-          if(prefix[i] != nullptr) {
-              nmath::clearTree(&(prefix[i]));
-          }
+        if(prefix[i] != nullptr) {
+            nmath::clearTree(&(prefix[i]));
+        }
       }
       prefix.clear();
 
@@ -418,10 +418,10 @@ namespace nmath {
 			}
 			criteria.clear();
 
-            for (unsigned int i = 0; i < mTokens.size(); i++) {
-                if (mTokens[i] != nullptr)
-                    delete mTokens[i];
-            }
+      for (unsigned int i = 0; i < mTokens.size(); i++) {
+        if (mTokens[i] != nullptr)
+            delete mTokens[i];
+      }
 			mTokens.clear();
 		}
 
