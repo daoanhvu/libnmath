@@ -8,3 +8,5 @@ build/
 TankGame/TankGame/Debug
 TankGame/.vs/
 TankGame/Debug/
+nfunction_gl_graph/build/
+nfunction_gl_graph/libs/

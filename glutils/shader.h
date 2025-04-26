@@ -20,24 +20,24 @@ enum BUFFER_TYPE {
 };
 
 typedef struct tagLocation {
-    GLuint positionLocation;
-    GLuint normalLocation;
-    GLuint colorLocation;
-    GLuint textureLocation;
-    
-    //uniform variables
-    GLuint mvpMatrixId;
-    GLuint perspectiveMatrixId;
-    GLuint viewMatrixId;
-    GLuint modelMatrixId;
+  GLuint positionLocation;
+  GLuint normalLocation;
+  GLuint colorLocation;
+  GLuint textureLocation;
+  
+  //uniform variables
+  GLuint mvpMatrixId;
+  GLuint perspectiveMatrixId;
+  GLuint viewMatrixId;
+  GLuint modelMatrixId;
 	GLuint modelViewMatrixId;
-    GLuint useNormalID;
-    GLuint useLightingLocation;
-    GLuint pointSizeLocation;
-    GLuint lightPos1ID;
-    GLuint lightPos2ID;
-    GLuint lightColor1ID;
-    GLuint lightColor2ID;
+  GLuint useNormalID;
+  GLuint useLightingLocation;
+  GLuint pointSizeLocation;
+  GLuint lightPos1ID;
+  GLuint lightPos2ID;
+  GLuint lightColor1ID;
+  GLuint lightColor2ID;
 } ShaderVarLocation;
 
 

@@ -12,27 +12,27 @@
 #include <glm/gtx/quaternion.hpp>
 
 class VBO {
-    private:
-        GLuint vaoId;
-        // position, color bufferId
-        GLuint positionColorBufferId;
-        GLuint elementBufferId;
-        unsigned int indexCount;
-        // This is THE number of vertice in the VBO, NOT the number of float in [vertices]
-        int verticeCount;
-        GLsizeiptr strideInBytes;
-        GLintptr positionOffset;
-        GLintptr normalOffset;
-        GLintptr colorOffset;
-        // shader's variables locations
-        GLuint positionLocation;
-        GLuint colorLocation;
-        bool hasNormal;
-        GLuint normalLocation;
-        glm::mat4 rotationMatrix;
-        glm::mat4 translationMatrix;
-        glm::mat4 modelMatrix;
-        GLuint drawType;
+  private:
+    GLuint vaoId;
+    // position, color bufferId
+    GLuint positionColorBufferId;
+    GLuint elementBufferId;
+    unsigned int indexCount;
+    // This is THE number of vertice in the VBO, NOT the number of float in [vertices]
+    int verticeCount;
+    GLsizeiptr strideInBytes;
+    GLintptr positionOffset;
+    GLintptr normalOffset;
+    GLintptr colorOffset;
+    // shader's variables locations
+    GLuint positionLocation;
+    GLuint colorLocation;
+    bool hasNormal;
+    GLuint normalLocation;
+    glm::mat4 rotationMatrix;
+    glm::mat4 translationMatrix;
+    glm::mat4 modelMatrix;
+    GLuint drawType;
 
     public:
         VBO(const float* bufferData, unsigned int _verticeCount, 

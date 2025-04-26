@@ -330,7 +330,7 @@ int main() {
     locations.lightPos1ID = glGetUniformLocation(shaderProgram, "uLightPos");
     locations.lightColor1ID = glGetUniformLocation(shaderProgram, "uLightColor");
 
-    glm::vec3 cameraPos(0.0f, 0.0f, 8.0f); 
+    glm::vec3 cameraPos(0.0f, 0.0f, 16.0f); 
     glm::mat4 view = glm::lookAt(
       cameraPos,                          // Camera position
       glm::vec3(0.0f, 0.0f, 0.0f),       // Look at point
@@ -368,6 +368,12 @@ int main() {
       if (useLighting) {
         ImGui::ColorEdit3("Light Color", glm::value_ptr(lightColor));
         ImGui::DragFloat3("Light Position", glm::value_ptr(lightPos), 0.1f);
+        ImGui::DragFloat3("Camera Position", glm::value_ptr(cameraPos), 0.2f);
+        view = glm::lookAt(
+          cameraPos,                          // Camera position
+          glm::vec3(0.0f, 0.0f, 0.0f),       // Look at point
+          glm::vec3(0.0f, 1.0f, 0.0f)        // Up vector
+        );
       }
 
       ImGui::End();
