@@ -40,6 +40,8 @@ set(IMGUI_SOURCES
 # Add executable
 add_executable(${PROJECT_NAME} 
     nfunction_app.cpp
+    function_utils.cpp
+    windows_helper.cpp
     shaders_utils.cpp
     vbo_objects.cpp
     ${IMGUI_SOURCES}

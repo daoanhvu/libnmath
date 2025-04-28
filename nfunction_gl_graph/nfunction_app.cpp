@@ -21,6 +21,7 @@
 #include "nlablexer.h"
 #include "nfunction.hpp"
 #include "SimpleCriteria.hpp" 
+#include "function_utils.h"
 
 struct MeshBufferIndices {
   GLuint VBO;
@@ -97,29 +98,29 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 
     // Constrain the pitch to avoid flipping
     if (rotationX > 89.0f)
-        rotationX = 89.0f;
+      rotationX = 89.0f;
     if (rotationX < -89.0f)
-        rotationX = -89.0f;
+      rotationX = -89.0f;
 }
 
 // Function to handle window resizing
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    glViewport(0, 0, width, height);
+  glViewport(0, 0, width, height);
 }
 
 // Function to handle mouse button events
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
     if (ImGui::GetIO().WantCaptureMouse) {
-        return;  // Skip processing if ImGui is using the mouse
+      return;  // Skip processing if ImGui is using the mouse
     }
 
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
-        if (action == GLFW_PRESS) {
-            mousePressed = true;
-            firstMouse = true;
-        } else if (action == GLFW_RELEASE) {
-            mousePressed = false;
-        }
+      if (action == GLFW_PRESS) {
+        mousePressed = true;
+        firstMouse = true;
+      } else if (action == GLFW_RELEASE) {
+        mousePressed = false;
+      }
     }
 }
 
@@ -147,82 +148,6 @@ void handleRotation(GLFWwindow* window) {
     
     lastX = xpos;
     lastY = ypos;
-}
-
-int generateMeshAndIndices(std::string inputFunction, const float *values, float epsilon, 
-                                                ShaderVarLocation locations, std::vector<VboObject*> &results) {
-	nmath::NFunction<float> f;
-	nmath::NLabLexer lexer;
-	nmath::NLabParser<float> parser;
-	int errorCode;
-	int errorColumn;
-
-  errorCode = f.parse(inputFunction, &lexer, &parser);
-  if (errorCode != NMATH_NO_ERROR) {
-    std::cerr << "Error parsing function: " << errorCode << std::endl;
-    return -1;
-  }
-
-  std::vector<nmath::ImageData<float>*> spaces = f.getSpace(values, epsilon, true, false);
-	errorCode = f.getErrorCode();
-	if(errorCode != NMATH_NO_ERROR) {
-		std::cerr << "Test failed! Cannot parse the expression " << inputFunction << " with error code " << errorCode << std::endl;
-		for(auto i=0; i< spaces.size(); i++) {
-			delete spaces[i];
-		}
-		return -1;
-	}
-
-  VboObject* vboObject;
-  unsigned int indexLength;
-
-  for(auto i=0; i< spaces.size(); i++) {
-    nmath::ImageData<float>* mesh = spaces[i];
-    unsigned short* triangleTripIndices = mesh->generateIndices(indexLength);
-    const float* vertices = mesh->getData();
-    // Get the size of the vertices array
-    int dataSize = mesh->vertexListSize();
-    int vertexCount = mesh->getVertexCount();
-    int stride = mesh->getDimension();
-    int normalOffset = mesh->getNormalOffset();
-
-    float* colors = new float[vertexCount * 4];
-    for(int i=0; i< vertexCount; i++) {
-      colors[i * 4] = 0.3f;
-      colors[i * 4 + 1] = 0.5f;
-      colors[i * 4 + 2] = 0.2f;
-      colors[i * 4 + 3] = 1.0f;
-    }
-
-    // For debugging
-    std::cout << "vertexCount: " << vertexCount << std::endl;
-    std::cout << "dataSize: " << dataSize << std::endl;
-    std::cout << "indexLength: " << indexLength << std::endl;
-    std::cout << "normalOffset: " << normalOffset << std::endl;
-    // std::cout << "vertices:" << std::endl;
-    // for(int i=0; i< dataSize; i++) {
-    //   std::cout << vertices[i] << " "  ;
-    // }
-    // std::cout << std::endl;
-    // for(int i=0; i< mesh->getRowCount(); i++) {
-    //   std::cout << mesh->getRowInfo()[i] << " "  ;
-    // }
-    // std::cout << std::endl;
-    // std::cout << "triangleTripIndices:" << std::endl;
-    // for(int i=0; i< indexLength; i++) {
-    //   std::cout << triangleTripIndices[i] << " "  ;
-    // }
-    // std::cout << std::endl;
-
-    vboObject = new VboObject(locations, GL_TRIANGLE_STRIP);
-    vboObject->initialize(vertices, dataSize, vertexCount, colors, triangleTripIndices, indexLength, normalOffset);
-    results.push_back(vboObject);
-
-    delete[] triangleTripIndices;
-    delete[] colors;
-  }
-
-  return 0;
 }
 
 
@@ -357,9 +282,9 @@ int main() {
       
       // Add textbox
       if (ImGui::InputText("Enter text", inputText, IM_ARRAYSIZE(inputText), ImGuiInputTextFlags_EnterReturnsTrue)) {
-          // TODO: Handle text input (when Enter is pressed)
-          std::cout << "Entered text: " << inputText << std::endl;
-          shouldReInitMeshes = true;
+        // TODO: Handle text input (when Enter is pressed)
+        std::cout << "Entered text: " << inputText << std::endl;
+        shouldReInitMeshes = true;
       }
 
       // Add lighting controls
@@ -420,7 +345,8 @@ int main() {
           delete meshes[i];
         }
         meshes.clear();
-        generateMeshAndIndices(inputText, values, epsilon, locations, meshes);
+        // generateMeshAndIndices(inputText, values, epsilon, locations, meshes);
+        generateRoundedCone(1.0f, 0.5f, 0.2f, 10, 8, 0.3f, 0.5f, 0.2f, 1.0f, locations, meshes);
         for(auto i=0; i< meshes.size(); i++) {
           meshes[i]->setupArrayAttributes();
         }

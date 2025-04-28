@@ -1,3 +1,6 @@
+#ifndef _CONE_HPP_
+#define _CONE_HPP_
+
 #include <cmath>
 #include <vector>
 
@@ -37,7 +40,7 @@ struct Point3 {
 
 class Cone {
 public:
-  Cone(float radius, float height) : radius(radius), height(height) {}
+  Cone(float h, float r, float cr, int st, int cst) : height(h), radius(r), capRadius(cr), stacks(st), capStacks(cst) {}
 
   float getVolume() const {
       return (1.0f / 3.0f) * M_PI * radius * radius * height;
@@ -104,7 +107,13 @@ public:
     return (pos - center).normalize();
   }
 
-  void generateMesh(std::vector<float> &vertices, std::vector<unsigned int> &indices) const {
+  /**
+   * Generate the mesh data for the cone
+   * Param vertices: output vector to store vertex data
+   * Param indices: output vector to store index data
+   * Return: number of vertices generated
+   */
+  int generateMesh(std::vector<float> &vertices, std::vector<unsigned short> &indices) const {
     
     // slice is alzimuthal division of the cone
     int slices = 24;
@@ -129,10 +138,10 @@ public:
     // compute the cone body indices
     for (int i = 0; i < stacks; ++i) {
       for (int j = 0; j < slices; ++j) {
-        unsigned int v0 = (i * (slices + 1)) + j;
-        unsigned int v1 = v0 + 1;
-        unsigned int v2 = (i + 1) * (slices + 1) + j;
-        unsigned int v3 = v2 + 1;
+        unsigned short v0 = (i * (slices + 1)) + j;
+        unsigned short v1 = v0 + 1;
+        unsigned short v2 = (i + 1) * (slices + 1) + j;
+        unsigned short v3 = v2 + 1;
         // Note: The cone body is made of quads, so we need to create two triangles for each quad
         indices.push_back(v0);
         indices.push_back(v2);
@@ -163,10 +172,10 @@ public:
     unsigned int capStart = (stacks + 1) * (slices + 1);
     for (int i = 0; i < capStacks; ++i) {
       for (int j = 0; j < slices; ++j) {
-        unsigned int v0 = capStart + (i * (slices + 1)) + j;
-        unsigned int v1 = v0 + 1;
-        unsigned int v2 = capStart + ((i + 1) * (slices + 1)) + j;
-        unsigned int v3 = v2 + 1;
+        unsigned short v0 = capStart + (i * (slices + 1)) + j;
+        unsigned short v1 = v0 + 1;
+        unsigned short v2 = capStart + ((i + 1) * (slices + 1)) + j;
+        unsigned short v3 = v2 + 1;
         // Note: The cone cap is made of quads, so we need to create two triangles for each quad
         indices.push_back(v0);
         indices.push_back(v2);
@@ -176,10 +185,10 @@ public:
         indices.push_back(v3);
       }
     }
+
+    return vertices.size() / 6; // Return the number of vertices
   }
 private:
-  float x;
-  float y;
   float capRadius;
   float radius;
   float height;
@@ -187,3 +196,5 @@ private:
   int stacks;
   int capStacks;
 };
+
+#endif // _CONE_HPP_

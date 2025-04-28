@@ -31,6 +31,7 @@ VboObject::VboObject(ShaderVarLocation locations, GLuint drawType) {
  * @brief Initialize the VBO object
  * 
  * @param vertices 
+ * @param dataSize the number of floats in the vertices array
  * @param colors 
  * @param _verticeCount 
  * @param triangleTripIndices 
@@ -92,9 +93,9 @@ void VboObject::setupArrayAttributes() {
   this->isReadyForRendering = true;
 }
 
-void VboObject::applyRotation(float xRadian, const glm::vec3 &xAxis, float yRadian, const glm::vec3 &yAxis, 
-                                float zRadian, const glm::vec3 &zAxis) {
-
+void VboObject::applyRotation(float rad, const glm::vec3 &axis) {
+  glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), rad, axis);
+  this->rotationMatrix = rotationMatrix * this->rotationMatrix;
 }
 
 void VboObject::render() {

@@ -48,7 +48,7 @@ class VboObject {
 
       void release();
 
-      void applyRotation(float xRadian, const glm::vec3 &xAxis, float yRadian, const glm::vec3 &yAxis, float zRadian, const glm::vec3 &zAxis);
+      void applyRotation(float rad, const glm::vec3 &axis);
 
       void render();
 };
