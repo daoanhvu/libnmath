@@ -150,6 +150,118 @@ void handleRotation(GLFWwindow* window) {
     lastY = ypos;
 }
 
+struct GLCoordinates {
+  GLuint axisVao;
+  GLuint axisVbo;
+  GLuint axisColorVbo;
+};
+
+GLCoordinates initCoordinates(ShaderVarLocation locations) {
+    // Initialize the coordinate system here
+    // This function can be used to set up any initial state for the coordinate system
+    float axisVertices[] = {
+        // X-axis
+        -1.0f, 0.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
+        // Y-axis
+        0.0f, -1.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        // Z-axis
+        0.0f, 0.0f, -1.0f,
+        0.0f, 0.0f, 1.0f
+    };
+    float axisColors[] = {
+        // X-axis color (red)
+        1.0f, 0.0f, 0.0f, 1.0f,
+        1.0f, 0.0f, 0.0f, 1.0f,
+        // Y-axis color (green)
+        0.0f, 1.0f, 0.0f, 1.0f,
+        0.0f, 1.0f, 0.0f, 1.0f,
+        // Z-axis color (blue)
+        0.0f, 0.0f, 1.0f, 1.0f,
+        0.0f, 0.0f, 1.0f, 1.0f
+    };
+    // VboObject* axisVBO = new VboObject(locations, GL_LINES);
+    // axisVBO->initialize(axisVertices, 18, 6, axisColors, nullptr, 0, -1);
+    GLCoordinates result;
+    GLuint axisVao;
+    GLuint axisVbo;
+    GLuint axisColorVbo;
+    glGenVertexArrays(1, &axisVao);
+    glBindVertexArray(axisVao);
+
+    glGenBuffers(1, &axisVbo);
+    glBindBuffer(GL_ARRAY_BUFFER, axisVbo);
+    glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(float), axisVertices, GL_STATIC_DRAW);
+    // Set up position attribute (location 0)
+    glBindBuffer(GL_ARRAY_BUFFER, axisVbo);
+    int strideInBytes = 3 * sizeof(float);
+    glVertexAttribPointer(locations.positionLocation, 3, GL_FLOAT, GL_FALSE, strideInBytes, (void*)0);
+    glEnableVertexAttribArray(locations.positionLocation);
+
+    strideInBytes = 4 * sizeof(float);
+    glGenBuffers(1, &axisColorVbo);
+    glBindBuffer(GL_ARRAY_BUFFER, axisColorVbo);
+    glBufferData(GL_ARRAY_BUFFER, 24 * sizeof(float), axisColors, GL_STATIC_DRAW);
+
+    result.axisVao = axisVao;
+    result.axisVbo = axisVbo;
+    result.axisColorVbo = axisColorVbo;
+    return result;
+}
+
+void renderCoordinates(const GLCoordinates &axes, ShaderVarLocation locations, glm::mat4 model) {
+  glUniform1i(locations.useLightingLocation, 0);
+  // Render the coordinate system here
+  glBindVertexArray(axes.axisVao);
+  
+  glBindBuffer(GL_ARRAY_BUFFER, axes.axisVbo);
+  glEnableVertexAttribArray(locations.positionLocation);
+  glVertexAttribPointer(locations.positionLocation, //Attribute index
+                        3,  //Number of component per this attribute of vertex
+                        GL_FLOAT,
+                        GL_FALSE,
+                        3 * sizeof(float),
+                        reinterpret_cast<void*>(0));
+  
+  glBindBuffer(GL_ARRAY_BUFFER, axes.axisColorVbo);
+  glEnableVertexAttribArray(locations.colorLocation);
+  glVertexAttribPointer(locations.colorLocation, //Attribute index
+                        4,  //Number of component per this attribute of vertex
+                        GL_FLOAT,
+                        GL_FALSE,
+                        4 * sizeof(float),
+                        reinterpret_cast<void*>(0));
+    
+
+    glDrawArrays(GL_LINES, 0, 6);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    glDisableVertexAttribArray(locations.positionLocation);
+    glDisableVertexAttribArray(locations.normalLocation);
+    glDisableVertexAttribArray(locations.colorLocation);
+}
+
+void releaseCoordinates(GLCoordinates &axes) {
+  glDeleteVertexArrays(1, &axes.axisVao);
+  glDeleteBuffers(1, &axes.axisVbo);
+  glDeleteBuffers(1, &axes.axisColorVbo);
+}
+
+void renderMeshes(std::vector<VboObject*>& meshes, ShaderVarLocation locations, glm::mat4 model) {
+  // Set lighting uniforms
+  glUniform1i(locations.useLightingLocation, useLighting ? 1 : 0);
+  glUniform3fv(locations.lightPos1ID, 1, glm::value_ptr(lightPos));
+  glUniform3fv(locations.lightColor1ID, 1, glm::value_ptr(lightColor));
+
+  // Calculate and set normal matrix
+  glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(model)));
+  glUniformMatrix3fv(locations.normalMatrixId, 1, GL_FALSE, glm::value_ptr(normalMatrix));
+  for (auto& mesh : meshes) {
+      mesh->render();
+  }
+}
 
 int main() {
     // Initialize GLFW
@@ -262,6 +374,9 @@ int main() {
       glm::vec3(0.0f, 1.0f, 0.0f)        // Up vector
     );
 
+    // Coordinate system
+    GLCoordinates axisVBO = initCoordinates(locations);
+
     // Generate mesh and set up vertex data and buffers
     std::vector<VboObject*> meshes;
     float values[4] = {-1.8f, 1.8f, -1.8f, 1.8f};
@@ -306,38 +421,24 @@ int main() {
       // Clear the color buffer and depth buffer
       glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
       // Use the shader program
       glUseProgram(shaderProgram);
-
-      // Set lighting uniforms
-      glUniform1i(locations.useLightingLocation, useLighting ? 1 : 0);
-      glUniform3fv(locations.lightPos1ID, 1, glm::value_ptr(lightPos));
-      glUniform3fv(locations.lightColor1ID, 1, glm::value_ptr(lightColor));
-
-      // Calculate and set view position for specular lighting // Camera position
-      glUniform3fv(locations.viewPosId, 1, glm::value_ptr(cameraPos));
 
       // Set transformation matrices
       glm::mat4 model = glm::mat4(1.0f);
       model = glm::rotate(model, glm::radians(rotationX), glm::vec3(1.0f, 0.0f, 0.0f));
       model = glm::rotate(model, glm::radians(rotationY), glm::vec3(0.0f, 1.0f, 0.0f));
-
       glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
 
       // Set transformation matrices in shader
       glUniformMatrix4fv(locations.modelMatrixId, 1, GL_FALSE, glm::value_ptr(model));
       glUniformMatrix4fv(locations.viewMatrixId, 1, GL_FALSE, glm::value_ptr(view));
       glUniformMatrix4fv(locations.perspectiveMatrixId, 1, GL_FALSE, glm::value_ptr(projection));
+      // Calculate and set view position for specular lighting // Camera position
+      glUniform3fv(locations.viewPosId, 1, glm::value_ptr(cameraPos));
 
-      // Calculate and set normal matrix
-      glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(model)));
-      glUniformMatrix3fv(locations.normalMatrixId, 1, GL_FALSE, glm::value_ptr(normalMatrix));
-
-      // Draw the meshes
-      for(auto i=0; i< meshes.size(); i++) {
-        meshes[i]->render();
-      }
+      renderCoordinates(axisVBO, locations, model);
+      renderMeshes(meshes, locations, model);
 
       if (shouldReInitMeshes) {
         for(auto i=0; i< meshes.size(); i++) {
@@ -378,6 +479,7 @@ int main() {
       meshes[i]->release();
       delete meshes[i];
     }
+    releaseCoordinates(axisVBO);
 
     glDeleteProgram(shaderProgram);
 

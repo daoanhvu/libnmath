@@ -6,6 +6,7 @@ layout(location = 2) in vec4 aColor;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform int uUseLighting;
 uniform mat3 uNormalMatrix;
 
 out vec3 vPos;
@@ -17,11 +18,12 @@ void main()
     vec4 worldPos = model * vec4(aPos, 1.0);
     gl_Position = projection * view * worldPos;
     
-    // Transform the position to world space for lighting calculations
-    vPos = vec3(worldPos);
-    
-    // Transform the normal using the normal matrix
-    vNormal = normalize(uNormalMatrix * aNormal);
+    if (uUseLighting > 0) {
+      // Transform the position to world space for lighting calculations
+      vPos = vec3(worldPos);
+      // Transform the normal using the normal matrix
+      vNormal = normalize(uNormalMatrix * aNormal);
+    }
     
     vColor = aColor;
 } 

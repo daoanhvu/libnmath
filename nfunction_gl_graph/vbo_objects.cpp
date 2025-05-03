@@ -75,8 +75,10 @@ void VboObject::setupArrayAttributes() {
   glEnableVertexAttribArray(locations.positionLocation);
 
   // Set up normal attribute (location 1)
-  glVertexAttribPointer(locations.normalLocation, 3, GL_FLOAT, GL_FALSE, this->strideInBytes, (void*)(this->normalOffset * sizeof(float)));  // Offset by 3 floats
-  glEnableVertexAttribArray(locations.normalLocation);
+  if (this->normalOffset >= 0) {
+    glVertexAttribPointer(locations.normalLocation, 3, GL_FLOAT, GL_FALSE, this->strideInBytes, (void*)(this->normalOffset * sizeof(float)));  // Offset by 3 floats
+    glEnableVertexAttribArray(locations.normalLocation);
+  }
 
   // Set up color attribute (location 2)
   glBindBuffer(GL_ARRAY_BUFFER, colorVbo);
@@ -130,6 +132,7 @@ void VboObject::render() {
                           reinterpret_cast<void*>(this->normalOffset));
     }
     if (this->colorVbo != 0) {
+      glBindBuffer(GL_ARRAY_BUFFER, this->colorVbo);
       glEnableVertexAttribArray(this->locations.colorLocation);
       glVertexAttribPointer(this->locations.colorLocation, //Attribute index
                         4,  //Number of component per this attribute of vertex

@@ -11,7 +11,7 @@ out vec4 FragColor;
 
 void main()
 {
-    if(uUseLighting == 1) {
+    if(uUseLighting > 0) {
       // Ambient lighting
       float ambientStrength = 0.3;
       vec3 ambient = ambientStrength * uLightColor;
