@@ -19,12 +19,17 @@ VboObject::VboObject(ShaderVarLocation locations, GLuint drawType) {
   colorVbo = 0;
   elementBufferObject = 0;
   indexCount = 0;
-  colorOffset = 0;
-  normalOffset = -1;
-  colorStrideInBytes = 4 * sizeof(float);
   this->locations = locations;
   this->drawType = drawType;
   this->isReadyForRendering = false;
+  this->rotationMatrix = glm::mat4(1.0f);
+  this->translationMatrix = glm::mat4(1.0f);
+  this->scaleMatrix = glm::mat4(1.0f);
+  this->positionOffset = 0;
+  this->normalOffset = -1;
+  this->colorOffset = 0;
+  this->strideInBytes = 3 * sizeof(float);
+  this->colorStrideInBytes = 4 * sizeof(float);
 }
 
 /**
@@ -100,11 +105,14 @@ void VboObject::applyRotation(float rad, const glm::vec3 &axis) {
   this->rotationMatrix = rotationMatrix * this->rotationMatrix;
 }
 
-void VboObject::render() {
+void VboObject::render(const glm::mat4 &globalModel) {
   if (!this->isReadyForRendering) {
     std::cout << "VBO is not ready for rendering" << std::endl;
     return;
   }
+
+  glm::mat4 modelMatrix = globalModel * this->rotationMatrix * this->translationMatrix;
+  // glUniformMatrix4fv(locations.modelMatrixId, 1, GL_FALSE, glm::value_ptr(modelMatrix));
 
   if (this->indexCount > 0) {
     // std::cout << "Drawing VBO with indices" << std::endl;

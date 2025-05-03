@@ -30,7 +30,7 @@ class VboObject {
     ShaderVarLocation locations;
     glm::mat4 rotationMatrix;
     glm::mat4 translationMatrix;
-    glm::mat4 modelMatrix;
+    glm::mat4 scaleMatrix;
     GLuint drawType;
 
     bool isReadyForRendering;
@@ -50,7 +50,7 @@ class VboObject {
 
       void applyRotation(float rad, const glm::vec3 &axis);
 
-      void render();
+      void render(const glm::mat4 &globalModel);
 };
 
 #endif

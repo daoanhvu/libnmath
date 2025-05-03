@@ -22,6 +22,7 @@
 #include "nfunction.hpp"
 #include "SimpleCriteria.hpp" 
 #include "function_utils.h"
+#include "windows_helper.h"
 
 struct MeshBufferIndices {
   GLuint VBO;
@@ -49,9 +50,10 @@ const glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
 const glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 // Rotation variables
-float mouseSpeed = 0.003f; // Reduced for smoother rotation
+float mouseSpeed = 0.3f; // Reduced for smoother rotation
 bool isDragging = false;
-glm::mat4 rotationMatrix = glm::mat4(1.0f); // Initialize as identity matrix
+
+GLRotationParameters rotationParams;
 
 // Add these global variables for the textbox
 char inputText[256] = "";
@@ -62,9 +64,6 @@ bool useLighting = true;
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);  // Light position
 glm::vec3 lightColor(1.0f, 1.0f, 1.0f); // White light
 
-// Variables for rotation
-float rotationX = 0.0f;
-float rotationY = 0.0f;
 bool mousePressed = false;
 
 // Function to handle mouse input
@@ -84,23 +83,19 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
       return;
     }
 
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos;
+    float deltaX = float(xpos - lastX);
+    float deltaY = float(lastY - ypos);
     lastX = xpos;
     lastY = ypos;
 
-    float sensitivity = 0.5f;
-    xoffset *= sensitivity;
-    yoffset *= sensitivity;
-
-    rotationY += xoffset;
-    rotationX += yoffset;
+    rotationParams.rotationY += deltaX * mouseSpeed;
+    rotationParams.rotationX += deltaY * mouseSpeed;
 
     // Constrain the pitch to avoid flipping
-    if (rotationX > 89.0f)
-      rotationX = 89.0f;
-    if (rotationX < -89.0f)
-      rotationX = -89.0f;
+    if (rotationParams.rotationX > 89.0f)
+      rotationParams.rotationX = 89.0f;
+    if (rotationParams.rotationX < -89.0f)
+      rotationParams.rotationX = -89.0f;
 }
 
 // Function to handle window resizing
@@ -122,145 +117,6 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         mousePressed = false;
       }
     }
-}
-
-// In your main rendering loop
-void handleRotation(GLFWwindow* window) {
-    if (!isDragging) return;
-    
-    double xpos, ypos;
-    glfwGetCursorPos(window, &xpos, &ypos);
-    
-    // Calculate rotation angles based on mouse movement
-    float deltaX = float(xpos - lastX);
-    float deltaY = float(ypos - lastY);
-    
-    // Convert mouse movement to rotation angles
-    float horizontalAngle = -mouseSpeed * deltaY;  // Rotation around X-axis (pitch)
-    float verticalAngle = -mouseSpeed * deltaX;    // Rotation around Y-axis (yaw)
-    
-    // Use fixed world-space axes for rotation
-    glm::mat4 rotX = glm::rotate(glm::mat4(1.0f), horizontalAngle, glm::vec3(1.0f, 0.0f, 0.0f));  // Fixed X-axis
-    glm::mat4 rotY = glm::rotate(glm::mat4(1.0f), verticalAngle, glm::vec3(0.0f, 1.0f, 0.0f));    // Fixed Y-axis
-    
-    // Apply rotations in order: first around Y-axis, then around X-axis
-    rotationMatrix = rotX * rotY * rotationMatrix;
-    
-    lastX = xpos;
-    lastY = ypos;
-}
-
-struct GLCoordinates {
-  GLuint axisVao;
-  GLuint axisVbo;
-  GLuint axisColorVbo;
-};
-
-GLCoordinates initCoordinates(ShaderVarLocation locations) {
-    // Initialize the coordinate system here
-    // This function can be used to set up any initial state for the coordinate system
-    float axisVertices[] = {
-        // X-axis
-        -1.0f, 0.0f, 0.0f,
-        1.0f, 0.0f, 0.0f,
-        // Y-axis
-        0.0f, -1.0f, 0.0f,
-        0.0f, 1.0f, 0.0f,
-        // Z-axis
-        0.0f, 0.0f, -1.0f,
-        0.0f, 0.0f, 1.0f
-    };
-    float axisColors[] = {
-        // X-axis color (red)
-        1.0f, 0.0f, 0.0f, 1.0f,
-        1.0f, 0.0f, 0.0f, 1.0f,
-        // Y-axis color (green)
-        0.0f, 1.0f, 0.0f, 1.0f,
-        0.0f, 1.0f, 0.0f, 1.0f,
-        // Z-axis color (blue)
-        0.0f, 0.0f, 1.0f, 1.0f,
-        0.0f, 0.0f, 1.0f, 1.0f
-    };
-    // VboObject* axisVBO = new VboObject(locations, GL_LINES);
-    // axisVBO->initialize(axisVertices, 18, 6, axisColors, nullptr, 0, -1);
-    GLCoordinates result;
-    GLuint axisVao;
-    GLuint axisVbo;
-    GLuint axisColorVbo;
-    glGenVertexArrays(1, &axisVao);
-    glBindVertexArray(axisVao);
-
-    glGenBuffers(1, &axisVbo);
-    glBindBuffer(GL_ARRAY_BUFFER, axisVbo);
-    glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(float), axisVertices, GL_STATIC_DRAW);
-    // Set up position attribute (location 0)
-    glBindBuffer(GL_ARRAY_BUFFER, axisVbo);
-    int strideInBytes = 3 * sizeof(float);
-    glVertexAttribPointer(locations.positionLocation, 3, GL_FLOAT, GL_FALSE, strideInBytes, (void*)0);
-    glEnableVertexAttribArray(locations.positionLocation);
-
-    strideInBytes = 4 * sizeof(float);
-    glGenBuffers(1, &axisColorVbo);
-    glBindBuffer(GL_ARRAY_BUFFER, axisColorVbo);
-    glBufferData(GL_ARRAY_BUFFER, 24 * sizeof(float), axisColors, GL_STATIC_DRAW);
-
-    result.axisVao = axisVao;
-    result.axisVbo = axisVbo;
-    result.axisColorVbo = axisColorVbo;
-    return result;
-}
-
-void renderCoordinates(const GLCoordinates &axes, ShaderVarLocation locations, glm::mat4 model) {
-  glUniform1i(locations.useLightingLocation, 0);
-  // Render the coordinate system here
-  glBindVertexArray(axes.axisVao);
-  
-  glBindBuffer(GL_ARRAY_BUFFER, axes.axisVbo);
-  glEnableVertexAttribArray(locations.positionLocation);
-  glVertexAttribPointer(locations.positionLocation, //Attribute index
-                        3,  //Number of component per this attribute of vertex
-                        GL_FLOAT,
-                        GL_FALSE,
-                        3 * sizeof(float),
-                        reinterpret_cast<void*>(0));
-  
-  glBindBuffer(GL_ARRAY_BUFFER, axes.axisColorVbo);
-  glEnableVertexAttribArray(locations.colorLocation);
-  glVertexAttribPointer(locations.colorLocation, //Attribute index
-                        4,  //Number of component per this attribute of vertex
-                        GL_FLOAT,
-                        GL_FALSE,
-                        4 * sizeof(float),
-                        reinterpret_cast<void*>(0));
-    
-
-    glDrawArrays(GL_LINES, 0, 6);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    glDisableVertexAttribArray(locations.positionLocation);
-    glDisableVertexAttribArray(locations.normalLocation);
-    glDisableVertexAttribArray(locations.colorLocation);
-}
-
-void releaseCoordinates(GLCoordinates &axes) {
-  glDeleteVertexArrays(1, &axes.axisVao);
-  glDeleteBuffers(1, &axes.axisVbo);
-  glDeleteBuffers(1, &axes.axisColorVbo);
-}
-
-void renderMeshes(std::vector<VboObject*>& meshes, ShaderVarLocation locations, glm::mat4 model) {
-  // Set lighting uniforms
-  glUniform1i(locations.useLightingLocation, useLighting ? 1 : 0);
-  glUniform3fv(locations.lightPos1ID, 1, glm::value_ptr(lightPos));
-  glUniform3fv(locations.lightColor1ID, 1, glm::value_ptr(lightColor));
-
-  // Calculate and set normal matrix
-  glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(model)));
-  glUniformMatrix3fv(locations.normalMatrixId, 1, GL_FALSE, glm::value_ptr(normalMatrix));
-  for (auto& mesh : meshes) {
-      mesh->render();
-  }
 }
 
 int main() {
@@ -385,7 +241,7 @@ int main() {
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
-      handleRotation(window);
+      handleRotation(window, rotationParams);
       
       // Start the Dear ImGui frame
       ImGui_ImplOpenGL3_NewFrame();
@@ -425,20 +281,19 @@ int main() {
       glUseProgram(shaderProgram);
 
       // Set transformation matrices
-      glm::mat4 model = glm::mat4(1.0f);
-      model = glm::rotate(model, glm::radians(rotationX), glm::vec3(1.0f, 0.0f, 0.0f));
-      model = glm::rotate(model, glm::radians(rotationY), glm::vec3(0.0f, 1.0f, 0.0f));
+      glm::mat4 globalModel = glm::mat4(1.0f);
+      globalModel = glm::rotate(globalModel, glm::radians(rotationParams.rotationX), glm::vec3(1.0f, 0.0f, 0.0f));
+      globalModel = glm::rotate(globalModel, glm::radians(rotationParams.rotationY), glm::vec3(0.0f, 1.0f, 0.0f));
       glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
 
       // Set transformation matrices in shader
-      glUniformMatrix4fv(locations.modelMatrixId, 1, GL_FALSE, glm::value_ptr(model));
       glUniformMatrix4fv(locations.viewMatrixId, 1, GL_FALSE, glm::value_ptr(view));
       glUniformMatrix4fv(locations.perspectiveMatrixId, 1, GL_FALSE, glm::value_ptr(projection));
       // Calculate and set view position for specular lighting // Camera position
       glUniform3fv(locations.viewPosId, 1, glm::value_ptr(cameraPos));
 
-      renderCoordinates(axisVBO, locations, model);
-      renderMeshes(meshes, locations, model);
+      renderCoordinates(axisVBO, locations, globalModel);
+      renderMeshes(meshes, locations, globalModel, useLighting ? 1 : 0, lightPos, lightColor);
 
       if (shouldReInitMeshes) {
         for(auto i=0; i< meshes.size(); i++) {
