@@ -3,7 +3,7 @@
 #endif
 #include <stdlib.h>
 #include <math.h>
-#include "common.h"
+#include "common_data.h"
 
 #define POOL_CAPACITY 32
 
@@ -143,7 +143,7 @@ int isPrime(long n){
 			}
 		}
 		(*error) = 0;
-		return val*negative;
+		return val * negative;
 	}
 
 	void clearTree(NMAST **prf){

@@ -1,18 +1,8 @@
-#ifndef _SHADER_HPP_
-#define _SHADER_HPP_
+#ifndef _SHADERS_UTILS_H_
+#define _SHADERS_UTILS_H_
 
-#ifdef __ANDROID__
-	#include "EGL/egl.h"
-	#ifdef __GLES2__
-		#include "GLES2/gl2.h"
-		#include "GLES2/gl2ext.h"
-	#else
-		#include "GLES3/gl3.h"
-		#include "GLES3/gl3ext.h"
-	#endif
-#else
-    #include <GL/gl.h>
-#endif
+#include <string>
+#include <GL/glew.h>
 
 enum BUFFER_TYPE {
     ONE_BUFFER,
@@ -29,8 +19,10 @@ typedef struct tagLocation {
   GLuint mvpMatrixId;
   GLuint perspectiveMatrixId;
   GLuint viewMatrixId;
+  GLuint viewPosId;
   GLuint modelMatrixId;
 	GLuint modelViewMatrixId;
+  GLuint normalMatrixId;
   GLuint useNormalID;
   GLuint useLightingLocation;
   GLuint pointSizeLocation;
@@ -40,7 +32,7 @@ typedef struct tagLocation {
   GLuint lightColor2ID;
 } ShaderVarLocation;
 
-
-GLuint loadShaders(const char * vertex_file_path, const char * fragment_file_path);
+std::string readShaderFile(const char* filePath);
+GLuint compileShader(const char* source, GLenum shaderType);
 
 #endif

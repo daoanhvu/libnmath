@@ -220,7 +220,7 @@ namespace nmath {
                 return (val2<0)?(-val2):val2;
 
             case COTAN:
-                if(val2==0 || val2 == PI){
+                if((val2 == (T)0) || (val2 == (T)PI)){
                     (*error) = ERROR_DIV_BY_ZERO;
                     return 0;
                 }

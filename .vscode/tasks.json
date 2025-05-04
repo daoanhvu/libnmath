@@ -42,8 +42,14 @@
             "command": "/usr/bin/clang++",
             "args": [
                 "-g",
-                "-std=c++11",
+                "-std=c++17",
                 "-stdlib=libc++",
+                "-I${workspaceFolder}/include",
+                "${workspaceFolder}/src/internal_common.cpp",
+                "${workspaceFolder}/src/utf8.cpp",
+                "${workspaceFolder}/src/fraction.cpp",
+                "${workspaceFolder}/src/nlablexer.cpp",
+                "${workspaceFolder}/src/StackUtil.cpp",
                 "${file}",
                 "-o",
                 "${fileDirname}/${fileBasenameNoExtension}"

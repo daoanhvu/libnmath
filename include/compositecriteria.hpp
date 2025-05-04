@@ -74,7 +74,7 @@ namespace nmath {
 
 
 	template <typename T>
-	CompositeCriteria<T>::CompositeCriteria(): Criteria<T>(NMathCClassType::COMPOSITE) {
+	CompositeCriteria<T>::CompositeCriteria(): Criteria<T>(COMPOSITE) {
 	}
 
 	template <typename T>

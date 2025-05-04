@@ -95,20 +95,20 @@
 #define MAXTEXTLEN 	16
 #define INCLEN 		8
 #define MAX_VAR_COUNT 8
-#define PI			3.14159265358979323846
-#define E			2.718281828
+#define PI		3.14159265358979323846
+#define MATH_E			2.718281828
 
 #define D2R(x) x*(3.141592f/180.0f)
 
 
 namespace nmath {
 
-    const int FUNCTIONS[] = {SIN, COS, TAN, COTAN, ASIN, ACOS, ATAN, LOG, LN, SQRT};
-    const int FUNCTION_COUNT = 10;
-    const int OPERATORS[] = {PLUS,MINUS,MULTIPLY,DIVIDE,POWER};
-    const int OPERATOR_COUNT = 5;
-    const int COMPARING_OPERATORS[] = {LT,LTE,EQ,GT,GTE};
-    const int COMPARING_OPERATORS_COUNT = 5;
+  const int FUNCTIONS[] = {SIN, COS, TAN, COTAN, ASIN, ACOS, ATAN, LOG, LN, SQRT};
+  const int FUNCTION_COUNT = 10;
+  const int OPERATORS[] = {PLUS,MINUS,MULTIPLY,DIVIDE,POWER};
+  const int OPERATOR_COUNT = 5;
+  const int COMPARING_OPERATORS[] = {LT,LTE,EQ,GT,GTE};
+  const int COMPARING_OPERATORS_COUNT = 5;
 
 	struct Token {
 		int type;
