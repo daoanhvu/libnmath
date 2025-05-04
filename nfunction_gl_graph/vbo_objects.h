@@ -32,8 +32,14 @@ class VboObject {
     glm::mat4 translationMatrix;
     glm::mat4 scaleMatrix;
     GLuint drawType;
-
     bool isReadyForRendering;
+
+    bool isSelected;
+
+    GLuint frameVaoId;
+    GLuint frameVboId;
+    GLuint frameColorVboId;
+    GLuint frameElementBufferObject;
 
     public:
       VboObject(ShaderVarLocation locations, GLuint drawType);
@@ -41,6 +47,8 @@ class VboObject {
       void initialize(const float* vertices, unsigned int dataSize, unsigned int _vertexCount,
               const float* colors, const unsigned short* triangleTripIndices, unsigned int _indexCount, 
                           unsigned int _normalOffset);
+
+      void buildCuboidFrame(const float* vertices, unsigned int dataSize, unsigned int _vertexCount);
 
       void setupArrayAttributes();
 
@@ -50,7 +58,13 @@ class VboObject {
 
       void applyRotation(float rad, const glm::vec3 &axis);
 
+      void applyTranslation(const glm::vec3 &translation);
+
+      void applyScale(const glm::vec3 &scale);
+
       void render(const glm::mat4 &globalModel);
+
+      void renderFrame(const glm::mat4 &globalModel);
 };
 
 #endif

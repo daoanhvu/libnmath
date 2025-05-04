@@ -95,8 +95,8 @@
 #define MAXTEXTLEN 	16
 #define INCLEN 		8
 #define MAX_VAR_COUNT 8
-#define PI			3.14159265358979323846
-#define E			2.718281828
+#define PI		3.14159265358979323846
+#define MATH_E			2.718281828
 
 #define D2R(x) x*(3.141592f/180.0f)
 

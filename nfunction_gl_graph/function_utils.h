@@ -15,7 +15,9 @@
 #include "imagedata.hpp"
 #include "nlablexer.h"
 #include "nfunction.hpp"
-#include "SimpleCriteria.hpp" 
+#include "SimpleCriteria.hpp"
+
+int parseCommand(std::string commandText);
 
 int generateMeshAndIndices(std::string inputFunction, const float *values, float epsilon, 
   ShaderVarLocation locations, std::vector<VboObject*> &results);

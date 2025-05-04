@@ -8,15 +8,15 @@
             "name": "BuildForMac",
             "type": "cppdbg",
             "request": "launch",
-            // "program": "${workspaceFolder}/output/mac/${fileBasenameNoExtension}",
-            "program": "${workspaceFolder}/output/test",
+            "program": "${workspaceFolder}/test/${fileBasenameNoExtension}",
+            // "program": "${workspaceFolder}/output/test",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "lldb",
-            "preLaunchTask": "BuildAll"
+            "preLaunchTask": "clang++ build active file"
         },
         {
             "name": "BuildIndicesGenerate",

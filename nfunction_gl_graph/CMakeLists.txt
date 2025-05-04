@@ -67,9 +67,48 @@ target_link_libraries(${PROJECT_NAME}
 
 # For MacOS, we need to specify this to avoid linker errors
 if(APPLE)
-    target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Cocoa" "-framework IOKit" "-framework CoreVideo")
+  target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Cocoa" "-framework IOKit" "-framework CoreVideo")
 endif()
 
 # Copy shader files to build directory
 file(COPY ${CMAKE_SOURCE_DIR}/shaders/ DESTINATION ${CMAKE_BINARY_DIR}/shaders/
-    FILES_MATCHING PATTERN "*.glsl") 
+    FILES_MATCHING PATTERN "*.glsl")
+
+if (DEFINED TESTS)
+  include(FetchContent)
+  FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip
+  )
+  # For Windows: Prevent overriding the parent project's compiler/linker settings
+  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(googletest)
+  enable_testing()
+
+  add_executable(
+    nfunction_tests
+    vbo_objects.cpp
+    function_utils.cpp
+    shaders_utils.cpp
+    windows_helper.cpp
+    test/function_utils_test.cpp
+  )
+
+  target_include_directories(nfunction_tests
+    PRIVATE
+    ${GLM_INCLUDE_DIRS}
+    ${NMATH_INCLUDE_DIR}  # Add the nmath2 headers
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/test)
+
+  target_link_libraries(
+    nfunction_tests
+    OpenGL::GL
+    GLEW::GLEW
+    ${NMATH_LIB_DIR}/libnmath2.a
+    GTest::gtest_main
+  )
+
+  include(GoogleTest)
+  gtest_discover_tests(nfunction_tests)
+endif()

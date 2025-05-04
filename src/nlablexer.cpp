@@ -44,24 +44,24 @@ Token* NLabLexer::createToken(int _type, const char *_text, int len, int _col) {
 		
 		case PLUS:
 		case MINUS:
-            tk->priority = 4;
+        tk->priority = 4;
 		break;
 		
 		case MULTIPLY:
 		case DIVIDE:
-            tk->priority = 5;
+        tk->priority = 5;
 		break;
 		
 		case POWER:
-            tk->priority = 6;
+        tk->priority = 6;
 		break;
 		
 		case NE:
-            tk->priority = 7;
+        tk->priority = 7;
 		break;
 		
 		default:
-            tk->priority = 0;
+        tk->priority = 0;
 	}
 	tk->textLength = (unsigned char)((MAXTEXTLEN < len) ? MAXTEXTLEN : len);
 	memcpy(tk->text, _text, tk->textLength);
@@ -78,19 +78,21 @@ Token* NLabLexer::createToken(int _type, const char *_text, int len, int _col) {
   @param appended  [IN]
   @param start     [IN] The position where starting the anlysis
   @param tokens    [OUT] 
-  @param lastMeanIdx [OUT]
+  @param lastMeanIdx [OUT] Opional, the last position that the lexer can understand, in a happy case, it should be
+                      the length of inStr.
 
   @return the size of the token list to be used actually
 */
 size_t NLabLexer::lexicalAnalysis(const char *inStr, int len,
           bool appended, int start, std::vector<Token*> &tokens, int *lastMeanIdx) {
-    int chCode, type, k = 0;
-    int idx = start;
-    int nextIdx;
-    bool floatingPoint;
 
-    errorColumn = -1;
-    errorCode = NMATH_NO_ERROR;
+  int chCode, type, k = 0;
+  int idx = start;
+  int nextIdx;
+  bool floatingPoint;
+
+  errorColumn = -1;
+  errorCode = NMATH_NO_ERROR;
 	
 	while( idx < len ) {
 
@@ -101,25 +103,25 @@ size_t NLabLexer::lexicalAnalysis(const char *inStr, int len,
 			if( checkNumericOperator(inStr, len, idx, &type, &k, tokens) ) {
 				tokens.push_back(createToken(type, inStr + idx, k, idx));
 				idx += k;
-			}else if( checkParenthesePrackets(inStr[idx], &type) ) {
-                tokens.push_back(createToken(type, inStr + idx, 1, idx));
+			} else if( checkParenthesePrackets(inStr[idx], &type) ) {
+        tokens.push_back(createToken(type, inStr + idx, 1, idx));
 				idx++;
 			} else if( checkCommaSemi(inStr[idx], &type) ) {
-                tokens.push_back(createToken(type, inStr + idx, 1, idx));
+        tokens.push_back(createToken(type, inStr + idx, 1, idx));
 				idx++;
 			} else if(parserLogicOperator(inStr, idx, &type, &k )) {
-                tokens.push_back(createToken(type, inStr + idx, k, idx));
+        tokens.push_back(createToken(type, inStr + idx, k, idx));
 				idx += k;
 			} else if(inStr[idx] == ':' ) {
 				if(inStr[idx+1] == '-' ) {
-                    tokens.push_back(createToken(ELEMENT_OF, inStr + idx, 2, idx));
+          tokens.push_back(createToken(ELEMENT_OF, inStr + idx, 2, idx));
 					idx += 2;
 				} else { //ERROR: bad token found
 					errorColumn = idx;
 					errorCode = ERROR_BAD_TOKEN;
-                    if(lastMeanIdx != nullptr) {
-						*lastMeanIdx = idx - 1;
-					}
+            if(lastMeanIdx != nullptr) {
+						  *lastMeanIdx = idx - 1;
+					  }
 					return tokens.size();
 				}
 			} else if(isDigit(inStr[idx])) {
@@ -134,23 +136,24 @@ size_t NLabLexer::lexicalAnalysis(const char *inStr, int len,
 					return tokens.size();
 				}
 			} else if( isFunctionName(inStr, len, idx, &type, &k ) ) {
-                tokens.push_back(createToken(type, inStr + idx, k, idx));
+        tokens.push_back(createToken(type, inStr + idx, k, idx));
 				idx += k;
 			} else if(idx>0 && (inStr[idx-1]==' ') && (inStr[idx]=='D') && (inStr[idx+1]==':') ){
-                tokens.push_back(createToken(DOMAIN_NOTATION, "DOMAIN_NOTATION", 14, idx));
+        tokens.push_back(createToken(DOMAIN_NOTATION, "DOMAIN_NOTATION", 14, idx));
 				idx += 2;
 			} else if( isAName(inStr, len, idx, &k) ) {
 				tokens.push_back(createToken(NAME, inStr + idx, k, idx));
 				idx += k;
 			} else if( (idx+1 < len ) && (inStr[idx]=='p' || inStr[idx]=='P') && (inStr[idx+1]=='i' || inStr[idx+1]=='I')
 							&& ( (idx+1 == len-1) || !isASCIILetter(inStr[idx+2]) ) ) {
-                tokens.push_back(createToken(PI_TYPE, "3.14159265358979", 16, idx));
+        tokens.push_back(createToken(PI_TYPE, "3.14159265358979", 16, idx));
 				idx += 2;
 			} else if(inStr[idx]=='e' && ((idx==len-1) || !isASCIILetter(inStr[idx+1]))) {
-                tokens.push_back(createToken(E_TYPE, "2.718281828", 11, idx));
+        tokens.push_back(createToken(E_TYPE, "2.718281828", 11, idx));
 				idx++;
-			} else
-				idx++;
+			} else {
+        idx++;
+      }
 
 		} else {
 
@@ -160,31 +163,31 @@ size_t NLabLexer::lexicalAnalysis(const char *inStr, int len,
 			//LOGI(3, "UTF Code: (0x%X)%d", chCode, chCode);
 			switch(chCode) {
 				case PI_TYPE:
-                    tokens.push_back(createToken(PI_TYPE, "3.14159265358979", 16, idx));
+          tokens.push_back(createToken(PI_TYPE, "3.14159265358979", 16, idx));
 				break;
 
 				case E_TYPE:
-                    tokens.push_back(createToken(E_TYPE, "2.718281828", 11, idx));
+          tokens.push_back(createToken(E_TYPE, "2.718281828", 11, idx));
 				break;
 
 				case DIVIDE:
-                    tokens.push_back(createToken(DIVIDE, inStr + idx, nextIdx-idx, idx));
+          tokens.push_back(createToken(DIVIDE, inStr + idx, nextIdx-idx, idx));
 				break;
 
 				case AND:
-                    tokens.push_back(createToken(AND, inStr + idx, nextIdx-idx, idx));
+          tokens.push_back(createToken(AND, inStr + idx, nextIdx-idx, idx));
 				break;
 
 				case OR:
-                    tokens.push_back(createToken(OR, inStr + idx, nextIdx-idx, idx));
+          tokens.push_back(createToken(OR, inStr + idx, nextIdx-idx, idx));
 				break;
 
 				case SQRT:
-                    tokens.push_back(createToken(SQRT, inStr + idx, nextIdx-idx, idx));
+          tokens.push_back(createToken(SQRT, inStr + idx, nextIdx-idx, idx));
 				break;
 
-                default:
-                    break;
+        default:
+            break;
 			}
 			idx = nextIdx;
 		}
@@ -219,7 +222,8 @@ bool NLabLexer::parseNumber(const char* inStr, int len, int idx, int *type, int 
 					floatingPoint = true;
 				} else {
 					char next = inStr[k];
-					if(next != ' ' && next != '+' && next != '-' && next != '*' && next != '/' && next != '^' && next != ')' && next != ']' ) {
+					if(next != ' ' && next != '+' && next != '-' && next != '*' 
+              && next != '/' && next != '^' && next != ')' && next != ']' && next != '}' && next != ',' && next != ';') {
 						// ERROR: Number format exception
 						errorColumn = k;
 						errorCode = ERROR_PARSING_NUMBER;
@@ -566,30 +570,29 @@ bool NLabLexer::isFunctionName(const char *inStr, int inLen, int index, int *out
 bool NLabLexer::isAName(const char* inStr, int inputLen, int idx, int *tlen) {
 	char cc = inStr[idx];
 	if(( cc>= 'a' && cc<='z' ) || (cc>= 'A' && cc<='Z')) {
-	    int k = idx + 1;
+    int k = idx + 1;
 
-	    while(k < inputLen && !isDelimiterChar(inStr[k])) {
-	    	k++;
-	    }
-
-	    if( (k == idx+1) && cc == 'e' ) {
-	        return false;
-	    }
-
-        if( (k == idx+2)
-            && (cc == 'o' || cc=='O' )
-            && (inStr[idx+1]=='r' || inStr[idx+1]=='R' )) {
-            return false;
-        }
-
-        *tlen = k - idx;
-
-        return !((k == idx + 3)
-                 && (cc == 'a' || cc=='A' )
-                 && (inStr[idx+1]=='n' || inStr[idx+1]=='N' )
-                 && (inStr[idx+2]=='d' || inStr[idx+2]=='D' ));
-
+    while(k < inputLen && !isDelimiterChar(inStr[k])) {
+      k++;
     }
+
+    if( (k == idx+1) && cc == 'e' ) {
+        return false;
+    }
+
+    if( (k == idx+2)
+        && (cc == 'o' || cc=='O' )
+        && (inStr[idx+1]=='r' || inStr[idx+1]=='R' )) {
+        return false;
+    }
+
+    *tlen = k - idx;
+
+    return !((k == idx + 3)
+              && (cc == 'a' || cc=='A' )
+              && (inStr[idx+1]=='n' || inStr[idx+1]=='N' )
+              && (inStr[idx+2]=='d' || inStr[idx+2]=='D' ));
+  }
 	return false;
 }
 

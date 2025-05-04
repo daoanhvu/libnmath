@@ -111,10 +111,13 @@ void renderMeshes(std::vector<VboObject*>& meshes, const ShaderVarLocation &loca
   glUniform3fv(locations.lightColor1ID, 1, glm::value_ptr(lightColor));
 
   // Calculate and set normal matrix
-  glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(model)));
-  glUniformMatrix3fv(locations.normalMatrixId, 1, GL_FALSE, glm::value_ptr(normalMatrix));
+  // glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(model)));
+  // glUniformMatrix3fv(locations.normalMatrixId, 1, GL_FALSE, glm::value_ptr(normalMatrix));
   for (auto& mesh : meshes) {
-    glUniformMatrix4fv(locations.modelMatrixId, 1, GL_FALSE, glm::value_ptr(model));
+    // For testing purposes
+    // smoothly rotate the mesh around the axis (0.5f, 1.0f, 0.0f)
+    mesh->applyRotation(0.01f, glm::vec3(0.5f, 1.0f, 0.0f));
+
     mesh->render(model);
   }
 }
