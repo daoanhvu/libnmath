@@ -157,6 +157,10 @@ namespace nmath {
             - If the tokens match the pattern the function will return the next index, this index equals
             input index plus the length of the matched tokens.
             - If not, the function return the input index
+        @example
+            f(x, y) = x^2 + y^2
+            - The function will return 6
+            - The variables vector will contain 2 elements: x and y
     */
     template <typename T>
     int NLabParser<T>::functionNotation(std::vector<Token*> tokens, int index,
@@ -169,41 +173,41 @@ namespace nmath {
         *errorColumn = tokens[index]->column;
 
         if( (tokenCount < 4) || (index < 0) || (index >= tokenCount-3) )
-            return index;
+          return index;
 
         if(tokens[index]->type == NAME ) {
-            *errorCode = ERROR_PARENTHESE_MISSING;
-            if(tokens[index+1]->type == LPAREN) {
-                *errorCode = ERROR_MISSING_VARIABLE;
-                *errorColumn = tokens[index+1]->column;
+          *errorCode = ERROR_PARENTHESE_MISSING;
+          if(tokens[index+1]->type == LPAREN) {
+            *errorCode = ERROR_MISSING_VARIABLE;
+            *errorColumn = tokens[index+1]->column;
 
-                if(tokens[index+2]->type == NAME) {
-                    tokens[index+2]->type = VARIABLE;
-                    NMAST<T>* var = nmastPool->get();
-                    var->type = VARIABLE;
-                    var->text = tokens[index+2]->text;
-                    var->column = tokens[index+2]->column;
-                    variables.push_back(var);
-                    index += 3;
-                    while( (index+1<tokenCount) && (tokens[index]->type == COMMA)
-                            && (tokens[index+1]->type == NAME ) ) {
-                        tokens[index+1]->type = VARIABLE;
-                        var = nmastPool->get();
-                        var->type = VARIABLE;
-                        var->text = tokens[index+1]->text;
-                        var->column = tokens[index+1]->column;
-                        variables.push_back(var);
-                        index += 2;
-                    }
-                    *errorCode = ERROR_PARENTHESE_MISSING;
-                    *errorColumn = tokens[index]->column;
-                    if( (index < tokenCount) && (tokens[index]->type == RPAREN)){
-                        *errorCode = NMATH_NO_ERROR;
-                        *errorColumn = -1;
-                        return (index + 1);
-                    }
-                }
+            if(tokens[index+2]->type == NAME) {
+              tokens[index+2]->type = VARIABLE;
+              NMAST<T>* var = nmastPool->get();
+              var->type = VARIABLE;
+              var->text = tokens[index+2]->text;
+              var->column = tokens[index+2]->column;
+              variables.push_back(var);
+              index += 3;
+              while( (index+1<tokenCount) && (tokens[index]->type == COMMA)
+                      && (tokens[index+1]->type == NAME ) ) {
+                tokens[index+1]->type = VARIABLE;
+                var = nmastPool->get();
+                var->type = VARIABLE;
+                var->text = tokens[index+1]->text;
+                var->column = tokens[index+1]->column;
+                variables.push_back(var);
+                index += 2;
+              }
+              *errorCode = ERROR_PARENTHESE_MISSING;
+              *errorColumn = tokens[index]->column;
+              if( (index < tokenCount) && (tokens[index]->type == RPAREN)){
+                *errorCode = NMATH_NO_ERROR;
+                *errorColumn = -1;
+                return (index + 1);
+              }
             }
+          }
         }
         return oldIndex;
     }//done
@@ -257,7 +261,7 @@ namespace nmath {
 
             case E_TYPE:
                 ast = nmastPool->get();
-                ast->value = (T)E;
+                ast->value = (T)MATH_E;
                 ast->text = "e";
                 ast->type = E_TYPE;
                 ast->column = tk->column;
@@ -546,7 +550,7 @@ namespace nmath {
                             val = (T)PI;
                             break;
                         case E_TYPE:
-                            val = (T)E;
+                            val = (T)MATH_E;
                             break;
 
                         default:
@@ -725,7 +729,7 @@ namespace nmath {
                                     val = (T)PI;
                                     break;
                                 case E_TYPE:
-                                    val = (T)E;
+                                    val = (T)MATH_E;
                                     break;
                             }
 
@@ -747,7 +751,7 @@ namespace nmath {
                                     val2 = (T)PI;
                                     break;
                                 case E_TYPE:
-                                    val2 = (T)E;
+                                    val2 = (T)MATH_E;
                                     break;
                             }
                             /* ========END parsing floating point values=====*/
@@ -879,7 +883,7 @@ namespace nmath {
                 val1 = (T)PI;
                 break;
             case E_TYPE:
-                val1 = (T)E;
+                val1 = (T)MATH_E;
                 break;
             default:
                 val1 = (T)0;
@@ -898,7 +902,7 @@ namespace nmath {
                 val2 = (T)PI;
                 break;
             case E_TYPE:
-                val2 = (T)E;
+                val2 = (T)MATH_E;
                 break;
 
             default:

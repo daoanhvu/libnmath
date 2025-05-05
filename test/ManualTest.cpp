@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include <common.hpp>
 #include "nlablexer.h"
 
 using namespace nmath;
@@ -69,8 +70,8 @@ void printError(int col, int code) {
 	}
 }
 
-int main(int argc, char* argv[]) {
-	std::string str = "(1.5,";
+int testCone(int argc, char* argv[]) {
+	std::string str = "cone(0, 0, 0, 1, 1, 1)";
 	nmath::NLabLexer lexer;
 	vector<nmath::Token*> mTokens;
 	lexer.lexicalAnalysis(str, false, 0, mTokens, nullptr);
@@ -82,5 +83,14 @@ int main(int argc, char* argv[]) {
     delete mTokens[i];
   }
 	mTokens.clear();
+  return 0;
+}
+
+int main(int argc, char* argv[]) {
+	char text[] = {'1', 0x0};
+  int errorCode = 0;
+  int textLength = 1;
+  int value = nmath::parseInteger<int>(text, 0, textLength, &errorCode);
+  std::cout << "Parsed integer: " << value << ", Error code: " << errorCode << std::endl;
   return 0;
 }

@@ -30,14 +30,14 @@ namespace nmath {
 
     /** Greatest Common Divisor*/
     template <typename T>
-    T gcd(T a, T b){
-        T c;
-        while(a !=0 ){
-            c = a;
-            a = b % a;
-            b = c;
-        }
-        return b;
+    T gcd(T a, T b) {
+      T c;
+      while(a !=0 ) {
+        c = a;
+        a = b % a;
+        b = c;
+      }
+      return b;
     }
 
     template <typename T>
@@ -54,38 +54,37 @@ namespace nmath {
 
         *error = -1;
         if(str == nullptr)
-            return 0;
+          return 0;
 
         if(str[start] == '-'){
-            negative = -1;
-            start++;
+          negative = -1;
+          start++;
         }
 
         for(int i=start; i<end; i++) {
+          // TODO: Fix this
+          if(str[i]=='\0')
+            return (T)0;
 
-            // TODO: Fix this
-            if(str[i]=='\0')
-                return (T)0;
-
-            if((str[i]<48) || (str[i]>57)) {
-                if( str[i] == 46 && isFloatingPoint==0)
-                    isFloatingPoint = 1;
-                else{
-                    *error = ERROR_PARSE;
-                    /*printf(" Floating point ERROR F\n");*/
-                    return (T)0;
-                }
-            } else {
-                if(isFloatingPoint){
-                    floating *= 10;
-                    val = val + (T)(str[i] - 48)/floating;
-                } else {
-                    val = val * 10 + (str[i] - 48);
-                }
+          if((str[i]<48) || (str[i]>57)) {
+            if( str[i] == 46 && isFloatingPoint == 0)
+              isFloatingPoint = 1;
+            else{
+              *error = ERROR_PARSE;
+              /*printf(" Floating point ERROR F\n");*/
+              return (T)0;
             }
+          } else {
+            if(isFloatingPoint) {
+              floating *= 10;
+              val = val + (T)(str[i] - 48)/floating;
+            } else {
+              val = val * 10 + (str[i] - 48);
+            }
+          }
         }
         (*error) = 0;
-        return val*negative;
+        return val * negative;
     }
 
     template <typename T>
@@ -95,22 +94,27 @@ namespace nmath {
         const char C_57 = 57;
         *error = -1;
         if(str == nullptr)
-            return 0;
+          return 0;
 
         int negative = 1;
         if(str[start] == '-') {
-            negative = -1;
-            start++;
+          negative = -1;
+          start++;
         }
         for(auto i=start; i<end; i++) {
-            if((str[i] >= C_48) && (str[i]<=C_57)) {
-                val = val * (T)10 + (T)(str[i] - C_48);
-            } else {
-                *error = i;
-                return val;
+          if((str[i] >= C_48) && (str[i]<=C_57)) {
+            val = val * (T)10 + (T)(str[i] - C_48);
+          } else {
+            if (str[i] == '.') {
+              *error = 0;
+              return val * negative;
             }
+            *error = i;
+            return val * negative;
+          }
         }
-        return val;
+        *error = 0;
+        return val * negative;
     }
 
     template <typename T>

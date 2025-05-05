@@ -81,6 +81,37 @@ void VboObject::initialize(const float* vertices, unsigned int dataSize, unsigne
   this->buildCuboidFrame(vertices, dataSize, _vertexCount);
 }
 
+void VboObject::setColor(const glm::vec4 &color) {
+  this->isReadyForRendering = false;
+
+  if (this->colorVbo != 0) {
+    glBindBuffer(GL_ARRAY_BUFFER, this->colorVbo);
+    float* colors = new float[this->verticeCount * 4];
+    for (int i = 0; i < this->verticeCount; i++) {
+      colors[i * 4] = color.r;
+      colors[i * 4 + 1] = color.g;
+      colors[i * 4 + 2] = color.b;
+      colors[i * 4 + 3] = color.a;
+    }
+    glBufferSubData(GL_ARRAY_BUFFER, 0, this->verticeCount * this->colorStrideInBytes, colors);
+    delete[] colors;
+  } else {
+    this->colorStrideInBytes = 4 * sizeof(float);
+    float* colors = new float[this->verticeCount * 4];
+    for (int i = 0; i < this->verticeCount; i++) {
+      colors[i * 4] = color.r;
+      colors[i * 4 + 1] = color.g;
+      colors[i * 4 + 2] = color.b;
+      colors[i * 4 + 3] = color.a;
+    }
+    glGenBuffers(1, &colorVbo);
+    glBindBuffer(GL_ARRAY_BUFFER, this->colorVbo);
+    glBufferData(GL_ARRAY_BUFFER, verticeCount * this->colorStrideInBytes, colors, GL_STATIC_DRAW);
+  }
+
+  this->isReadyForRendering = true;
+}
+
 /**
  * @brief Build a cuboid frame, that wraps around this VBO object
  * 
@@ -313,10 +344,28 @@ void VboObject::release() {
   glDeleteBuffers(1, &positionNormalVbo);
   glDeleteBuffers(1, &colorVbo);
   glDeleteBuffers(1, &elementBufferObject);
+  vaoId = 0;
+  positionNormalVbo = 0;
+  colorVbo = 0;
+  elementBufferObject = 0;
 
   glDeleteVertexArrays(1, &frameVaoId);
   glDeleteBuffers(1, &frameVboId);
   glDeleteBuffers(1, &frameColorVboId);
   glDeleteBuffers(1, &frameElementBufferObject);
+  frameVaoId = 0;
+  frameVboId = 0;
+  frameColorVboId = 0;
+  frameElementBufferObject = 0;
+  this->isReadyForRendering = false;
+  this->isSelected = false;
+  this->rotationMatrix = glm::mat4(1.0f);
+  this->translationMatrix = glm::mat4(1.0f);
+  this->scaleMatrix = glm::mat4(1.0f);
+  this->positionOffset = 0;
+  this->normalOffset = -1;
+  this->colorOffset = 0;
+  this->strideInBytes = 3 * sizeof(float);
+  this->colorStrideInBytes = 4 * sizeof(float);
   std::cout << "Done releasing VBO" << std::endl;
 }

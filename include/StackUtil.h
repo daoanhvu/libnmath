@@ -6,7 +6,7 @@
 
 namespace nmath {
 	/*return errorCode*/
-    int pushItem2Stack(Token ***st, int *top, int *allocLen, Token *item);
+  int pushItem2Stack(Token ***st, int *top, int *allocLen, Token *item);
     Token* popFromStack(Token **st, int *top);
 	int clearStackWithoutFreeItem(Token **ls, int len);
 

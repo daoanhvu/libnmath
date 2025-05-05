@@ -259,221 +259,228 @@ namespace nmath {
         return start;
     }
 
-        int parse(const char *str, unsigned int len, NLabLexer *mLexer, NLabParser<T> *mParser) {
-            int i;
-            Criteria<T> *c;
-            CompositeCriteria<T> *cc;
-            std::vector<NMAST<T>* > domain;
-
-            delete[] text;
-
-            text = new char[len+1];
-            std::memcpy(text, str, len);
-            textLen = len;
-            text[len] = '\0';
-
-            mLexer->lexicalAnalysis(text, textLen, false, 0, mTokens, nullptr);
-            errorColumn = mLexer->getErrorColumn();
-            errorCode = mLexer->getErrorCode();
-            if (errorCode != NMATH_NO_ERROR) {
-                return errorCode;
-            }
-
-            //TODO: Need to release prefix and domain before call parseFunctionExpression from NLabParser
-            mParser->parseFunctionExpression(mTokens, prefix,
-                                             domain, variables, &errorCode, &errorColumn);
-
-            if (errorCode == NMATH_NO_ERROR) {
-
-                for (i = 0; i < domain.size(); i++) {
-                    c = nullptr;
-                    if (domain[i] != nullptr) {
-                        c = buildCriteria(domain[i]);
-                        //atemp to normalize criteria so that it hold criteria for all variable in every it's element
-                        if ( (c!=nullptr) && c->getCClassType() == COMPOSITE &&
-                             ((CompositeCriteria<T>*)c)->logicOperator() == OR) {
-                            cc = (CompositeCriteria<T>*)c;
-                            cc->normalize(variables);
-                        }
-                    }
-                    criteria.push_back(c);
-                }
-            }
-
-
-            for(i=0; i<domain.size(); i++) {
-                nmath::clearTree(&(domain[i]));
-            }
-            domain.clear();
-
-            return errorCode;
-        }
-
-        int parse(std::string str, NLabLexer *mLexer, NLabParser<T> *mParser) {
-            int i;
-            Criteria<T> *c;
-            CompositeCriteria<T> *cc;
-            std::vector<NMAST<T>* > domain;
-
-            delete[] text;
-            size_t len = str.length() + 1;
-
-            text = new char[len];
-            std::memcpy(text, str.c_str(), str.length());
-            textLen = str.length();
-            text[textLen] = '\0';
-
-            mLexer->lexicalAnalysis(text, textLen, false, 0, mTokens, nullptr);
-            errorColumn = mLexer->getErrorColumn();
-            errorCode = mLexer->getErrorCode();
-            if (errorCode != NMATH_NO_ERROR) {
-                return errorCode;
-            }
-
-            //TODO: Need to release prefix and domain to free up memory
-            //before calling parseFunctionExpression from NLabParser
-            mParser->parseFunctionExpression(mTokens, prefix,
-                                             domain, variables, &errorCode, &errorColumn);
-            if (errorCode == NMATH_NO_ERROR) {
-                for (i = 0; i < domain.size(); i++) {
-                    c = nullptr;
-                    if (domain[i] != nullptr) {
-                        c = nmath::buildCriteria(domain[i]);
-                        //atemp to normalize criteria so that it hold criteria for all variable in every it's element
-                        if ( (c!=nullptr) && c->getCClassType() == COMPOSITE &&
-                             ((CompositeCriteria<T>*)c)->logicOperator() == OR) {
-                            cc = (CompositeCriteria<T>*)c;
-                            cc->normalize(variables);
-                        }
-                    }
-                    criteria.push_back(c);
-                }
-            }
-
-
-            for(i=0; i<domain.size(); i++) {
-                nmath::clearTree(&(domain[i]));
-            }
-            domain.clear();
-
-            return errorCode;
-        }
-
-        /**
-            Parse the input string in object f to NMAST tree
-        */
-        int parse(std::vector<Token*> mTokens, NLabParser<T> *mParser) {
-            int i, k;
-            Criteria<T> *c;
-            CompositeCriteria<T> *cc;
-            std::vector<NMAST<T>* > domain;
-
-            //TODO: Need to release prefix and domain before call parseFunctionExpression from NLabParser
-            mParser->parseFunctionExpression(mTokens, prefix, domain, variables, &errorCode, &errorColumn);
-            if (errorCode == NMATH_NO_ERROR) {
-                for(i=0; i<variables.size(); i++) {
-                    this->strVars[i] = variables[i]->text;
-                }
-                for (i = 0; i < domain.size(); i++) {
-                    c = nullptr;
-                    if (domain[i] != nullptr) {
-                        c = nmath::buildCriteria(domain[i]);
-                        //atemp to normalize criteria so that it hold criteria for all variable in every it's element
-                        if ( (c!=nullptr) && c->getCClassType() == COMPOSITE &&
-                             ((CompositeCriteria<T>*)c)->logicOperator() == OR) {
-                            cc = (CompositeCriteria<T>*)c;
-                            cc->normalize(variables);
-                        }
-                    }
-                    criteria.push_back(c);
-                }
-            }
-
-            for(i=0; i<domain.size(); i++) {
-              nmath::clearTree(&(domain[i]));
-            }
-
-            domain.clear();
-
-            return errorCode;
-        }
-
-		void release() {
-			if (text != nullptr) {
-				delete[] text;
-				text = nullptr;
-				textLen = 0;
-			}
-
-      for(unsigned int i=0; i < prefix.size(); i++) {
-        if(prefix[i] != nullptr) {
-            nmath::clearTree(&(prefix[i]));
-        }
-      }
-      prefix.clear();
-
-			for (unsigned int i = 0; i < criteria.size(); i++) {
-				if (criteria[i] != nullptr)
-					delete criteria[i];
-			}
-			criteria.clear();
-
-      for (unsigned int i = 0; i < mTokens.size(); i++) {
-        if (mTokens[i] != nullptr)
-            delete mTokens[i];
-      }
-			mTokens.clear();
-		}
-
-    int reduce() {
-      DParam<T> dp;
+    int parse(const char *str, unsigned int len, NLabLexer *mLexer, NLabParser<T> *mParser) {
       int i;
+      Criteria<T> *c;
+      CompositeCriteria<T> *cc;
+      std::vector<NMAST<T>* > domain;
 
-      for(i=0; i<prefix.size(); i++) {
-          dp.t = prefix[i];
-          dp.error = 0;
-          nmath::reduce_t<T>(&dp);
-          prefix[i] = dp.t;
+      delete[] text;
+
+      text = new char[len+1];
+      std::memcpy(text, str, len);
+      textLen = len;
+      text[len] = '\0';
+
+      mLexer->lexicalAnalysis(text, textLen, false, 0, mTokens, nullptr);
+      errorColumn = mLexer->getErrorColumn();
+      errorCode = mLexer->getErrorCode();
+      if (errorCode != NMATH_NO_ERROR) {
+          return errorCode;
       }
-      return 0;
-    }
 
-    T getPrefixValue(int idx) {
-      return prefix[idx]->value;
-    }
+      //TODO: Need to release prefix and domain before call parseFunctionExpression from NLabParser
+      mParser->parseFunctionExpression(mTokens, prefix,
+                                        domain, variables, &errorCode, &errorColumn);
 
-    size_t prefixSize() const {
-        return prefix.size();
-    }
+      if (errorCode == NMATH_NO_ERROR) {
+          for (i = 0; i < domain.size(); i++) {
+              c = nullptr;
+              if (domain[i] != nullptr) {
+                  c = buildCriteria(domain[i]);
+                  //atemp to normalize criteria so that it hold criteria for all variable in every it's element
+                  if ( (c!=nullptr) && c->getCClassType() == COMPOSITE &&
+                        ((CompositeCriteria<T>*)c)->logicOperator() == OR) {
+                      cc = (CompositeCriteria<T>*)c;
+                      cc->normalize(variables);
+                  }
+              }
+              criteria.push_back(c);
+          }
+      }
 
-        /**
-         *
-         * @param values value of each variable
-         * @return
-         */
-        T calc(const T *values) {
-            /*
-                First we need to check if the input value is in the domain of this function
-            */
-            if(!this->criteria[0]->check(values)) {
-                this->errorCode = ERROR_OUT_OF_DOMAIN;
-                return (T)0;
+
+      for(i=0; i<domain.size(); i++) {
+          nmath::clearTree(&(domain[i]));
+      }
+      domain.clear();
+
+      return errorCode;
+  }
+
+  /**
+      Parse the input string in object f to NMAST tree
+  */
+  int parse(std::string str, NLabLexer *mLexer, NLabParser<T> *mParser) {
+      int i;
+      Criteria<T> *c;
+      CompositeCriteria<T> *cc;
+      std::vector<NMAST<T>* > domain;
+
+      delete[] text;
+      size_t len = str.length() + 1;
+
+      text = new char[len];
+      std::memcpy(text, str.c_str(), str.length());
+      textLen = str.length();
+      text[textLen] = '\0';
+
+      mLexer->lexicalAnalysis(text, textLen, false, 0, mTokens, nullptr);
+      errorColumn = mLexer->getErrorColumn();
+      errorCode = mLexer->getErrorCode();
+      if (errorCode != NMATH_NO_ERROR) {
+          return errorCode;
+      }
+
+      //TODO: Need to release prefix and domain to free up memory
+      //before calling parseFunctionExpression from NLabParser
+      mParser->parseFunctionExpression(mTokens, prefix,
+                                        domain, variables, &errorCode, &errorColumn);
+      if (errorCode == NMATH_NO_ERROR) {
+          for (i = 0; i < domain.size(); i++) {
+              c = nullptr;
+              if (domain[i] != nullptr) {
+                  c = nmath::buildCriteria(domain[i]);
+                  //atemp to normalize criteria so that it hold criteria for all variable in every it's element
+                  if ( (c!=nullptr) && c->getCClassType() == COMPOSITE &&
+                        ((CompositeCriteria<T>*)c)->logicOperator() == OR) {
+                      cc = (CompositeCriteria<T>*)c;
+                      cc->normalize(variables);
+                  }
+              }
+              criteria.push_back(c);
+          }
+      }
+
+
+      for(i=0; i<domain.size(); i++) {
+          nmath::clearTree(&(domain[i]));
+      }
+      domain.clear();
+
+      return errorCode;
+  }
+
+  /**
+      Parse the input string in object f to NMAST tree
+      This method is used for parsing the function expression
+      from the input tokens, this is used for parsing the function
+      expression in the domain of the function
+      Example: f(x,y) = x^2 + y^2, x > 0 AND 0 < y < 0.5
+      The input tokens are the result of lexical analysis
+      from the input string
+  */
+  int parse(std::vector<Token*> tokens, NLabParser<T> *mParser) {
+      int i, k;
+      Criteria<T> *c;
+      CompositeCriteria<T> *cc;
+      std::vector<NMAST<T>* > domain;
+
+      mParser->parseFunctionExpression(tokens, prefix, domain, variables, &errorCode, &errorColumn);
+      if (errorCode == NMATH_NO_ERROR) {
+          for(i=0; i<variables.size(); i++) {
+            this->strVars[i] = variables[i]->text;
+          }
+          for (i = 0; i < domain.size(); i++) {
+            c = nullptr;
+            if (domain[i] != nullptr) {
+              c = nmath::buildCriteria(domain[i]);
+              //atemp to normalize criteria so that it hold criteria for all variable in every it's element
+              if ( (c!=nullptr) && c->getCClassType() == COMPOSITE &&
+                    ((CompositeCriteria<T>*)c)->logicOperator() == OR) {
+                cc = (CompositeCriteria<T>*)c;
+                cc->normalize(variables);
+              }
             }
+            criteria.push_back(c);
+          }
+      }
 
-            DParam<T> rp;
-            rp.error = 0;
-            rp.t = prefix[0];
-            memcpy(rp.values, values, variables.size() * sizeof(T));
-            auto i = 0;
-            for(auto var: variables) {
-                rp.variables[i++] = var->text;
-                i++;
-            }
-            rp.varCount = variables.size();
-            calc_t<T>(&rp);
-            this->errorCode = rp.error;
-            return rp.retv;
+      for(i=0; i<domain.size(); i++) {
+        nmath::clearTree(&(domain[i]));
+      }
+
+      domain.clear();
+
+      return errorCode;
+  }
+
+  void release() {
+    if (text != nullptr) {
+      delete[] text;
+      text = nullptr;
+      textLen = 0;
+    }
+
+    for(unsigned int i=0; i < prefix.size(); i++) {
+      if(prefix[i] != nullptr) {
+          nmath::clearTree(&(prefix[i]));
+      }
+    }
+    prefix.clear();
+
+    for (unsigned int i = 0; i < criteria.size(); i++) {
+      if (criteria[i] != nullptr)
+        delete criteria[i];
+    }
+    criteria.clear();
+
+    for (unsigned int i = 0; i < mTokens.size(); i++) {
+      if (mTokens[i] != nullptr)
+          delete mTokens[i];
+    }
+    mTokens.clear();
+  }
+
+  int reduce() {
+    DParam<T> dp;
+    int i;
+
+    for(i=0; i<prefix.size(); i++) {
+      dp.t = prefix[i];
+      dp.error = 0;
+      nmath::reduce_t<T>(&dp);
+      prefix[i] = dp.t;
+    }
+    return 0;
+  }
+
+  T getPrefixValue(int idx) {
+    return prefix[idx]->value;
+  }
+
+  size_t prefixSize() const {
+      return prefix.size();
+  }
+
+    /**
+     *
+     * @param values value of each variable
+     * @return
+     */
+    T calc(const T *values) {
+        /*
+            First we need to check if the input value is in the domain of this function
+        */
+        if(!this->criteria[0]->check(values)) {
+            this->errorCode = ERROR_OUT_OF_DOMAIN;
+            return (T)0;
         }
+
+        DParam<T> rp;
+        rp.error = 0;
+        rp.t = prefix[0];
+        memcpy(rp.values, values, variables.size() * sizeof(T));
+        auto i = 0;
+        for(auto var: variables) {
+            rp.variables[i++] = var->text;
+            i++;
+        }
+        rp.varCount = variables.size();
+        calc_t<T>(&rp);
+        this->errorCode = rp.error;
+        return rp.retv;
+    }
 
     /**
      * This method is used to calculate value of the function at every point in the input interval, 
