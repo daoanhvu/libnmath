@@ -24,12 +24,13 @@ struct TestData {
 void testFunction0();
 void testGenerateIndices(const TestData &test);
 void testCalculateDerivative();
+void testCalculateSimpleDerivative();
 
 
 int main(int argc, char* argv[]) {
 	// testFunction0();
 
-  testCalculateDerivative();
+  testCalculateSimpleDerivative();
 
 	// TestData test;
 	// test.testNumber = 1;
@@ -194,6 +195,91 @@ void testFunction0() {
 	}
 }
 
+void testCalculateSimpleDerivative() {
+  std::string inStr = "x^2";
+  // Postfix expression: x 2 ^
+  std::vector<nmath::NMAST<float>*> postfix;
+
+  /*
+   * The AST tree should be:
+   *    ^       
+   *   / \     
+   *  x  2  
+   * 
+   */
+
+  // The first node x
+  nmath::NMAST<float>* x = new nmath::NMAST<float>;
+  x->type = VARIABLE;
+  x->text = "x";
+  x->parent = nullptr;
+  x->left = nullptr;
+  x->right = nullptr;
+  postfix.push_back(x);
+
+  nmath::NMAST<float>* number2 = new nmath::NMAST<float>;
+  number2 = new nmath::NMAST<float>;
+  number2->type = NUMBER;
+  number2->text = "2";
+  number2->value = 2.0f;
+  number2->parent = nullptr;
+  number2->left = nullptr;
+  number2->right = nullptr;
+  postfix.push_back(number2);
+
+  nmath::NMAST<float>* power_1 = new nmath::NMAST<float>;
+  power_1 = new nmath::NMAST<float>;
+  power_1->type = POWER;
+  power_1->text = "^";
+  // base on getPriorityOfType()
+  power_1->priority = 8;
+  power_1->parent = nullptr;
+  power_1->left = x;
+  x->parent = power_1;
+  power_1->right = number2;
+  number2->parent = power_1;
+  postfix.push_back(power_1);
+
+
+  // Setup derivative parameters
+  nmath::DParam<float> param;
+  // Because we have a recursive expression tree and it's root is the last node in the postfix list
+  // so for calculating the derivative of the function, we just need to get the last node in the postfix list
+  param.t = postfix[postfix.size()-1];
+  param.variables[0] = "x";
+  param.varCount = 1;
+  param.values[0] = 0.0f;
+  param.error = 0;
+  param.returnValue = nullptr;
+
+  nmath::derivative<float>(&param);
+
+  std::cout << "Derivative: " << param.returnValue->text << std::endl;
+  std::cout << "Value: " << param.returnValue->value << std::endl;
+  std::cout << "Priority: " << param.returnValue->priority << std::endl;
+  std::cout << "Type: " << param.returnValue->type << std::endl;
+  std::cout << "Sign: " << param.returnValue->sign << std::endl;
+  std::cout << "Parent: " << param.returnValue->parent << std::endl;
+  std::cout << "Left: " << param.returnValue->left << std::endl;
+  std::cout << "Right: " << param.returnValue->right << std::endl;
+
+  // Print the derivative tree
+  std::cout << "Derivative tree: " << std::endl;
+  printNMAST(param.returnValue, 0, std::cout);
+  // nmath::reduce_t<float>(&param.returnValue);
+  // std::cout << "Reduced derivative tree: " << std::endl;
+  // printNMAST(param.returnValue, 0, std::cout);
+
+  // TODO: Clean up the postfix list
+  for(auto i=0; i<postfix.size(); i++) {
+    delete postfix[i];
+  }
+  postfix.clear();
+
+  // TODO: Clean up the derivative tree
+  nmath::clearTree<float>(&param.returnValue);
+}
+
 void testCalculateDerivative() {
   std::string inStr = "x * sin(x+2) + x/3";
   // Postfix expression: x x 2 + sin * x 3 / +
@@ -330,7 +416,7 @@ void testCalculateDerivative() {
   nmath::DParam<float> param;
   // Because we have a recursive expression tree and it's root is the last node in the postfix list
   // so for calculating the derivative of the function, we just need to get the last node in the postfix list
-  param.t = plus_2;
+  param.t = postfix[postfix.size()-1];
   param.variables[0] = "x";
   param.varCount = 1;
   param.values[0] = 0.0f;
@@ -351,6 +437,9 @@ void testCalculateDerivative() {
   // Print the derivative tree
   std::cout << "Derivative tree: " << std::endl;
   printNMAST(param.returnValue, 0, std::cout);
+  // nmath::reduce_t<float>(&param.returnValue);
+  // std::cout << "Reduced derivative tree: " << std::endl;
+  // printNMAST(param.returnValue, 0, std::cout);
 
   // TODO: Clean up the postfix list
   for(auto i=0; i<postfix.size(); i++) {

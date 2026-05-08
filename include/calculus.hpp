@@ -843,6 +843,8 @@ NMAST<T>* d_quotient(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<
 
 /*
  * (u +- v) = u' +- v'
+ *
+ * TODO: Should remove the parameter type
  * */
 template <typename T>
 NMAST<T>* d_sum_subtract(NMAST<T> *t, int type, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x){
@@ -858,6 +860,7 @@ NMAST<T>* d_sum_subtract(NMAST<T> *t, int type, NMAST<T> *u, NMAST<T> *du, NMAST
   r = new NMAST<T>;
   r->sign = 1;
   r->type = type;
+  r->text = t->text;
   r->value = 0.0;
   r->parent = nullptr;
   
@@ -883,6 +886,7 @@ NMAST<T>* d_pow_exp(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T
     r = new NMAST<T>;
     r->sign = 1;
     r->type = MULTIPLY;
+    r->text = "*";
     r->value = 0.0;
     r->parent = nullptr;
     
@@ -891,6 +895,7 @@ NMAST<T>* d_pow_exp(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T
     r->left->sign = 1;
     (r->left)->parent = r;
     (r->left)->type = MULTIPLY;
+    (r->left)->text = "*";
     
     (r->left)->left = new NMAST<T>;
     ((r->left)->left)->type = NUMBER;
@@ -949,6 +954,7 @@ NMAST<T>* d_pow_exp(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T
     
     (r->left)->right = new NMAST<T>;
     ((r->left)->right)->type = POWER;
+    ((r->left)->right)->text = "^";
     ((r->left)->right)->value = 0;
     ((r->left)->right)->sign = 1;
     ((r->left)->right)->parent = r->left;
@@ -1011,6 +1017,7 @@ NMAST<T>* d_pow_exp(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T
     r->right = new NMAST<T>;
     r->right->sign = 1;
     r->right->type = POWER;
+    r->right->text = "^";
     r->right->left = cloneTree(u, r->right);
     r->right->right = cloneTree(v, r->right);
     
@@ -1268,22 +1275,24 @@ void* calc_t(void *param){
     /*
       IMPORTANT:
       In case of multi-variable function, we need to tell which variable that we are
-      getting derivative of
+      getting derivative of -> DONE
       */
-    if (t->type == VARIABLE){
+    if (t->type == VARIABLE) {
       u = new NMAST<T>;
       u->type = NUMBER;
       u->sign = 1;
       u->value = 1.0;
       u->parent = nullptr;
       u->left = u->right = nullptr;
-      u->text = "";
+      u->text = "1.0";
       if (dp->variables[0] == t->text){
         u->value = 1.0;
         dp->returnValue = u;
         return u;
       }
+      // If this is a variable but not the one we are differentiating from, then treat it as a constant
       u->value = 0.0;
+      u->text = "0";
       
       return u;
     }
@@ -1307,10 +1316,14 @@ void* calc_t(void *param){
       pdv.variables[0] = x;
       id_dv = pthread_create(&tdv, nullptr, derivative<T>, (void*)(&pdv));
     }
-    if (id_du == 0)
+
+    // Wait for threads get done their job and extract return values
+    if (id_du == 0) {
       pthread_join(tdu, (void**)&du);
-    if (id_dv == 0)
+    }
+    if (id_dv == 0) {
       pthread_join(tdv, (void**)&dv);
+    }
           
     /****************************************************************/
     // 2.0 get done here
