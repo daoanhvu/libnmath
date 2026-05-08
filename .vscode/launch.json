@@ -49,14 +49,14 @@
             "name": "TestNFunction",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/output/testFunction",
+            "program": "${workspaceFolder}/testFunction",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "lldb",
-            "preLaunchTask": "BuildAll"
+            "preLaunchTask": "Build testFunction"
         },
         {
             "name": "TestFunctionLinux",

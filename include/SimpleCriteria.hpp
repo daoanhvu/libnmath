@@ -283,7 +283,7 @@ namespace nmath {
 			}
 
 			Criteria<T>* andCriteria(Criteria<T> &c) {
-				Criteria<T> *out;
+				Criteria<T> *out = nullptr;
 				switch (c.getCClassType()){
 					case SIMPLE:
 						out = andSimpleSelf((SimpleCriteria<T>&)c);

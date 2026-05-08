@@ -59,22 +59,28 @@ void CommandHandler::handleCommand(const std::string& commandText,
   }
 
   std::vector<nmath::NMAST<float>* > variables;
-  parser.functionNotation(tokens, 0, variables, &errorCode, &errorColumn);
+  int nextIndex = -1;
+  function.startWithFunctionNotation(tokens, 0, &nextIndex, &errorCode);
   if (errorCode == NMATH_NO_ERROR) {
     float values[4] = {-1.8f, 1.8f, -1.8f, 1.8f};
     std::cout << "Creating meshes" << std::endl;
-    createMesh(tokens, values, 0.2f, results);
-    return;
+    createMesh(tokens, values, 0.2f, color, results);
   } else {
     std::cout << "Processing command" << std::endl;
     parseCommand(tokens, color, results);
-    return;
   }
 
   // Clean up the tokens
   std::cout << "Cleaning up ..." << std::endl;
   for(int i=0; i<tokens.size(); i++) {
     delete tokens[i];
+  }
+  tokens.clear();
+
+  // setup GL parameters for vbo objects
+  for (size_t i = 0; i < results.size(); ++i) {
+    VboObject* vboObject = results[i];
+    vboObject->setupArrayAttributes();
   }
 }
 
@@ -174,7 +180,6 @@ void CommandHandler::parseCommand(const vector<nmath::Token*> &tokens, const flo
           VboObject* aCone = createCone(height, radius, capRadius, stacks, capStacks, color[0], color[1], color[2], color[3]);
           if (aCone != nullptr) {
             std::cout << "Cone created successfully." << std::endl;
-            aCone->setupArrayAttributes();
             results.push_back(aCone);
           } else {
             std::cerr << "Error creating cone object." << std::endl;
@@ -197,7 +202,6 @@ void CommandHandler::parseCommand(const vector<nmath::Token*> &tokens, const flo
     }
     currentIndex++;
   }
-  std::cout << "[parseCommand] Out of while" << std::endl;
 }
 
 VboObject* CommandHandler::createCone(float height, float radius, float capRadius, int stacks, int capStacks, 
@@ -236,7 +240,7 @@ VboObject* CommandHandler::createCone(float height, float radius, float capRadiu
 }
 
 int CommandHandler::createMesh(const vector<nmath::Token *> &tokens, 
-  const float *values, float epsilon, std::vector<VboObject*> &results) {
+  const float *values, float epsilon, const float *color, std::vector<VboObject*> &results) {
 
   errorCode = function.parse(tokens, &parser);
   if (errorCode != NMATH_NO_ERROR) {
@@ -254,7 +258,6 @@ int CommandHandler::createMesh(const vector<nmath::Token *> &tokens,
     return errorCode;
   }
   
-  VboObject* vboObject;
   unsigned int indexLength;
 
   for(auto i=0; i< spaces.size(); i++) {
@@ -269,19 +272,13 @@ int CommandHandler::createMesh(const vector<nmath::Token *> &tokens,
 
     float* colors = new float[vertexCount * 4];
     for(int i=0; i< vertexCount; i++) {
-      colors[i * 4] = 0.3f;
-      colors[i * 4 + 1] = 0.5f;
-      colors[i * 4 + 2] = 0.2f;
-      colors[i * 4 + 3] = 1.0f;
+      colors[i * 4] = color[0];
+      colors[i * 4 + 1] = color[1];
+      colors[i * 4 + 2] = color[2];
+      colors[i * 4 + 3] = color[3];
     }
-  
-    // For debugging
-    // std::cout << "vertexCount: " << vertexCount << std::endl;
-    // std::cout << "dataSize: " << dataSize << std::endl;
-    // std::cout << "indexLength: " << indexLength << std::endl;
-    // std::cout << "normalOffset: " << normalOffset << std::endl;
 
-    vboObject = new VboObject(locations, GL_TRIANGLE_STRIP);
+    VboObject* vboObject = new VboObject(locations, GL_TRIANGLE_STRIP);
     vboObject->initialize(vertices, dataSize, vertexCount, colors, triangleTripIndices, indexLength, normalOffset);
     results.push_back(vboObject);
 

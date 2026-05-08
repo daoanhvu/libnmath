@@ -2,12 +2,17 @@
 #define _CALCULUS_H
 
 #include <string>
-#include <pthread.h>
 #include "common.hpp"
 #include "common_data.h"
 #include "nmath_pool.hpp"
 
+#ifdef _WIN32
+#include <windows.h>
+#include <process.h>
+#define CALC_NULL_VALUE		0
+#else
 #define CALC_NULL_VALUE		nullptr
+#endif
 
 using namespace std;
 
@@ -51,7 +56,12 @@ template <typename T>
 NMAST<T>* d_ln(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x);
 template <typename T>
 bool isContainVar(NMAST<T> *t, string x);
-
+#ifdef _WIN32
+template <typename T> unsigned __stdcall reduce_t(void *param);
+template <typename T> unsigned __stdcall calc_t(void *param);
+template <typename T> unsigned __stdcall calcF_t(void *param);
+template <typename T> unsigned __stdcall derivative(void *p);
+#else
 template <typename T> int reduce_plus(NMAST<T> *t);
 template <typename T> int reduce_multiply(NMAST<T> *t);
 template <typename T> int reduce_divide(NMAST<T> *t);
@@ -60,6 +70,7 @@ template <typename T> int calculate_function(NMAST<T>* dp);
 template <typename T> void* reduce_t(void *param);
 template <typename T> void* calc_t(void *param);
 template <typename T> void* derivative(void *p);
+#endif
 
 
 template <typename T>
@@ -388,16 +399,7 @@ int reduce_power(NMAST<T> *t) {
   return NMATH_NO_ERROR;
 }
 
-/** 
-Derivative of product of two functions:
-(u.v) = u'v + uv' 
-Example:
-Expression: x * sin(x)
-Postfix:   x sin *
-Derivative: x' * sin(x) + x * sin(x)'
-Derivative: 1 * sin(x) + x * cos(x)
-Derivative: sin(x) + x * cos(x)
-*/
+/* (u.v) = u'v + uv' */
 template <typename T>
 NMAST<T>* d_product(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x){
   NMAST<T> *r = nullptr;
@@ -1058,8 +1060,13 @@ NMAST<T>* d_ln(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv
   return nullptr;
 }
 
+#ifdef _WIN32
 template <typename T>
-void* reduce_t(void *param) {
+unsigned int __stdcall reduce_t(void *param) {
+#else
+  template <typename T>
+  void* reduce_t(void *param) {
+#endif
     auto *dp = (DParam<T> *)param;
     NMAST<T> *p;
     
@@ -1072,6 +1079,33 @@ void* reduce_t(void *param) {
     int idThrRight = -1;
     DParam<T> this_param_left;
     DParam<T> this_param_right;
+#ifdef _WIN32
+    HANDLE thrLeft, thrRight;
+    thrLeft = (HANDLE)_beginthreadex(nullptr, 0, &reduce_t, (void*)&this_param_left, 0, nullptr);
+    thrRight = (HANDLE)_beginthreadex(nullptr, 0, &reduce_t, (void*)&this_param_right, 0, nullptr);
+    if (thrLeft != 0){
+      WaitForSingleObject(thrLeft, INFINITE);
+      CloseHandle(thrLeft);
+    }
+    if (thrRight != 0){
+      WaitForSingleObject(thrRight, INFINITE);
+      CloseHandle(thrRight);
+    }
+    if (this_param_left.error != 0) {
+      dp->error = this_param_left.error;
+      return dp->error;
+    }
+    if (this_param_right.error != 0) {
+      dp->error = this_param_right.error;
+      return dp->error;
+    }
+    /*
+     We don't reduce a node if it's a variable, a NAME, a number, PI, E
+     */
+    if (((dp->t)->type == VARIABLE) || ((dp->t)->type == NAME) || isConstant((dp->t)->type)) {
+      return dp->error;
+    }
+#else
     pthread_t thrLeft = nullptr;
     pthread_t thrRight = nullptr;
     if ( (dp->t->left != nullptr) && isFunctionOROperator(dp->t->left->type) ) {
@@ -1100,6 +1134,7 @@ void* reduce_t(void *param) {
     if (((dp->t)->type == VARIABLE) || ((dp->t)->type == NAME) || isConstant((dp->t)->type)) {
       return &(dp->error);
     }
+#endif
     
     /*
      So far, I have not cared about special cases for functions like SIN(PI), LN(E)
@@ -1145,7 +1180,11 @@ void* reduce_t(void *param) {
           dp->t->right = nullptr;
           delete p;
           
+#ifdef _WIN32
+          return dp->error;
+#else
           return &(dp->error);
+#endif
         }
         dp->error = calculate_function(dp->t);
         break;
@@ -1160,7 +1199,11 @@ void* reduce_t(void *param) {
           
           (dp->t)->value = doCalculate(((dp->t)->left)->value, ((dp->t)->right)->value, (dp->t)->type, &(dp->error));
           if (dp->error != 0) {
+#ifdef _WIN32
+            return dp->error;
+#else
             return &(dp->error);
+#endif
           }
           (dp->t)->type = NUMBER;
           p = (dp->t)->left;
@@ -1168,235 +1211,382 @@ void* reduce_t(void *param) {
           p = (dp->t)->right;
           delete p;
           (dp->t)->left = (dp->t)->right = nullptr;
+#ifdef _WIN32
+          return dp->error;
+#else
           return &(dp->error);
+#endif
         }
         break;
         
       default:
         break;
     }
-    return &(dp->error);
-  }
-  
-template <typename T>
-void* calc_t(void *param){
-  pthread_t thrLeft, thrRight;
-  int idThrLeft, idThrRight;
-  auto *dp = (DParam<T> *)param;
-  NMAST<T> *t = dp->t;
-  DParam<T> this_param_left;
-  DParam<T> this_param_right;
-  int var_index;
-  
-  this_param_left.error = this_param_right.error = 0;
-  this_param_left.varCount = this_param_right.varCount = dp->varCount;
-  for(auto i=0; i < dp->varCount; i++) {
-    this_param_left.variables[i] = this_param_right.variables[i] = dp->variables[i];
-  }
-  memcpy(this_param_left.values, dp->values, MAX_VAR_COUNT);
-  memcpy(this_param_right.values, dp->values, MAX_VAR_COUNT);
-  
-  /* If the input tree is nullptr, we do nothing */
-  if (t == nullptr) return CALC_NULL_VALUE;
-  
-  if (t->type == VARIABLE){
-    var_index = isListContain(dp->variables, dp->varCount, t->text.c_str());
-    dp->retv = (t->sign>0) ? (dp->values[var_index]) : (-dp->values[var_index]);
-    return &(dp->error);
-  }
-  
-  if ((t->type == NUMBER) || (t->type == PI_TYPE) || (t->type == E_TYPE)){
-    dp->retv = t->value;
-    return &(dp->error);
-  }
-      
-  this_param_left.t = t->left;
-  this_param_right.t = t->right;
-  idThrLeft = pthread_create(&thrLeft, nullptr, calc_t<T>, (void*)&this_param_left);
-  idThrRight = pthread_create(&thrRight, nullptr, calc_t<T>, (void*)&this_param_right);
-  if (idThrLeft == NMATH_NO_ERROR){
-    pthread_join(thrLeft, nullptr);
-  }
-  if (idThrRight == NMATH_NO_ERROR){
-    pthread_join(thrRight, nullptr);
-  }
-  /*******************************************************************************/
-  
-  /* Actually, we don't need to check error here b'cause the reduce phase does that
-    if(this_param_left.error != 0){
-    dp->error = this_param_left.error;
+#ifdef _WIN32
     return dp->error;
-    }
-    
-    if(this_param_right.error != 0){
-    dp->error = this_param_right.error;
-    return dp->error;
-    }*/
-      
-  dp->retv = t->sign * doCalculate(this_param_left.retv, this_param_right.retv, t->type, &(dp->error));
-  return &(dp->error);
-}
-    
+#else
+    return &(dp->error);
+#endif
+  }
+  
+#ifdef _WIN32
   template <typename T>
-  void* derivative(void *p) {
-    pthread_t tdu = nullptr;
-    pthread_t tdv = nullptr;
-    int id_du = -1, id_dv = -1;
-    auto *dp = (DParam<T>*)p;
-    NMAST<T> *t = dp->t;
-    string x = dp->variables[0];
-    NMAST<T> *u, *du, *v, *dv;
-    DParam<T> pdu, pdv;
-          
-    dp->returnValue = nullptr;
-    if (t == nullptr) {
-      return CALC_NULL_VALUE;
-    }
-    
-    if (t->type == NUMBER || t->type == PI_TYPE || t->type == E_TYPE || (!isContainVar(t, x)) ){
-      u = new NMAST<T>;
-      u->sign = 1;
-      u->type = NUMBER;
-      u->value = 0.0;
-      u->parent = nullptr;
-      u->left = u->right = nullptr;
-      u->text = "0";
-      dp->returnValue = u;
-      return u;
-    }
-          
-    /*
-      IMPORTANT:
-      In case of multi-variable function, we need to tell which variable that we are
-      getting derivative of
-      */
-    if (t->type == VARIABLE){
-      u = new NMAST<T>;
-      u->type = NUMBER;
-      u->sign = 1;
-      u->value = 1.0;
-      u->parent = nullptr;
-      u->left = u->right = nullptr;
-      u->text = "";
-      if (dp->variables[0] == t->text){
-        u->value = 1.0;
-        dp->returnValue = u;
-        return u;
-      }
-      u->value = 0.0;
+  unsigned __stdcall calc_t(void *param) {
+    HANDLE thread_1 = 0, thread_2 = 0;
+#else
+    template <typename T>
+    void* calc_t(void *param){
+      pthread_t thrLeft, thrRight;
+      int idThrLeft, idThrRight;
+#endif
+      auto *dp = (DParam<T> *)param;
+      NMAST<T> *t = dp->t;
+      DParam<T> this_param_left;
+      DParam<T> this_param_right;
+      int var_index;
       
-      return u;
+      this_param_left.error = this_param_right.error = 0;
+      this_param_left.varCount = this_param_right.varCount = dp->varCount;
+      for(auto i=0; i < dp->varCount; i++) {
+        this_param_left.variables[i] = this_param_right.variables[i] = dp->variables[i];
+      }
+      memcpy(this_param_left.values, dp->values, MAX_VAR_COUNT);
+      memcpy(this_param_right.values, dp->values, MAX_VAR_COUNT);
+      
+      /* If the input tree is nullptr, we do nothing */
+      if (t == nullptr) return CALC_NULL_VALUE;
+      
+      if (t->type == VARIABLE){
+        var_index = isListContain(dp->variables, dp->varCount, t->text.c_str());
+        dp->retv = (t->sign>0) ? (dp->values[var_index]) : (-dp->values[var_index]);
+#ifdef _WIN32
+        return dp->error;
+#else
+        return &(dp->error);
+#endif
+      }
+      
+      if ((t->type == NUMBER) || (t->type == PI_TYPE) || (t->type == E_TYPE)){
+        dp->retv = t->value;
+#ifdef _WIN32
+        return dp->error;
+#else
+        return &(dp->error);
+#endif
+      }
+      
+      this_param_left.t = t->left;
+      this_param_right.t = t->right;
+#ifdef _WIN32
+      thread_1 = (HANDLE)_beginthreadex(nullptr, 0, &calc_t, (void*)&this_param_left, 0, nullptr);
+      thread_2 = (HANDLE)_beginthreadex(nullptr, 0, &calc_t, (void*)&this_param_right, 0, nullptr);
+      if (thread_1 != 0){
+        WaitForSingleObject(thread_1, INFINITE);
+        CloseHandle(thread_1);
+      }
+      if (thread_2 != 0){
+        WaitForSingleObject(thread_2, INFINITE);
+        CloseHandle(thread_2);
+      }
+#else
+      idThrLeft = pthread_create(&thrLeft, nullptr, calc_t<T>, (void*)&this_param_left);
+      idThrRight = pthread_create(&thrRight, nullptr, calc_t<T>, (void*)&this_param_right);
+      if (idThrLeft == NMATH_NO_ERROR){
+        pthread_join(thrLeft, nullptr);
+      }
+      if (idThrRight == NMATH_NO_ERROR){
+        pthread_join(thrRight, nullptr);
+      }
+#endif
+      /*******************************************************************************/
+      
+      /* Actually, we don't need to check error here b'cause the reduce phase does that
+       if(this_param_left.error != 0){
+       dp->error = this_param_left.error;
+       return dp->error;
+       }
+       
+       if(this_param_right.error != 0){
+       dp->error = this_param_right.error;
+       return dp->error;
+       }*/
+      
+      dp->retv = t->sign * doCalculate(this_param_left.retv, this_param_right.retv, t->type, &(dp->error));
+#ifdef _WIN32
+      return dp->error;
+#else
+      return &(dp->error);
+#endif
     }
     
-    dv = du = nullptr;
-          
-    u = t->left;
-    v = t->right;
-    
-    bool u_contains_var = isContainVar(u, x);
-    bool v_contains_var = isContainVar(v, x);
-    
-    if (u != nullptr && u_contains_var) {
-      pdu.t = t->left;
-      pdu.variables[0] = x;
-      id_du = pthread_create(&tdu, nullptr, derivative<T>, (void*)(&pdu));
-    }
-          
-    if (v != nullptr && v_contains_var) {
-      pdv.t = t->right;
-      pdv.variables[0] = x;
-      id_dv = pthread_create(&tdv, nullptr, derivative<T>, (void*)(&pdv));
-    }
-    if (id_du == 0)
-      pthread_join(tdu, (void**)&du);
-    if (id_dv == 0)
-      pthread_join(tdv, (void**)&dv);
-          
-    /****************************************************************/
-    // 2.0 get done here
-    switch (t->type) {
-      case SIN:
-        dp->returnValue = d_sin(t, u, du, v, dv, x);
-        return dp->returnValue;
+#ifdef _WIN32
+    template <typename T>
+    unsigned int __stdcall derivative(void *p) {
+      HANDLE tdu = 0, tdv = 0;
+#else
+      template <typename T>
+      void* derivative(void *p) {
+        pthread_t tdu = nullptr;
+        pthread_t tdv = nullptr;
+        int id_du = -1, id_dv = -1;
+#endif
+        auto *dp = (DParam<T>*)p;
+        NMAST<T> *t = dp->t;
+        string x = dp->variables[0];
+        NMAST<T> *u, *du, *v, *dv;
+        DParam<T> pdu, pdv;
         
-      case COS:
-        dp->returnValue = d_cos(t, u, du, v, dv, x);
-        return dp->returnValue;
-          
-      case TAN:
-        dp->returnValue = d_tan(t, u, du, v, dv, dp->variables[0]);
-        return dp->returnValue;
-        
-      case COTAN:
-        dp->returnValue = d_cotan(t, u, du, v, dv, dp->variables[0]);
-        return dp->returnValue;
-        
-      case ASIN:
-        dp->returnValue = d_asin(t, u, du, v, dv, dp->variables[0]);
-        return dp->returnValue;
-        
-      case ACOS:
-        dp->returnValue = d_acos(t, u, du, v, dv, dp->variables[0]);
-        return dp->returnValue;
-        
-      case ATAN:
-        dp->returnValue = d_atan(t, u, du, v, dv, dp->variables[0]);
-        return dp->returnValue;
-        
-      case SQRT:
-        dp->returnValue = d_sqrt(t, u, du, v, dv, x);
-        return dp->returnValue;
-        
-      case LN:
-        dp->returnValue = d_ln(t, u, du, v, dv, x);
-        return dp->returnValue;
-          
-      case PLUS:
-      case MINUS:
-        dp->returnValue = d_sum_subtract<T>(t, t->type, u, du, v, dv, x);
-        return dp->returnValue;
-        
-      case MULTIPLY:
-        if(!u_contains_var && v_contains_var) {
-          dp->returnValue = new NMAST<T>;
-          dp->returnValue->sign = 1;
-          dp->returnValue->text = "*";
-          dp->returnValue->parent = nullptr;
-          dp->returnValue->value = 0;
-          dp->returnValue->type = MULTIPLY;
-          dp->returnValue->priority = getPriorityOfType(MULTIPLY);
-          dp->returnValue->left = cloneTree(u, dp->returnValue);
-          dp->returnValue->right = dv;
-          if(du != 0) clearTree(&du);
-        } else if(u_contains_var && !v_contains_var) {
-          dp->returnValue = new NMAST<T>;
-          dp->returnValue->sign = 1;
-          dp->returnValue->text = "*";
-          dp->returnValue->parent = nullptr;
-          dp->returnValue->value = 0;
-          dp->returnValue->type = MULTIPLY;
-          dp->returnValue->priority = getPriorityOfType(MULTIPLY);
-          dp->returnValue->left = cloneTree<T>(v, dp->returnValue);
-          dp->returnValue->right = du;
-          if(dv != 0) clearTree<T>(&dv);
-        } else {
-          dp->returnValue = d_product<T>(t, u, du, v, dv, x);
+        dp->returnValue = nullptr;
+        if (t == nullptr) {
+          return CALC_NULL_VALUE;
         }
-          
-        return dp->returnValue;
-          
-      case DIVIDE:
-        dp->returnValue = d_quotient<T>(t, u, du, v, dv, x);
-        return dp->returnValue;
         
-      case POWER:
-        dp->returnValue = d_pow_exp<T>(t, u, du, v, dv, x);
-        return dp->returnValue;
+        if (t->type == NUMBER || t->type == PI_TYPE || t->type == E_TYPE || (!isContainVar(t, x)) ){
+          u = new NMAST<T>;
+          u->sign = 1;
+          u->type = NUMBER;
+          u->value = 0.0;
+          u->parent = nullptr;
+          u->left = u->right = nullptr;
+          u->text = "0";
+          dp->returnValue = u;
+#ifdef _WIN32
+          return 0;
+#else
+          return u;
+#endif
+        }
+        
+        /*
+         IMPORTANT:
+         In case of multi-variable function, we need to tell which variable that we are
+         getting derivative of
+         */
+        if (t->type == VARIABLE){
+          u = new NMAST<T>;
+          u->type = NUMBER;
+          u->sign = 1;
+          u->value = 1.0;
+          u->parent = nullptr;
+          u->left = u->right = nullptr;
+          u->text = "";
+          if (dp->variables[0] == t->text){
+            u->value = 1.0;
+            dp->returnValue = u;
+#ifdef _WIN32
+            return 0;
+#else
+            return u;
+#endif
+          }
+          u->value = 0.0;
+          
+#ifdef _WIN32
+          return 0;
+#else
+          return u;
+#endif
+        }
+        
+        dv = du = nullptr;
+        
+        u = t->left;
+        v = t->right;
+        
+        bool u_contains_var = isContainVar(u, x);
+        bool v_contains_var = isContainVar(v, x);
+        
+#ifdef _WIN32
+        if (u != nullptr && u_contains_var) {
+          pdu.t = t->left;
+          pdu.variables[0] = x;
+          tdu = (HANDLE)_beginthreadex(nullptr, 0, &derivative, (void*)&pdu, 0, nullptr);
+        }
+        
+        if (v != nullptr && v_contains_var){
+          pdv.t = t->right;
+          pdv.variables[0] = x;
+          tdv = (HANDLE)_beginthreadex(nullptr, 0, &derivative, (void*)&pdv, 0, nullptr);
+        }
+        
+        if (tdu != 0){
+          WaitForSingleObject(tdu, INFINITE);
+          du = pdu.returnValue;
+          CloseHandle(tdu);
+        }
+        if (tdv != 0){
+          WaitForSingleObject(tdv, INFINITE);
+          dv = pdv.returnValue;
+          CloseHandle(tdv);
+        }
+        
+        switch (t->type){
+          case SIN:
+            dp->returnValue = d_sin(t, u, du, v, dv, x);
+            return 0;
+            
+          case COS:
+            dp->returnValue = d_cos(t, u, du, v, dv, x);
+            return 0;
+            
+          case TAN:
+            dp->returnValue = d_tan(t, u, du, v, dv, x);
+            return 0;
+            
+          case COTAN:
+            dp->returnValue = d_cotan(t, u, du, v, dv, x);
+            return 0;
+            
+          case ASIN:
+            dp->returnValue = d_asin(t, u, du, v, dv, x);
+            return 0;
+            
+          case ACOS:
+            dp->returnValue = d_acos(t, u, du, v, dv, x);
+            return 0;
+            
+          case ATAN:
+            dp->returnValue = d_atan(t, u, du, v, dv, x);
+            return 0;
+            
+          case SQRT:
+            dp->returnValue = d_sqrt(t, u, du, v, dv, x);
+            return 0;
+            
+          case PLUS:
+          case MINUS:
+            dp->returnValue = d_sum_subtract(t, t->type, u, du, v, dv, x);
+            return 0;
+            
+          case MULTIPLY:
+            if(!u_contains_var && v_contains_var) {
+              dp->returnValue = gPool<T>.get();
+              dp->returnValue->type = MULTIPLY;
+              dp->returnValue->left = cloneTree(u, dp->returnValue);
+              dp->returnValue->right = dv;
+              if(du != 0) clearTree(&du);
+            } else if(u_contains_var && !v_contains_var) {
+              dp->returnValue = gPool<T>.get();
+              dp->returnValue->type = MULTIPLY;
+              dp->returnValue->left = cloneTree(v, dp->returnValue);
+              dp->returnValue->right = du;
+              if(dv != 0) clearTree(&dv);
+            } else
+              dp->returnValue = d_product(t, u, du, v, dv, x);
+            return 0;
+            
+          case DIVIDE:
+            dp->returnValue = d_quotient(t, u, du, v, dv, x);
+            return 0;
+            
+          case POWER:
+            dp->returnValue = d_pow_exp(t, u, du, v, dv, x);
+            return 0;
+        }
+        dp->returnValue = nullptr;
+        return 0;
+#else
+        if (u != nullptr && u_contains_var) {
+          pdu.t = t->left;
+          pdu.variables[0] = x;
+          id_du = pthread_create(&tdu, nullptr, derivative<T>, (void*)(&pdu));
+        }
+        
+        if (v != nullptr && v_contains_var) {
+          pdv.t = t->right;
+          pdv.variables[0] = x;
+          id_dv = pthread_create(&tdv, nullptr, derivative<T>, (void*)(&pdv));
+        }
+        if (id_du == 0)
+          pthread_join(tdu, (void**)&du);
+        if (id_dv == 0)
+          pthread_join(tdv, (void**)&dv);
+        
+        /****************************************************************/
+        // 2.0 get done here
+        switch (t->type){
+          case SIN:
+            dp->returnValue = d_sin(t, u, du, v, dv, x);
+            return dp->returnValue;
+            
+          case COS:
+            dp->returnValue = d_cos(t, u, du, v, dv, x);
+            return dp->returnValue;
+            
+          case TAN:
+            dp->returnValue = d_tan(t, u, du, v, dv, dp->variables[0]);
+            return dp->returnValue;
+            
+          case COTAN:
+            dp->returnValue = d_cotan(t, u, du, v, dv, dp->variables[0]);
+            return dp->returnValue;
+            
+          case ASIN:
+            dp->returnValue = d_asin(t, u, du, v, dv, dp->variables[0]);
+            return dp->returnValue;
+            
+          case ACOS:
+            dp->returnValue = d_acos(t, u, du, v, dv, dp->variables[0]);
+            return dp->returnValue;
+            
+          case ATAN:
+            dp->returnValue = d_atan(t, u, du, v, dv, dp->variables[0]);
+            return dp->returnValue;
+            
+          case SQRT:
+            dp->returnValue = d_sqrt(t, u, du, v, dv, x);
+            return dp->returnValue;
+            
+          case LN:
+            dp->returnValue = d_ln(t, u, du, v, dv, x);
+            return dp->returnValue;
+            
+          case PLUS:
+          case MINUS:
+            dp->returnValue = d_sum_subtract<T>(t, t->type, u, du, v, dv, x);
+            return dp->returnValue;
+            
+          case MULTIPLY:
+            if(!u_contains_var && v_contains_var) {
+              dp->returnValue = new NMAST<T>;
+              dp->returnValue->sign = 1;
+              dp->returnValue->text = "*";
+              dp->returnValue->parent = nullptr;
+              dp->returnValue->value = 0;
+              dp->returnValue->type = MULTIPLY;
+              dp->returnValue->priority = getPriorityOfType(MULTIPLY);
+              dp->returnValue->left = cloneTree(u, dp->returnValue);
+              dp->returnValue->right = dv;
+              if(du != 0) clearTree(&du);
+            } else if(u_contains_var && !v_contains_var) {
+              dp->returnValue = new NMAST<T>;
+              dp->returnValue->sign = 1;
+              dp->returnValue->text = "*";
+              dp->returnValue->parent = nullptr;
+              dp->returnValue->value = 0;
+              dp->returnValue->type = MULTIPLY;
+              dp->returnValue->priority = getPriorityOfType(MULTIPLY);
+              dp->returnValue->left = cloneTree<T>(v, dp->returnValue);
+              dp->returnValue->right = du;
+              if(dv != 0) clearTree<T>(&dv);
+            } else
+              dp->returnValue = d_product<T>(t, u, du, v, dv, x);
+            
+            return dp->returnValue;
+            
+          case DIVIDE:
+            dp->returnValue = d_quotient<T>(t, u, du, v, dv, x);
+            return dp->returnValue;
+            
+          case POWER:
+            dp->returnValue = d_pow_exp<T>(t, u, du, v, dv, x);
+            return dp->returnValue;
+        }
+        /* TODO: WHERE du AND dv GO IF WE DON'T TO USE THEM ????? */
+        return nullptr;
+#endif
+      }
     }
-    /* TODO: WHERE du AND dv GO IF WE DON'T TO USE THEM ????? */
-    return nullptr;
-  }
-}
     
     
 #endif

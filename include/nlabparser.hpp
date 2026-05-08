@@ -16,45 +16,45 @@ namespace nmath {
 	template <typename T>
 	class NLabParser {
 	private:
-        NMASTPool<T> *nmastPool;
-        bool needReleasePool;
+    NMASTPool<T> *nmastPool;
+    bool needReleasePool;
 	public:
-        NLabParser() {
-            nmastPool = new NMASTPool<T>;
-            needReleasePool = true;
-        }
+    NLabParser() {
+      nmastPool = new NMASTPool<T>;
+      needReleasePool = true;
+    }
 
-        NLabParser(NMASTPool<T> *aPool): nmastPool(aPool), needReleasePool(false) {
-        }
+    NLabParser(NMASTPool<T> *aPool): nmastPool(aPool), needReleasePool(false) {
+    }
 
-        virtual ~NLabParser() {
-            if(needReleasePool) {
-                delete nmastPool;
-            }
-        }
+    virtual ~NLabParser() {
+      if(needReleasePool) {
+        delete nmastPool;
+      }
+    }
 
-        int getType(const Token *t, std::vector<nmath::NMAST<T>* > variables);
-        int functionNotation(std::vector<Token*> tokens, int index,
-                             std::vector<nmath::NMAST<T> *> &variables,
-                             int *errorCode, int *errorColumn);
-        NMAST<T>* buildIntervalTree(Token* valtk1, Token* o1, Token* variable,
-                                    Token* o2, Token* valtk2, int *errorCode, int *errorColumn);
+    int getType(const Token *t, std::vector<nmath::NMAST<T>* > variables);
+    int functionNotation(std::vector<Token*> tokens, int index,
+                          std::vector<nmath::NMAST<T> *> &variables,
+                          int *errorCode, int *errorColumn);
+    NMAST<T>* buildIntervalTree(Token* valtk1, Token* o1, Token* variable,
+                                Token* o2, Token* valtk2, int *errorCode, int *errorColumn);
 
-        int parseFunctionExpression(std::vector<Token*> tokens, std::vector<nmath::NMAST<T>* > &prefix, std::vector<nmath::NMAST<T>* > &domain,
-                                    std::vector<nmath::NMAST<T>* > &variables, int *errorCode, int *errorColumn);
-        NMAST<T>* parseExpression(std::vector<Token*> tokens, int *start, std::vector<nmath::NMAST<T>*> variables, int *errorCode, int *errorColumn);
-        NMAST<T>* parseDomain(std::vector<Token*> tokens, int *start, int *errorCode, int *errorColumn);
+    int parseFunctionExpression(std::vector<Token*> tokens, std::vector<nmath::NMAST<T>* > &prefix, std::vector<nmath::NMAST<T>* > &domain,
+                                std::vector<nmath::NMAST<T>* > &variables, int *errorCode, int *errorColumn);
+    NMAST<T>* parseExpression(std::vector<Token*> tokens, int *start, std::vector<nmath::NMAST<T>*> variables, int *errorCode, int *errorColumn);
+    NMAST<T>* parseDomain(std::vector<Token*> tokens, int *start, int *errorCode, int *errorColumn);
 	};
 
 
     template <typename T>
     int NLabParser<T>::getType(const Token *t, std::vector<nmath::NMAST<T>* > variables) {
-        for(int i=0; i<variables.size(); i++) {
-            if( strcmp(t->text, variables[i]->text) == 0 ) {
-                return VARIABLE;
-            }
+      for(int i=0; i<variables.size(); i++) {
+        if( strcmp(t->text, variables[i]->text) == 0 ) {
+          return VARIABLE;
         }
-        return t->type;
+      }
+      return t->type;
     }
 
     /******************************************************************************************/
@@ -72,8 +72,8 @@ namespace nmath {
         int k, l, idx = 0;
         *errorCode = ERROR_NOT_A_FUNCTION;
         if(tokens.size() <= 0) {
-            *errorColumn = 0;
-            return *errorCode;
+          *errorColumn = 0;
+          return *errorCode;
         }
         *errorColumn = tokens[idx]->column;
         auto tokenCount = tokens.size();
@@ -81,71 +81,67 @@ namespace nmath {
 
         /** This array will hold the variables of the function */
         if ((k = functionNotation(tokens, idx, variables, errorCode, errorColumn)) > idx) {
+          if( *errorCode != NMATH_NO_ERROR ) {
+            return *errorCode;
+          }
+          *errorCode = ERROR_NOT_A_FUNCTION;
 
-            if( *errorCode != NMATH_NO_ERROR ) {
-                return *errorCode;
-            }
+          if(k<tokenCount && tokens[k]->type == EQ) {
+            k++;
+            do {
+              /*
+                  Parse expression
+              */
+              if (tokenCount <= k) {
+                *errorCode = ERROR_NOT_AN_EXPRESSION;
+                *errorColumn = k;
+                return ERROR_NOT_AN_EXPRESSION;
+              }
 
-            *errorCode = ERROR_NOT_A_FUNCTION;
-
-            if(k<tokenCount && tokens[k]->type == EQ) {
-                k++;
-                do {
-                    /*
-                        Parse expression
-                    */
-                    if (tokenCount <= k) {
-                        *errorCode = ERROR_NOT_AN_EXPRESSION;
-                        *errorColumn = k;
-                        return ERROR_NOT_AN_EXPRESSION;
+              //
+              for(int j = k; j < tokenCount; j++) {
+                if(tokens[j]->type == NAME) {
+                  for(int v = 0; v < variables.size(); v++) {
+                    if(tokens[j]->text == variables[v]->text) {
+                      tokens[j]->type = VARIABLE;
                     }
+                  }
+                }
+              }
 
-                    //
-                    for(int j = k; j < tokenCount; j++) {
-                        if(tokens[j]->type == NAME) {
-                            for(int v = 0; v < variables.size(); v++) {
-                                if(tokens[j]->text == variables[v]->text) {
-                                    tokens[j]->type = VARIABLE;
-                                }
-                            }
-                        }
-                    }
+              item = parseExpression(tokens, &k, variables, errorCode, errorColumn);
+              /** after parseExpression, we may get error, so MUST check if it's OK here */
+              if( *errorCode != NMATH_NO_ERROR ) {
+                break;
+              }
 
-                    item = parseExpression(tokens, &k, variables, errorCode, errorColumn);
-                    /** after parseExpression, we may get error, so MUST check if it's OK here */
-                    if( *errorCode != NMATH_NO_ERROR ) {
-                        break;
-                    }
+              prefix.push_back(item);
 
-                    prefix.push_back(item);
-
-                    item = nullptr;
-                    if( (k < tokenCount) && (tokens[k]->type == DOMAIN_NOTATION) ) {
-                        *errorCode = ERROR_MISSING_DOMAIN;
-                        *errorColumn = tokens[k]->column;
-                        if(k+1 < tokenCount) {
-                            l = k + 1;
-                            item = parseDomain(tokens, &l, errorCode, errorColumn);
-                            k = l;
-                        }
-                    }
-
-                    domain.push_back(item);
-
-                } while ( errorCode==NMATH_NO_ERROR && k < tokenCount );
-            }
+              item = nullptr;
+              if( (k < tokenCount) && (tokens[k]->type == DOMAIN_NOTATION) ) {
+                *errorCode = ERROR_MISSING_DOMAIN;
+                *errorColumn = tokens[k]->column;
+                if(k+1 < tokenCount) {
+                  l = k + 1;
+                  item = parseDomain(tokens, &l, errorCode, errorColumn);
+                  k = l;
+                }
+              }
+              domain.push_back(item);
+            } while ( errorCode==NMATH_NO_ERROR && k < tokenCount );
+          }
         }
 
         if(*errorCode != NMATH_NO_ERROR) {
-            for(k=0; k<prefix.size(); k++) {
-                clearTree(&(prefix[k]));
+          for(k=0; k<prefix.size(); k++) {
+            clearTree(&(prefix[k]));
 
-                if(domain[k] != nullptr){
-                    clearTree(&(domain[k]));
-                }
+            if(domain[k] != nullptr){
+              clearTree(&(domain[k]));
             }
-            prefix.clear();
-            domain.clear();
+          }
+          prefix.clear();
+          domain.clear();
         }
         return *errorCode;
     }
@@ -214,7 +210,7 @@ namespace nmath {
 
     /******************************************************************************************/
     /**
-        Parse the input string in object f to NMAST tree using PRN
+        Parse the input string in object f to NMAST tree using Reverse Polish Notation
     */
     template <typename T>
     nmath::NMAST<T>* NLabParser<T>::parseExpression(vector<Token*> tokens,
@@ -228,7 +224,7 @@ namespace nmath {
         Token **stack = nullptr;
         Token *stItm = nullptr;
         NMAST<T> *ast = nullptr;
-        std::vector<NMAST<T>* >mPrefix;
+        std::vector<NMAST<T>* >postfix;
 
         *errorColumn = -1;
         *errorCode = NMATH_NO_ERROR;
@@ -238,25 +234,25 @@ namespace nmath {
             tk = tokens[idx];
             switch(tk->type) {
             case NUMBER:
-                val = parseDouble<T>(tk->text, 0, tk->textLength, &error);
-                if(val == (T)0 && error < 0) {
-                    clearStackWithoutFreeItem(stack, top+1);
-                    free(stack);
-                    for (int i = 0; i<mPrefix.size(); i++)
-                        clearTree(&(mPrefix[i]));
-                    mPrefix.clear();
-                    *errorColumn = tk->column;
-                    *errorCode = ERROR_PARSING_NUMBER;
-                    return nullptr;
-                }
+              val = parseDouble<T>(tk->text, 0, tk->textLength, &error);
+              if(val == (T)0 && error < 0) {
+                clearStackWithoutFreeItem(stack, top+1);
+                free(stack);
+                for (int i = 0; i<postfix.size(); i++)
+                    clearTree(&(postfix[i]));
+                postfix.clear();
+                *errorColumn = tk->column;
+                *errorCode = ERROR_PARSING_NUMBER;
+                return nullptr;
+              }
 
-                ast = nmastPool->get();
-                ast->value = val;
-                ast->type = tk->type;
-                ast->text = tk->text;
-                ast->column = tk->column;
-                mPrefix.push_back(ast);
-                idx++;
+              ast = nmastPool->get();
+              ast->value = val;
+              ast->type = tk->type;
+              ast->text = tk->text;
+              ast->column = tk->column;
+              postfix.push_back(ast);
+              idx++;
             break;
 
             case E_TYPE:
@@ -265,7 +261,7 @@ namespace nmath {
                 ast->text = "e";
                 ast->type = E_TYPE;
                 ast->column = tk->column;
-                mPrefix.push_back(ast); //add this item to prefix
+                postfix.push_back(ast); //add this item to prefix
                 idx++;
             break;
 
@@ -275,7 +271,7 @@ namespace nmath {
                 ast->text = "3.14159";
                 ast->type = PI_TYPE;
                 ast->column = tk->column;
-                mPrefix.push_back(ast); //add this item to prefix
+                postfix.push_back(ast); //add this item to prefix
                 idx++;
             break;
 
@@ -295,44 +291,44 @@ namespace nmath {
                  * - Repeat (C1) until (*) not hold
                  */ 
                 if(top >= 0) {
-                    stItm = stack[top];
-                    while(isAnOperatorType(stItm->type) && (stItm->priority) >= tk->priority) {
-                        stItm = popFromStack(stack, &top);
-                        if (mPrefix.size() == 1) {
-                            mPrefix[0]->sign = -1;
-                        } else {
-                            ast = nmastPool->get();
-                            ast->type = stItm->type;
-                            ast->text = stItm->text;
-                            ast->column = stItm->column;
-                            ast->priority = stItm->priority;
-                            ast->left = mPrefix[mPrefix.size() - 2];
-                            ast->right = mPrefix[mPrefix.size() - 1];
+                  stItm = stack[top];
+                  while(isAnOperatorType(stItm->type) && (stItm->priority) >= tk->priority) {
+                    stItm = popFromStack(stack, &top);
+                    if (postfix.size() == 1) {
+                      postfix[0]->sign = -1;
+                    } else {
+                      ast = nmastPool->get();
+                      ast->type = stItm->type;
+                      ast->text = stItm->text;
+                      ast->column = stItm->column;
+                      ast->priority = stItm->priority;
+                      ast->left = postfix[postfix.size() - 2];
+                      ast->right = postfix[postfix.size() - 1];
 
-                            if((ast->left)!=nullptr)
-                                (ast->left)->parent = ast;
-                            if((ast->right)!=nullptr)
-                                (ast->right)->parent = ast;
+                      if((ast->left)!=nullptr)
+                        (ast->left)->parent = ast;
+                      if((ast->right)!=nullptr)
+                        (ast->right)->parent = ast;
 
-                            mPrefix[mPrefix.size() - 2] = ast;
-                            mPrefix[mPrefix.size() - 1] = nullptr;
-                            mPrefix.pop_back();
-                        }
-
-                        if(top < 0)
-                            break;
-
-                        stItm = stack[top];
+                      postfix[postfix.size() - 2] = ast;
+                      postfix[postfix.size() - 1] = nullptr;
+                      postfix.pop_back();
                     }
+
+                    if(top < 0)
+                      break;
+
+                    stItm = stack[top];
+                  }
                 }
                 //push operation o1 (tk) into stack
                 pushItem2Stack(&stack, &top, &allocLen, tk);
                 if(*errorCode == E_NOT_ENOUGH_MEMORY) {
                     clearStackWithoutFreeItem(stack, top+1);
                     free(stack);
-                    for (int i = 0; i<mPrefix.size(); i++)
-                        clearTree(&(mPrefix[i]));
-                    mPrefix.clear();
+                    for (int i = 0; i<postfix.size(); i++)
+                        clearTree(&(postfix[i]));
+                    postfix.clear();
                     *errorColumn = tk->column;
                     return nullptr;
                 }
@@ -344,9 +340,9 @@ namespace nmath {
                 if(*errorCode == E_NOT_ENOUGH_MEMORY) {
                     clearStackWithoutFreeItem(stack, top+1);
                     free(stack);
-                    for (int i = 0; i<mPrefix.size(); i++)
-                        clearTree(&(mPrefix[i]));
-                    mPrefix.clear();
+                    for (int i = 0; i<postfix.size(); i++)
+                        clearTree(&(postfix[i]));
+                    postfix.clear();
                     *errorColumn = tk->column;
                     return nullptr;
                 }
@@ -360,9 +356,9 @@ namespace nmath {
                 if(stItm == nullptr) {
                     clearStackWithoutFreeItem(stack, top+1);
                     free(stack);
-                    for (int i = 0; i<mPrefix.size(); i++)
-                        clearTree(&(mPrefix[i]));
-                    mPrefix.clear();
+                    for (int i = 0; i<postfix.size(); i++)
+                        clearTree(&(postfix[i]));
+                    postfix.clear();
                     *errorColumn = tk->column;
                     *errorCode = ERROR_PARENTHESE_MISSING;
                     return nullptr;
@@ -370,7 +366,7 @@ namespace nmath {
 
                 /*  */
                 while( (stItm != nullptr) && (stItm->type != LPAREN) && !isAFunctionType(stItm->type) ) {
-                    addFunction2Tree<T>(mPrefix, stItm, nmastPool);
+                    addFunction2Tree<T>(postfix, stItm, nmastPool);
                     //free(stItm);
                     stItm = popFromStack(stack, &top);
                 }
@@ -379,16 +375,16 @@ namespace nmath {
                 if(stItm == nullptr) {
                     clearStackWithoutFreeItem(stack, top+1);
                     free(stack);
-                    for (int i = 0; i<mPrefix.size(); i++)
-                    clearTree(&(mPrefix[i]));
-                    mPrefix.clear();
+                    for (int i = 0; i<postfix.size(); i++)
+                    clearTree(&(postfix[i]));
+                    postfix.clear();
                     *errorColumn = tk->column;
                     *errorCode = ERROR_PARENTHESE_MISSING;
                     return nullptr;
                 }
 
                 if(isAFunctionType(stItm->type)) {
-                    addFunction2Tree<T>(mPrefix, stItm, nmastPool);
+                    addFunction2Tree<T>(postfix, stItm, nmastPool);
                 }
                 idx++;
             break;
@@ -404,14 +400,14 @@ namespace nmath {
             case SQRT:
             case LN:
             case LOG:
-            case ABS:
+            case ABSOLUTE:
                 pushItem2Stack(&stack, &top, &allocLen, tk);
                 if(*errorCode == E_NOT_ENOUGH_MEMORY) {
                     clearStackWithoutFreeItem(stack, top+1);
                     free(stack);
-                    for (int i = 0; i<mPrefix.size(); i++)
-                        clearTree(&(mPrefix[i]));
-                    mPrefix.clear();
+                    for (int i = 0; i<postfix.size(); i++)
+                        clearTree(&(postfix[i]));
+                    postfix.clear();
                     *errorColumn = tk->column;
                     return nullptr;
                 }
@@ -429,7 +425,7 @@ namespace nmath {
                 ast->text = tk->text;
                 ast->type = tk->type;
                 ast->column = tk->column;
-                mPrefix.push_back(ast);
+                postfix.push_back(ast);
                 idx++;
             break;
 
@@ -444,9 +440,9 @@ namespace nmath {
             default:
                 clearStackWithoutFreeItem(stack, top+1);
                 free(stack);
-                for (int i = 0; i<mPrefix.size(); i++)
-                    clearTree(&(mPrefix[i]));
-                mPrefix.clear();
+                for (int i = 0; i<postfix.size(); i++)
+                    clearTree(&(postfix[i]));
+                postfix.clear();
                 *errorColumn = tk->column;
                 *errorCode = ERROR_BAD_TOKEN;
                 return nullptr;
@@ -458,21 +454,21 @@ namespace nmath {
             if( (stItm->type == LPAREN) || isAFunctionType(stItm->type)) {
                 clearStackWithoutFreeItem(stack, top+1);
                 free(stack);
-                for (int i = 0; i<mPrefix.size(); i++)
-                    clearTree(&(mPrefix[i]));
-                mPrefix.clear();
+                for (int i = 0; i<postfix.size(); i++)
+                    clearTree(&(postfix[i]));
+                postfix.clear();
                 *errorColumn = (tk != nullptr) ? tk->column : -1;
                 *errorCode = ERROR_PARENTHESE_MISSING;
                 return nullptr;
             }
 
-            *errorCode = addFunction2Tree(mPrefix, stItm, nmastPool);
+            *errorCode = addFunction2Tree(postfix, stItm, nmastPool);
             if(*errorCode != NMATH_NO_ERROR) {
                 clearStackWithoutFreeItem(stack, top+1);
                 free(stack);
-                for (int i = 0; i<mPrefix.size(); i++)
-                    clearTree(&(mPrefix[i]));
-                mPrefix.clear();
+                for (int i = 0; i<postfix.size(); i++)
+                    clearTree(&(postfix[i]));
+                postfix.clear();
                 *errorColumn = (tk != nullptr) ? tk->column : -1;
                 return nullptr;
             }
@@ -480,8 +476,8 @@ namespace nmath {
 
         free(stack);
         *start = idx;
-        ast = mPrefix[0];
-        mPrefix.clear();
+        ast = postfix[0];
+        postfix.clear();
         return ast;
     }
 

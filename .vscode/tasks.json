@@ -52,6 +52,28 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+          "label": "Build testFunction",
+          "type": "shell",
+          "command": "clang++",
+          "args": [
+            "-std=c++14",
+            "-g",
+            "-O0",
+            "-pthread",
+            "-Iinclude",
+            "test/testFunction.cpp",
+            "src/StackUtil.cpp",
+            "src/nlablexer.cpp",
+            "src/utf8.cpp",
+            "src/internal_common.cpp",
+            "src/logging.cpp",
+            "-o",
+            "testFunction"
+          ],
+          "group": "build",
+          "problemMatcher": ["$gcc"]
         }
     ]
 }

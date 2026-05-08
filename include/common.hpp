@@ -59,6 +59,8 @@ namespace nmath {
         if(str[start] == '-'){
           negative = -1;
           start++;
+        } else if(str[start] == '+'){
+          start++;
         }
 
         for(int i=start; i<end; i++) {
@@ -87,46 +89,79 @@ namespace nmath {
         return val * negative;
     }
 
+    /**
+     * Parse a string to an integer
+     * @param str the string to parse
+     * @param start the start index inclusive
+     * @param end the end index exclusive
+     * @param error the error code
+     * @return the parsed integer
+     * @note The function will ignore the decimal part if it exists and return the integer part.
+     * @note The function will set the error code to ERROR_OVERFLOW if the integer overflows.
+     * @note The function will set the error code to ERROR_TOO_MANY_FLOATING_POINT if there are too many floating points.
+     */
     template <typename T>
     T parseInteger(const char *str, int start, int end, int *error) {
-        T val = (T)0;
-        const char C_48 = 48;
-        const char C_57 = 57;
-        *error = -1;
-        if(str == nullptr)
-          return 0;
+      T val = (T)0;
+      const char C_48 = 48;
+      const char C_57 = 57;
+      *error = -1;
+      if(str == nullptr)
+        return 0;
 
-        int negative = 1;
-        if(str[start] == '-') {
-          negative = -1;
-          start++;
-        }
-        for(auto i=start; i<end; i++) {
-          if((str[i] >= C_48) && (str[i]<=C_57)) {
-            val = val * (T)10 + (T)(str[i] - C_48);
-          } else {
-            if (str[i] == '.') {
-              *error = 0;
-              return val * negative;
-            }
-            *error = i;
-            return val * negative;
+      bool negative = false;
+      if(str[start] == '-') {
+        negative = true;
+        start++;
+      } else if(str[start] == '+') {
+        start++;
+      }
+
+      bool metFloatingPoint = false;
+
+      for(int i = start; i < end; i++) {
+        if((str[i] >= C_48) && (str[i]<=C_57)) {
+          if(metFloatingPoint) {
+            // Ignore the decimal part
+            continue;
           }
+          // Check for potential overflow before multiplying
+          if (val > (std::numeric_limits<T>::max() - (T)(str[i] - C_48)) / (T)10) {
+            *error = ERROR_OVERFLOW;
+            return 0;
+          }
+          val = val * (T)10 + (T)(str[i] - C_48);
+        } else {
+          if (str[i] == '.') {
+            if (metFloatingPoint) {
+              *error = ERROR_TOO_MANY_FLOATING_POINT;
+              return 0;
+            }
+            metFloatingPoint = true;
+          }
+          *error = i;
+          return negative ? -val : val;
         }
-        *error = 0;
-        return val * negative;
+      }
+      *error = NMATH_NO_ERROR;
+      return negative ? -val : val;
+    }
+
+    template <typename T>
+    T parseInteger(const std::string &str, int start, int end, int *error) {
+      return parseInteger<T>(str.c_str(), start, end, error);
     }
 
     template <typename T>
     void clearTree(NMAST<T> **prf){
-        if((*prf) == nullptr)
-            return;
-        if((*prf)->left != nullptr)
-            nmath::clearTree(&((*prf)->left));
-        if((*prf)->right != nullptr)
-            nmath::clearTree(&((*prf)->right));
-        delete (*prf);
-        (*prf) = nullptr;
+      if((*prf) == nullptr)
+          return;
+      if((*prf)->left != nullptr)
+          nmath::clearTree(&((*prf)->left));
+      if((*prf)->right != nullptr)
+          nmath::clearTree(&((*prf)->right));
+      delete (*prf);
+      (*prf) = nullptr;
     }
 
     template <typename T>
@@ -220,7 +255,7 @@ namespace nmath {
             case ACOS:
                 return acos(val2);
 
-            case ABS:
+            case ABSOLUTE:
                 return (val2<0)?(-val2):val2;
 
             case COTAN:
@@ -488,12 +523,12 @@ namespace nmath {
 
     /*****************************************************************************************************************/
     template <typename T>
-    void releaseNMATree(std::vector<NMAST<T>*> &t) {
-        if (t.size() <= 0) return;
-        for (unsigned long i = 0; i<t.size(); i++){
-            clearTree(&(t[i]));
-        }
-        t.clear();
+    void releaseNMASTree(std::vector<NMAST<T>*> &t) {
+      if (t.size() <= 0) return;
+      for (unsigned long i = 0; i<t.size(); i++){
+          clearTree(&(t[i]));
+      }
+      t.clear();
     }
 
 
@@ -503,18 +538,16 @@ namespace nmath {
         @param x variable to check if existed
     */
     template <typename T>
-    bool isContainVar(NMAST<T> *t, std::string x){
+    bool isContainVar(NMAST<T> *t, std::string x) {
+      if ((t == nullptr) || (t->type == NUMBER) || (t->type == PI_TYPE) || (t->type == E_TYPE))
+        return false;
 
-        if ((t == nullptr) || (t->type == NUMBER) || (t->type == PI_TYPE) || (t->type == E_TYPE))
-            return false;
-
-        if (t->type == VARIABLE) {
-            if (t->text == x)
-                return (t->sign>0);
-            return false;
-        }
-
-        return (isContainVar(t->left, x) || isContainVar(t->right, x));
+      if (t->type == VARIABLE) {
+        if (t->text == x)
+          return true;
+        return false;
+      }
+      return (isContainVar(t->left, x) || isContainVar(t->right, x));
     }
 
     template <typename T>

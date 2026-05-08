@@ -10,6 +10,8 @@
 
 #include <common.hpp>
 #include "nlablexer.h"
+#include "nlabparser.hpp"
+#include "nfunction.hpp"
 
 using namespace nmath;
 
@@ -87,10 +89,30 @@ int testCone(int argc, char* argv[]) {
 }
 
 int main(int argc, char* argv[]) {
-	char text[] = {'1', 0x0};
-  int errorCode = 0;
-  int textLength = 1;
-  int value = nmath::parseInteger<int>(text, 0, textLength, &errorCode);
-  std::cout << "Parsed integer: " << value << ", Error code: " << errorCode << std::endl;
+  std::vector<nmath::NMAST<float>* > variables;
+  nmath::NLabLexer lexer;
+  nmath::NLabParser<float> parser;
+  nmath::NFunction<float> function;
+  std::string str = "f(x,y) = x^2 + y";
+  std::vector<nmath::Token*> tokens;
+  int lastMeanIdx = -1;
+  unsigned int tokenCount = lexer.lexicalAnalysis(str.c_str(), str.length(), false, 0, tokens, &lastMeanIdx);
+  if (tokenCount == 0) {
+    std::cerr << "Error: No tokens found in the command." << std::endl;
+    return -1;
+  }
+  int errorCode = lexer.getErrorCode();
+  int errorColumn = lexer.getErrorColumn();
+  if (errorCode != NMATH_NO_ERROR) {
+    std::cerr << "Error: " << errorCode << " at column " << errorColumn << std::endl;
+    return errorCode;
+  }
+  
+	errorCode = function.parse(tokens, &parser);
+  if (errorCode != NMATH_NO_ERROR) {
+    std::cerr << "Error parsing function: " << errorCode << std::endl;
+    return errorCode;
+  }
+  std::cout << "Done running! " << std::endl;
   return 0;
 }

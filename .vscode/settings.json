@@ -87,6 +87,8 @@
       "set": "cpp",
       "span": "cpp",
       "unordered_set": "cpp",
-      "__memory": "cpp"
+      "__memory": "cpp",
+      "forward_list": "cpp",
+      "common.hpp": "c"
     }
 }

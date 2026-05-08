@@ -39,7 +39,7 @@ namespace nmath {
     }
 
     void calculateVertexCount() {
-      this->vertexCount = data.size() / this->dimension;
+      this->vertexCount = (unsigned int)data.size() / this->dimension;
     }
 
     unsigned int getVertexCount() const {
@@ -59,9 +59,6 @@ namespace nmath {
 
     unsigned int copyDataWithColorTo(float red, float green, float blue, T* anArray) const {
       const T* source = &data[0];
-      unsigned int size = data.size();
-      int stride = 9;
-      unsigned int  strideTSize = stride * sizeof(T);
       unsigned int t = 0;
       for (auto i=0; i<vertexCount; i++) {
         auto index = i * 6;
@@ -131,107 +128,104 @@ namespace nmath {
   ImageData<T>::~ImageData() {
   }
 
-    template <typename T>
-    unsigned short* ImageData<T>::generateIndices(unsigned int &len) {
-        unsigned short count = 0;
-        std::vector<unsigned short> indices;
-        int rowCount = (int)rowInfo.size();
-        int orientation = 0;
-        unsigned int count_pass = 0;
-        for(int i=0; i<rowCount-1; i++) {
-            count_pass += (i <= 0) ? 0 :  rowInfo[i-1];
-            auto vertexCountLine = rowInfo[i];
-            auto nexRowCount = rowInfo[i + 1];
-            int j = 0;
-            while(j<vertexCountLine) {
-                // If we are at the last position of row i
-                if(j == vertexCountLine - 1) {
-                    indices.push_back(count);
-                    // If the number of vertex on row i is greater than the number of vertex on the next row
-                    if(j>=nexRowCount) {
-                        indices.push_back(count);
-                    } else {
-                        // add the vertex right below
-                        indices.push_back(count + vertexCountLine);
+  template <typename T>
+  unsigned short* ImageData<T>::generateIndices(unsigned int &len) {
+    unsigned short count = 0;
+    std::vector<unsigned short> indices;
+    int rowCount = (int)rowInfo.size();
+    unsigned int count_pass = 0;
+    for(int i=0; i<rowCount-1; i++) {
+      count_pass += (i <= 0) ? 0 :  rowInfo[i-1];
+      auto vertexCountLine = rowInfo[i];
+      auto nexRowCount = rowInfo[i + 1];
+      int j = 0;
+      while(j<vertexCountLine) {
+        // If we are at the last position of row i
+        if(j == vertexCountLine - 1) {
+          indices.push_back(count);
+          // If the number of vertex on row i is greater than the number of vertex on the next row
+          if(j>=nexRowCount) {
+              indices.push_back(count);
+          } else {
+            // add the vertex right below
+            indices.push_back(count + vertexCountLine);
 
-                        // If j is the last position on the next row so 
-                        // this is a degeneration
-                        if(j == nexRowCount - 1) {
-                            // degenerate
-                            indices.push_back(count + vertexCountLine);
-                        }
-
-                        unsigned short e = count + vertexCountLine + 1;
-                        unsigned short e1 = count + nexRowCount + 1;
-                        for(auto k=e; k<e1; k++) {
-                            indices.push_back(k);
-                            if(k == e1-1) {
-                                indices.push_back(k);
-                            } else {
-                                indices.push_back(count);
-                            }
-
-                            // indices.push_back(k);
-                            // if(i < rowCount-2) {
-                                // indices.push_back(k);
-                                // indices.push_back(count);
-                                // indices.push_back(count);
-                                // indices.push_back(k);
-                                // if(k == e1-1) {
-                                //     indices.push_back(k);
-                                // }
-                            // }
-                        }
-                    }
-                } else {
-                    // If this is not the first row and 
-                    // we are at the first element of it
-                    if(i>0 && j==0) {
-                        //Degenerated case
-                        indices.push_back(count);
-                    }
-                    indices.push_back(count);
-                    // add the vertex right below if any
-                    if(j < nexRowCount) {
-                        indices.push_back(count + vertexCountLine);
-                    } else {
-                        int lastIndexOnNextRow = count + vertexCountLine - 1;
-                        int e = count + vertexCountLine + 1;
-                        int e1 = count + nexRowCount + 1;
-                        for(auto k=j; k<(vertexCountLine-1); k++) {
-                            indices.push_back(++count);
-                            if(k==vertexCountLine-2) {
-                                indices.push_back(count);
-                            } else {
-                                indices.push_back(lastIndexOnNextRow);
-                            }
-                        }
-                        j = vertexCountLine - 1;
-                    }
-                }
-                count++;
-                j++;
+            // If j is the last position on the next row so 
+            // this is a degeneration
+            if(j == nexRowCount - 1) {
+              // degenerate
+              indices.push_back(count + vertexCountLine);
             }
-        }
 
-        //post processing for tail degenerate triangles
-        if(indices[indices.size()-1] == indices[indices.size()-2]) {
-            if(indices[indices.size()-3] == indices[indices.size()-4]) {
-                indices.pop_back();
-                indices.pop_back();
-                indices.pop_back();
-            } else {
-                indices.pop_back();
+            unsigned short e = count + vertexCountLine + 1;
+            unsigned short e1 = count + nexRowCount + 1;
+            for(auto k=e; k<e1; k++) {
+              indices.push_back(k);
+              if(k == e1-1) {
+                indices.push_back(k);
+              } else {
+                indices.push_back(count);
+              }
+
+              // indices.push_back(k);
+              // if(i < rowCount-2) {
+                // indices.push_back(k);
+                // indices.push_back(count);
+                // indices.push_back(count);
+                // indices.push_back(k);
+                // if(k == e1-1) {
+                //     indices.push_back(k);
+                // }
+              // }
             }
+          }
+        } else {
+          // If this is not the first row and 
+          // we are at the first element of it
+          if(i>0 && j==0) {
+            //Degenerated case
+            indices.push_back(count);
+          }
+          indices.push_back(count);
+          // add the vertex right below if any
+          if(j < nexRowCount) {
+            indices.push_back(count + vertexCountLine);
+          } else {
+            int lastIndexOnNextRow = count + vertexCountLine - 1;
+            for(auto k=j; k<(vertexCountLine-1); k++) {
+              indices.push_back(++count);
+              if(k==vertexCountLine-2) {
+                indices.push_back(count);
+              } else {
+                indices.push_back(lastIndexOnNextRow);
+              }
+            }
+            j = vertexCountLine - 1;
+          }
         }
-
-        unsigned int indSize = sizeof(unsigned short) * indices.size();
-        unsigned short* results = new unsigned short[indices.size()];
-        memcpy(results, (void*)(indices.data()), indSize);
-        len = indices.size();
-
-        return results;
+        count++;
+        j++;
+      }
     }
+
+    //post processing for tail degenerate triangles
+    if(indices[indices.size()-1] == indices[indices.size()-2]) {
+      if(indices[indices.size()-3] == indices[indices.size()-4]) {
+        indices.pop_back();
+        indices.pop_back();
+        indices.pop_back();
+      } else {
+        indices.pop_back();
+      }
+    }
+
+    unsigned int indSize = sizeof(unsigned short) * indices.size();
+    unsigned short* results = new unsigned short[indices.size()];
+    memcpy(results, (void*)(indices.data()), indSize);
+    len = indices.size();
+
+    return results;
+  }
 }
 
 #endif

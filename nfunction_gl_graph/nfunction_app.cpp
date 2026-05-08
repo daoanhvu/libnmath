@@ -233,6 +233,7 @@ int main() {
     // Coordinate system
     GLCoordinates axisVBO = initCoordinates(locations);
     CommandHandler commandHandler(locations);
+    bool shouldRotate = false;
 
     // Generate mesh and set up vertex data and buffers
     std::vector<VboObject*> meshes;
@@ -274,6 +275,7 @@ int main() {
 
       // Add lighting controls
       ImGui::Checkbox("Use Lighting", &useLighting);
+      ImGui::Checkbox("Rotate", &shouldRotate);
 
       if (useLighting) {
         ImGui::ColorEdit3("Light Color", glm::value_ptr(lightColor));

@@ -21,7 +21,31 @@
 #define TYPE_ACTION_ROTATE 		0x00010019
 #define TYPE_ACTION_MOVE 		  0x00010020
 
+// Command action
+#define CMD_CREATE_VBO 		0x00000001
+#define CMD_UPDATE_VBO 		0x00000002
+#define CMD_ROTATE 		    0x00000003
+#define CMD_MOVE 		      0x00000004
+#define CMD_SCALE 		    0x00000005
+#define CMD_DELETE_VBO 		0x00000006
+
+// Command object type
+#define OBJ_CONE 		      0x00000001
+#define OBJ_CYLINDER 		  0x00000002
+#define OBJ_SPHERE 		    0x00000003
+#define OBJ_CUBE 		      0x00000004
+#define OBJ_CYLINDER_CAP 	0x00000005
+#define OBJ_FUNCTION      0x00000006
+
 #define ERROR_INVALID_PARAMETER 				-21
+
+struct CommandData {
+  // commandAcion tells what to do
+  int commandAction;
+  // objectType tells what kind of object that the command is targeting
+  // for example, a cone or a cylinder
+  int objectType;
+};
 
 class CommandHandler {
 public:
@@ -49,8 +73,8 @@ public:
 private:
     ShaderVarLocation locations;
     nmath::NLabLexer lexer;
-    nmath::NFunction<float> function;
     nmath::NLabParser<float> parser;
+    nmath::NFunction<float> function;
     int errorCode;
     int errorColumn;
     // Private member variables and functions
@@ -60,7 +84,7 @@ private:
     VboObject* createCone(float height, float radius, float capRadius, int stacks, int capStacks,
       float red, float green, float blue, float alpha);
       
-    int createMesh(const vector<nmath::Token*> &tokens, const float *values, float epsilon, std::vector<VboObject*> &results);
+    int createMesh(const vector<nmath::Token*> &tokens, const float *values, float epsilon, const float *color, std::vector<VboObject*> &results);
 };
 
 #endif

@@ -72,6 +72,15 @@ void printError(int col, int code) {
 	}
 }
 
+TEST(ParsingIntegerTest, BasicAssertions) {
+	std::string text = "1123";
+  int errorCode = 0;
+  int value = nmath::parseInteger<int>(text, 0, text.length(), &errorCode);
+
+  ASSERT_EQ(value, 1123);
+	ASSERT_EQ(errorCode, NMATH_NO_ERROR);
+}
+
 TEST(FloatingPointErrorTest, BasicAssertions) {
 	std::string str = "1.5a";
 	nmath::NLabLexer lexer;

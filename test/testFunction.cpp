@@ -23,12 +23,15 @@ struct TestData {
 
 void testFunction0();
 void testGenerateIndices(const TestData &test);
+void testCalculateDerivative();
 
 
 int main(int argc, char* argv[]) {
 	// testFunction0();
 
-	TestData test;
+  testCalculateDerivative();
+
+	// TestData test;
 	// test.testNumber = 1;
 	// test.epsilon = 0.5f;
 	// test.values[0] = -1.0f;
@@ -60,16 +63,16 @@ int main(int argc, char* argv[]) {
 	// test.expectedRowCount = 20;
 	// testGenerateIndices(test);
 
-	test.testNumber = 3;
-	test.epsilon = 0.5f;
-	test.values[0] = -0.5f;
-	test.values[1] = 0.5f;
-	test.values[2] = -0.5f;
-	test.values[3] = 0.5f;
-	test.expectedNumOfSpace = 1;
-	test.expectedRowCount = 3;
-	test.expectedVertexCount = 9;
-	testGenerateIndices(test);
+	// test.testNumber = 3;
+	// test.epsilon = 0.5f;
+	// test.values[0] = -0.5f;
+	// test.values[1] = 0.5f;
+	// test.values[2] = -0.5f;
+	// test.values[3] = 0.5f;
+	// test.expectedNumOfSpace = 1;
+	// test.expectedRowCount = 3;
+	// test.expectedVertexCount = 9;
+	// testGenerateIndices(test);
 	return 0;
 }
 
@@ -189,4 +192,172 @@ void testFunction0() {
 
 		dataFile.close();
 	}
+}
+
+void testCalculateDerivative() {
+  std::string inStr = "x * sin(x+2) + x/3";
+  // Postfix expression: x x 2 + sin * x 3 / +
+  std::vector<nmath::NMAST<float>*> postfix;
+
+  /*
+   * The AST tree should be:
+   *         +
+   *       /   \
+   *     /      \
+   *    *       %
+   *   / \     /  \
+   *  x  sin  x    3
+   *     / 
+   *    +
+   *   / \
+   *  x  2
+   * 
+   */
+
+  // The first node x
+  nmath::NMAST<float>* x1 = new nmath::NMAST<float>;
+  x1->type = VARIABLE;
+  x1->text = "x";
+  x1->parent = nullptr;
+  x1->left = nullptr;
+  x1->right = nullptr;
+  postfix.push_back(x1);
+
+  nmath::NMAST<float>* x2 = new nmath::NMAST<float>;
+  x2 = new nmath::NMAST<float>;
+  x2->type = VARIABLE;
+  x2->text = "x";
+  x2->parent = nullptr;
+  x2->left = nullptr;
+  x2->right = nullptr;
+  postfix.push_back(x2);
+
+  nmath::NMAST<float>* number2_1 = new nmath::NMAST<float>;
+  number2_1 = new nmath::NMAST<float>;
+  number2_1->type = NUMBER;
+  number2_1->text = "2";
+  number2_1->value = 2.0f;
+  number2_1->parent = nullptr;
+  number2_1->left = nullptr;
+  number2_1->right = nullptr;
+  postfix.push_back(number2_1);
+
+  nmath::NMAST<float>* plus_1 = new nmath::NMAST<float>;
+  plus_1 = new nmath::NMAST<float>;
+  plus_1->type = PLUS;
+  plus_1->text = "+";
+  // base on getPriorityOfType()
+  plus_1->priority = 4;
+  plus_1->parent = nullptr;
+  plus_1->left = x2;
+  x2->parent = plus_1;
+  plus_1->right = number2_1;
+  number2_1->parent = plus_1;
+  postfix.push_back(plus_1);
+
+  nmath::NMAST<float>* nodeSin = new nmath::NMAST<float>;
+  nodeSin = new nmath::NMAST<float>;
+  nodeSin->type = SIN;
+  nodeSin->text = "sin";
+  // base on getPriorityOfType()
+  nodeSin->priority = 0;
+  nodeSin->parent = nullptr;
+  nodeSin->left = plus_1;
+  plus_1->parent = nodeSin;
+  nodeSin->right = nullptr;
+  postfix.push_back(nodeSin);
+
+  nmath::NMAST<float>* mult = new nmath::NMAST<float>;
+  mult = new nmath::NMAST<float>;
+  mult->type = MULTIPLY;
+  mult->text = "*";
+  // base on getPriorityOfType()
+  mult->priority = 5;
+  mult->parent = nullptr;
+  mult->left = x1;
+  x1->parent = mult;
+  mult->right = nodeSin;
+  nodeSin->parent = mult;
+  postfix.push_back(mult);
+
+  nmath::NMAST<float>* x3 = new nmath::NMAST<float>;
+  x3 = new nmath::NMAST<float>;
+  x3->type = VARIABLE;
+  x3->text = "x";
+  x3->parent = nullptr;
+  x3->left = nullptr;
+  x3->right = nullptr;
+  postfix.push_back(x3);
+
+  nmath::NMAST<float>* number3 = new nmath::NMAST<float>;
+  number3 = new nmath::NMAST<float>;
+  number3->type = NUMBER;
+  number3->text = "3";
+  number3->value = 3.0f;
+  number3->parent = nullptr;
+  number3->left = nullptr;
+  number3->right = nullptr;
+  postfix.push_back(number3);
+
+  nmath::NMAST<float>* divide = new nmath::NMAST<float>;
+  divide = new nmath::NMAST<float>;
+  divide->type = DIVIDE;
+  divide->text = "/";
+  // base on getPriorityOfType()
+  divide->priority = 5;
+  divide->parent = nullptr;
+  divide->left = x3;
+  x3->parent = divide;
+  divide->right = number3;
+  number3->parent = divide;
+  postfix.push_back(divide);
+
+  nmath::NMAST<float>* plus_2 = new nmath::NMAST<float>;
+  plus_2 = new nmath::NMAST<float>;
+  plus_2->type = PLUS;
+  plus_2->text = "+";
+  // base on getPriorityOfType()
+  plus_2->priority = 4;
+  plus_2->parent = nullptr;
+  plus_2->left = mult;
+  mult->parent = plus_2;
+  plus_2->right = divide;
+  divide->parent = plus_2;
+  postfix.push_back(plus_2);
+
+
+  // Setup derivative parameters
+  nmath::DParam<float> param;
+  // Because we have a recursive expression tree and it's root is the last node in the postfix list
+  // so for calculating the derivative of the function, we just need to get the last node in the postfix list
+  param.t = plus_2;
+  param.variables[0] = "x";
+  param.varCount = 1;
+  param.values[0] = 0.0f;
+  param.error = 0;
+  param.returnValue = nullptr;
+
+  nmath::derivative<float>(&param);
+
+  std::cout << "Derivative: " << param.returnValue->text << std::endl;
+  std::cout << "Value: " << param.returnValue->value << std::endl;
+  std::cout << "Priority: " << param.returnValue->priority << std::endl;
+  std::cout << "Type: " << param.returnValue->type << std::endl;
+  std::cout << "Sign: " << param.returnValue->sign << std::endl;
+  std::cout << "Parent: " << param.returnValue->parent << std::endl;
+  std::cout << "Left: " << param.returnValue->left << std::endl;
+  std::cout << "Right: " << param.returnValue->right << std::endl;
+
+  // Print the derivative tree
+  std::cout << "Derivative tree: " << std::endl;
+  printNMAST(param.returnValue, 0, std::cout);
+
+  // TODO: Clean up the postfix list
+  for(auto i=0; i<postfix.size(); i++) {
+    delete postfix[i];
+  }
+  postfix.clear();
+
+  // TODO: Clean up the derivative tree
+  nmath::clearTree<float>(&param.returnValue);
 }

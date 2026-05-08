@@ -1,7 +1,7 @@
 #ifndef _NMAST_POOL_H
 #define _NMAST_POOL_H
 
-#include "common.h"
+#include <common_data.h>
 
 namespace nmath {
 	/* 

@@ -97,7 +97,7 @@ namespace nmath {
         /**
          * To be safe, when calling this method, please ensure that the node->left, node->right and node->parent
          * are nullptr
-         * @param node
+         * @param node the node to be put back the pool
          */
         void put(NMAST<T> *node) {
             NMAST<T> *p;
