@@ -25,13 +25,13 @@ private:
   
   std::vector<Token*> mTokens;
   /**
-   * This is the posfix notation of the function
-   * TODO: the name 'prefix' is a mistake, it should be postfix
-   * because the expression is in postfix notation
+   * postfix is the list of Recursive Expression Tree (RET) of the function.
+   * Why do we need a list? There are some cases where a function has multiple expressions, each used for a different domain. 
    *
    * Example: x^2 + 1 => x 2 ^ 1 +
    */
   std::vector<NMAST<T>* > postfix;
+
   std::vector<Criteria<T>*> criteria;
   std::vector<NMAST<T>* > variables;
   // Variable names of the function

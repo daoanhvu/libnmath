@@ -20,6 +20,9 @@ namespace nmath {
 		return NMATH_NO_ERROR;
 	}
 
+  /**
+   * Deprecated
+   */
 	Token* popFromStack(Token **st, int *top) {
 		Token *p;
 		if (st == nullptr || ((*top) < 0))

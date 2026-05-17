@@ -552,25 +552,39 @@ namespace nmath {
 
     template <typename T>
     NMAST<T>* cloneTree(NMAST<T> *t, NMAST<T> *cloneParent){
-        NMAST<T> *c;
+      NMAST<T> *c;
 
-        if(t==nullptr) {
-            return nullptr;
-        }
+      if(t==nullptr) {
+        return nullptr;
+      }
 
-        c = new NMAST<T>;
-        c->text = t->text;
-        c->type = t->type;
-        c->value = t->value;
-        c->priority = t->priority;
-        c->level = t->level;
-        c->sign = t->sign;
+      c = new NMAST<T>;
+      c->text = t->text;
+      c->type = t->type;
+      c->value = t->value;
+      c->priority = t->priority;
+      c->level = t->level;
+      c->sign = t->sign;
 
-        c->parent = cloneParent;
-        c->left = cloneTree(t->left, c);
-        c->right = cloneTree(t->right, c);
-        return c;
+      c->parent = cloneParent;
+      c->left = cloneTree(t->left, c);
+      c->right = cloneTree(t->right, c);
+      return c;
     }
+
+  template <typename T>
+  void increaseLevel(NMAST<T> *t) {
+    if(t == nullptr) {
+      return;
+    }
+    t->level = t->level + 1;
+    if(t->left != nullptr) {
+      increaseLevel(t->left);
+    }
+    if(t->right != nullptr) {
+      increaseLevel(t->right);
+    }
+  }
 
 // #ifdef _PCDEBUG
     template <typename T>

@@ -25,12 +25,13 @@ void testFunction0();
 void testGenerateIndices(const TestData &test);
 void testCalculateDerivative();
 void testCalculateSimpleDerivative();
+void testCalculateProductSinDerivative();
 
 
 int main(int argc, char* argv[]) {
 	// testFunction0();
 
-  testCalculateSimpleDerivative();
+  testCalculateProductSinDerivative();
 
 	// TestData test;
 	// test.testNumber = 1;
@@ -239,6 +240,102 @@ void testCalculateSimpleDerivative() {
   power_1->right = number2;
   number2->parent = power_1;
   postfix.push_back(power_1);
+
+
+  // Setup derivative parameters
+  nmath::DParam<float> param;
+  // Because we have a recursive expression tree and it's root is the last node in the postfix list
+  // so for calculating the derivative of the function, we just need to get the last node in the postfix list
+  param.t = postfix[postfix.size()-1];
+  param.variables[0] = "x";
+  param.varCount = 1;
+  param.values[0] = 0.0f;
+  param.error = 0;
+  param.returnValue = nullptr;
+
+  nmath::derivative<float>(&param);
+
+  std::cout << "Derivative: " << param.returnValue->text << std::endl;
+  std::cout << "Value: " << param.returnValue->value << std::endl;
+  std::cout << "Priority: " << param.returnValue->priority << std::endl;
+  std::cout << "Type: " << param.returnValue->type << std::endl;
+  std::cout << "Sign: " << param.returnValue->sign << std::endl;
+  std::cout << "Parent: " << param.returnValue->parent << std::endl;
+  std::cout << "Left: " << param.returnValue->left << std::endl;
+  std::cout << "Right: " << param.returnValue->right << std::endl;
+
+  // Print the derivative tree
+  std::cout << "Derivative tree: " << std::endl;
+  printNMAST(param.returnValue, 0, std::cout);
+  // nmath::reduce_t<float>(&param.returnValue);
+  // std::cout << "Reduced derivative tree: " << std::endl;
+  // printNMAST(param.returnValue, 0, std::cout);
+
+  // TODO: Clean up the postfix list
+  for(auto i=0; i<postfix.size(); i++) {
+    delete postfix[i];
+  }
+  postfix.clear();
+
+  // TODO: Clean up the derivative tree
+  nmath::clearTree<float>(&param.returnValue);
+}
+
+void testCalculateProductSinDerivative() {
+  // function: "x * sin(x)"
+  // Postfix expression: x x sin *
+  std::vector<nmath::NMAST<float>*> postfix;
+
+  /*
+   * The AST tree should be:
+   *      *       
+   *    /  \     
+   *   x    sin
+   *         /
+   *        x
+   */
+
+  // The first node x
+  nmath::NMAST<float>* x = new nmath::NMAST<float>;
+  x->type = VARIABLE;
+  x->text = "x";
+  x->parent = nullptr;
+  x->left = nullptr;
+  x->right = nullptr;
+  postfix.push_back(x);
+
+  nmath::NMAST<float>* x2 = new nmath::NMAST<float>;
+  x2->type = VARIABLE;
+  x2->text = "x";
+  x2->parent = nullptr;
+  x2->left = nullptr;
+  x2->right = nullptr;
+  postfix.push_back(x2);
+
+  nmath::NMAST<float>* nodeSin = new nmath::NMAST<float>;
+  nodeSin = new nmath::NMAST<float>;
+  nodeSin->type = SIN;
+  nodeSin->text = "sin";
+  // base on getPriorityOfType()
+  nodeSin->priority = 0;
+  nodeSin->parent = nullptr;
+  nodeSin->left = x2;
+  x2->parent = nodeSin;
+  nodeSin->right = nullptr;
+  postfix.push_back(nodeSin);
+
+  nmath::NMAST<float>* mult = new nmath::NMAST<float>;
+  mult = new nmath::NMAST<float>;
+  mult->type = MULTIPLY;
+  mult->text = "*";
+  // base on getPriorityOfType()
+  mult->priority = 5;
+  mult->parent = nullptr;
+  mult->left = x;
+  x->parent = mult;
+  mult->right = nodeSin;
+  nodeSin->parent = mult;
+  postfix.push_back(mult);
 
 
   // Setup derivative parameters

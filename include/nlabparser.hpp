@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <string>
+#include <stack>
 #include <cstdlib>
 #include "nlablexer.h"
 #include "common.hpp"
@@ -18,6 +19,9 @@ namespace nmath {
 	private:
     NMASTPool<T> *nmastPool;
     bool needReleasePool;
+
+    NMAST<T>* convertPostfixToRecursiveTree(std::vector<NMAST<T>* > postfix);
+
 	public:
     NLabParser() {
       nmastPool = new NMASTPool<T>;
@@ -65,7 +69,7 @@ namespace nmath {
      */
     template <typename T>
     int NLabParser<T>::parseFunctionExpression(std::vector<Token*> tokens,
-            std::vector<nmath::NMAST<T>* > &prefix,
+            std::vector<nmath::NMAST<T>* > &postfix,
             std::vector<nmath::NMAST<T>* > &domain,
             std::vector<nmath::NMAST<T>* > &variables,
             int *errorCode, int *errorColumn) {
@@ -115,7 +119,7 @@ namespace nmath {
                 break;
               }
 
-              prefix.push_back(item);
+              postfix.push_back(item);
 
               item = nullptr;
               if( (k < tokenCount) && (tokens[k]->type == DOMAIN_NOTATION) ) {
@@ -133,14 +137,14 @@ namespace nmath {
         }
 
         if(*errorCode != NMATH_NO_ERROR) {
-          for(k=0; k<prefix.size(); k++) {
-            clearTree(&(prefix[k]));
+          for(k=0; k<postfix.size(); k++) {
+            clearTree(&(postfix[k]));
 
             if(domain[k] != nullptr){
               clearTree(&(domain[k]));
             }
           }
-          prefix.clear();
+          postfix.clear();
           domain.clear();
         }
         return *errorCode;
@@ -209,6 +213,54 @@ namespace nmath {
     }//done
 
     /******************************************************************************************/
+    
+    template <typename T>
+    NMAST<T>* NLabParser<T>::convertPostfixToRecursiveTree(std::vector<NMAST<T>* > postfix) {
+      std::stack<NMAST<T>* > stack;
+      for(auto it = postfix.begin(); it != postfix.end(); it++) {
+        if(isAnOperatorType((*it)->type)) {
+          // if this is a binary operator, then we need to pop two elements from the stack and create a new node
+          NMAST<T>* right = stack.top();
+          stack.pop();
+          NMAST<T>* left = stack.top();
+          stack.pop();
+          NMAST<T>* node = *it;
+          node->left = left;
+          node->right = right;
+          if(left != nullptr) {
+            left->parent = node;
+            increaseLevel(left);
+          }
+          if(right != nullptr) {
+            right->parent = node;
+            increaseLevel(right);
+          }
+          stack.push(node);
+        } else if(isAFunctionType((*it)->type)) {
+          // if this is a function, then we need to pop one element from the stack and create a new node
+          NMAST<T>* arg = stack.top();
+          stack.pop();
+          NMAST<T>* node = *it;
+          node->left = arg;
+          if(arg != nullptr) {
+            arg->parent = node;
+            increaseLevel(arg);
+          }
+          stack.push(node);
+        } else {
+          // if this is a number, variable, or constant, then we need to create a new node
+          NMAST<T>* node = *it;
+          stack.push(node);
+        }
+      }
+      NMAST<T>* result = stack.top();
+      stack.pop();
+      while(!stack.empty()) {
+        stack.pop();
+      }
+      return result;
+    }
+    
     /**
         Parse the input string in object f to NMAST tree using Reverse Polish Notation
     */
@@ -221,8 +273,8 @@ namespace nmath {
         T val;
         size_t size = tokens.size();
         Token *tk = nullptr;
-        Token **stack = nullptr;
-        Token *stItm = nullptr;
+        std::stack<Token*> stack;
+        Token *stTopItem = nullptr;
         NMAST<T> *ast = nullptr;
         std::vector<NMAST<T>* >postfix;
 
@@ -231,49 +283,48 @@ namespace nmath {
 
         idx = (*start);
         while( (idx < size) && !isEndExp) {
-            tk = tokens[idx];
-            switch(tk->type) {
-            case NUMBER:
-              val = parseDouble<T>(tk->text, 0, tk->textLength, &error);
-              if(val == (T)0 && error < 0) {
-                clearStackWithoutFreeItem(stack, top+1);
-                free(stack);
-                for (int i = 0; i<postfix.size(); i++)
-                    clearTree(&(postfix[i]));
-                postfix.clear();
-                *errorColumn = tk->column;
-                *errorCode = ERROR_PARSING_NUMBER;
-                return nullptr;
-              }
+          tk = tokens[idx];
+          switch(tk->type) {
+          case NUMBER:
+            val = parseDouble<T>(tk->text, 0, tk->textLength, &error);
+            if(val == (T)0 && error != 0) {
+              stack = {};
+              for (int i = 0; i<postfix.size(); i++)
+                  clearTree(&(postfix[i]));
+              postfix.clear();
+              *errorColumn = tk->column;
+              *errorCode = ERROR_PARSING_NUMBER;
+              return nullptr;
+            }
 
-              ast = nmastPool->get();
-              ast->value = val;
-              ast->type = tk->type;
-              ast->text = tk->text;
-              ast->column = tk->column;
-              postfix.push_back(ast);
-              idx++;
+            ast = nmastPool->get();
+            ast->value = val;
+            ast->type = tk->type;
+            ast->text = tk->text;
+            ast->column = tk->column;
+            postfix.push_back(ast);
+            idx++;
             break;
 
-            case E_TYPE:
-                ast = nmastPool->get();
-                ast->value = (T)MATH_E;
-                ast->text = "e";
-                ast->type = E_TYPE;
-                ast->column = tk->column;
-                postfix.push_back(ast); //add this item to prefix
-                idx++;
-            break;
+          case E_TYPE:
+            ast = nmastPool->get();
+            ast->value = (T)MATH_E;
+            ast->text = "e";
+            ast->type = E_TYPE;
+            ast->column = tk->column;
+            postfix.push_back(ast); //add this item to prefix
+            idx++;
+          break;
 
-            case PI_TYPE:
-                ast = nmastPool->get();
-                ast->value = (T)PI;
-                ast->text = "3.14159";
-                ast->type = PI_TYPE;
-                ast->column = tk->column;
-                postfix.push_back(ast); //add this item to prefix
-                idx++;
-            break;
+          case PI_TYPE:
+            ast = nmastPool->get();
+            ast->value = (T)PI;
+            ast->text = "3.14159";
+            ast->type = PI_TYPE;
+            ast->column = tk->column;
+            postfix.push_back(ast); //add this item to prefix
+            idx++;
+          break;
 
 
             case PLUS:
@@ -281,112 +332,91 @@ namespace nmath {
             case MULTIPLY:
             case DIVIDE:
             case POWER:
-                /**
-                 * When we meet an arithmetic operator, let call it o1, 
-                 * C1: we check if there is an arithmetic operator o2
-                 * at the top of the stack and o2.priotiry >= o1.priority (*)
-                 * then we take o2 out of the stack, and take operand1 and operand2 from postfix
-                 * and do the calculate operand1 operator2 operand2 and then we push the result
-                 * back to the postfix
-                 * - Repeat (C1) until (*) not hold
-                 */ 
-                if(top >= 0) {
-                  stItm = stack[top];
-                  while(isAnOperatorType(stItm->type) && (stItm->priority) >= tk->priority) {
-                    stItm = popFromStack(stack, &top);
-                    if (postfix.size() == 1) {
-                      postfix[0]->sign = -1;
-                    } else {
-                      ast = nmastPool->get();
-                      ast->type = stItm->type;
-                      ast->text = stItm->text;
-                      ast->column = stItm->column;
-                      ast->priority = stItm->priority;
-                      ast->left = postfix[postfix.size() - 2];
-                      ast->right = postfix[postfix.size() - 1];
+              /**
+               * When we meet an arithmetic operator, let call it o1, 
+               * C1: we check if there is an arithmetic operator o2
+               * at the top of the stack and o2.priotiry >= o1.priority (*)
+               * then we take o2 out of the stack, and take operand1 and operand2 from postfix
+               * and do the calculate operand1 operator2 operand2 and then we push the result
+               * back to the postfix
+               * - Repeat (C1) until (*) not hold
+               */ 
+              if(!stack.empty()) {
+                stTopItem = stack.top();
+                while(isAnOperatorType(stTopItem->type) && (stTopItem->priority) >= tk->priority) {
+                  ast = nmastPool->get();
+                  ast->type = stTopItem->type;
+                  ast->text = stTopItem->text;
+                  ast->column = stTopItem->column;
+                  ast->priority = stTopItem->priority;
 
-                      if((ast->left)!=nullptr)
-                        (ast->left)->parent = ast;
-                      if((ast->right)!=nullptr)
-                        (ast->right)->parent = ast;
+                  // We will convert from RPN to Recursive Expression Tree later
+                  // int postfixSize = postfix.size();
+                  // ast->left = postfixSize - 2 >= 0 ? postfix[postfixSize - 2] : nullptr;
+                  // ast->right = postfixSize - 1 >= 0 ? postfix[postfixSize - 1] : nullptr;
+                  // if((ast->left)!=nullptr)
+                  //   (ast->left)->parent = ast;
+                  // if((ast->right)!=nullptr)
+                  //   (ast->right)->parent = ast;
 
-                      postfix[postfix.size() - 2] = ast;
-                      postfix[postfix.size() - 1] = nullptr;
-                      postfix.pop_back();
-                    }
+                  postfix.push_back(ast);
+                  
+                  stack.pop();
+                  
+                  if(stack.empty())
+                    break;
 
-                    if(top < 0)
-                      break;
-
-                    stItm = stack[top];
-                  }
+                  stTopItem = stack.top();
                 }
-                //push operation o1 (tk) into stack
-                pushItem2Stack(&stack, &top, &allocLen, tk);
-                if(*errorCode == E_NOT_ENOUGH_MEMORY) {
-                    clearStackWithoutFreeItem(stack, top+1);
-                    free(stack);
-                    for (int i = 0; i<postfix.size(); i++)
-                        clearTree(&(postfix[i]));
-                    postfix.clear();
-                    *errorColumn = tk->column;
-                    return nullptr;
-                }
-                idx++;
+              }
+              //push operation o1 (tk) into stack
+              stack.push(tk);
+              idx++;
             break;
 
             case LPAREN:/*If it an open parentheses then put it to stack*/
-                pushItem2Stack(&stack, &top, &allocLen, tk);
-                if(*errorCode == E_NOT_ENOUGH_MEMORY) {
-                    clearStackWithoutFreeItem(stack, top+1);
-                    free(stack);
-                    for (int i = 0; i<postfix.size(); i++)
-                        clearTree(&(postfix[i]));
-                    postfix.clear();
-                    *errorColumn = tk->column;
-                    return nullptr;
-                }
-                idx++;
+              stack.push(tk);
+              idx++;
             break;
 
             case RPAREN:
-                stItm = popFromStack(stack, &top);
+              /* got an opening-parenthese but can not find a closing-parenthese */
+              if(stack.empty()) {
+                for (int i = 0; i<postfix.size(); i++)
+                  clearTree(&(postfix[i]));
+                postfix.clear();
+                *errorColumn = tk->column;
+                *errorCode = ERROR_PARENTHESE_MISSING;
+                return nullptr;
+              }
 
-                /* got an opening-parenthese but can not find a closing-parenthese */
-                if(stItm == nullptr) {
-                    clearStackWithoutFreeItem(stack, top+1);
-                    free(stack);
-                    for (int i = 0; i<postfix.size(); i++)
-                        clearTree(&(postfix[i]));
-                    postfix.clear();
-                    *errorColumn = tk->column;
-                    *errorCode = ERROR_PARENTHESE_MISSING;
-                    return nullptr;
-                }
+              stTopItem = stack.top();
+                
+              /* pop operator from stack until we see an LPAREN */
+              while( (!stack.empty()) && (stTopItem != nullptr) && (stTopItem->type != LPAREN) && !isAFunctionType(stTopItem->type) ) {
+                stack.pop();
+                addOperatorFunctionToPostfix<T>(postfix, stTopItem, nmastPool);
+                //free(stItm);
+                stTopItem = stack.top();
+              }
 
-                /*  */
-                while( (stItm != nullptr) && (stItm->type != LPAREN) && !isAFunctionType(stItm->type) ) {
-                    addFunction2Tree<T>(postfix, stItm, nmastPool);
-                    //free(stItm);
-                    stItm = popFromStack(stack, &top);
-                }
+              /* got an opening-parenthese but can not find a closing-parenthese */
+              if(stack.empty() || stTopItem == nullptr) {
+                for (int i = 0; i<postfix.size(); i++)
+                  clearTree(&(postfix[i]));
+                postfix.clear();
+                *errorColumn = tk->column;
+                *errorCode = ERROR_PARENTHESE_MISSING;
+                return nullptr;
+              }
 
-                /* got an opening-parenthese but can not find a closing-parenthese */
-                if(stItm == nullptr) {
-                    clearStackWithoutFreeItem(stack, top+1);
-                    free(stack);
-                    for (int i = 0; i<postfix.size(); i++)
-                    clearTree(&(postfix[i]));
-                    postfix.clear();
-                    *errorColumn = tk->column;
-                    *errorCode = ERROR_PARENTHESE_MISSING;
-                    return nullptr;
-                }
+              stack.pop();
 
-                if(isAFunctionType(stItm->type)) {
-                    addFunction2Tree<T>(postfix, stItm, nmastPool);
-                }
-                idx++;
+              if(isAFunctionType(stTopItem->type)) {
+                // If a function found, then add that function to postfix
+                addOperatorFunctionToPostfix<T>(postfix, stTopItem, nmastPool);
+              }
+              idx++;
             break;
 
             //functions
@@ -401,84 +431,75 @@ namespace nmath {
             case LN:
             case LOG:
             case ABSOLUTE:
-                pushItem2Stack(&stack, &top, &allocLen, tk);
-                if(*errorCode == E_NOT_ENOUGH_MEMORY) {
-                    clearStackWithoutFreeItem(stack, top+1);
-                    free(stack);
-                    for (int i = 0; i<postfix.size(); i++)
-                        clearTree(&(postfix[i]));
-                    postfix.clear();
-                    *errorColumn = tk->column;
-                    return nullptr;
-                }
-                /*
-                    After a function name must be a LPAREN, and we just ignore that LPAREN token
-                    idx += 2;
-                */
-                // the left-parenthese right after a function name is dimissed, so just don't care of it
-                idx++;
+              stack.push(tk);
+              /*
+                  After a function name must be a LPAREN, and we just ignore that LPAREN token
+                  idx += 2;
+              */
+              // the left-parenthese right after a function name is dimissed, so just don't care of it
+              idx++;
             break;
 
             case NAME:
             case VARIABLE:
-                ast = nmastPool->get();
-                ast->text = tk->text;
-                ast->type = tk->type;
-                ast->column = tk->column;
-                postfix.push_back(ast);
-                idx++;
+              ast = nmastPool->get();
+              ast->text = tk->text;
+              ast->type = tk->type;
+              ast->column = tk->column;
+              postfix.push_back(ast);
+              idx++;
             break;
 
             case SEMI:
             case DOMAIN_NOTATION:
-                /* 	End of this expression, kindly stop the while loop, consume
-                    this expression and start processing the next expression.
-                */
-                isEndExp = true;
+              /* 	End of this expression, kindly stop the while loop, consume
+                  this expression and start processing the next expression.
+              */
+              isEndExp = true;
             break;
 
             default:
-                clearStackWithoutFreeItem(stack, top+1);
-                free(stack);
-                for (int i = 0; i<postfix.size(); i++)
-                    clearTree(&(postfix[i]));
-                postfix.clear();
-                *errorColumn = tk->column;
-                *errorCode = ERROR_BAD_TOKEN;
-                return nullptr;
+              for (int i = 0; i<postfix.size(); i++)
+                clearTree(&(postfix[i]));
+              postfix.clear();
+              *errorColumn = tk->column;
+              *errorCode = ERROR_BAD_TOKEN;
+              return nullptr;
             }//end switch
         }//end while
 
-        while( top >= 0 ) {
-            stItm = popFromStack(stack, &top);
-            if( (stItm->type == LPAREN) || isAFunctionType(stItm->type)) {
-                clearStackWithoutFreeItem(stack, top+1);
-                free(stack);
-                for (int i = 0; i<postfix.size(); i++)
-                    clearTree(&(postfix[i]));
-                postfix.clear();
-                *errorColumn = (tk != nullptr) ? tk->column : -1;
-                *errorCode = ERROR_PARENTHESE_MISSING;
-                return nullptr;
-            }
+        while( !stack.empty() ) {
+          stTopItem = stack.top();
+          stack.pop();
+          if( (stTopItem->type == LPAREN) || isAFunctionType(stTopItem->type)) {
+            for (int i = 0; i<postfix.size(); i++)
+              clearTree(&(postfix[i]));
+            postfix.clear();
+            *errorColumn = (tk != nullptr) ? tk->column : -1;
+            *errorCode = ERROR_PARENTHESE_MISSING;
+            return nullptr;
+          }
 
-            *errorCode = addFunction2Tree(postfix, stItm, nmastPool);
-            if(*errorCode != NMATH_NO_ERROR) {
-                clearStackWithoutFreeItem(stack, top+1);
-                free(stack);
-                for (int i = 0; i<postfix.size(); i++)
-                    clearTree(&(postfix[i]));
-                postfix.clear();
-                *errorColumn = (tk != nullptr) ? tk->column : -1;
-                return nullptr;
-            }
+          *errorCode = addOperatorFunctionToPostfix(postfix, stTopItem, nmastPool);
+          if(*errorCode != NMATH_NO_ERROR) {
+            for (int i = 0; i<postfix.size(); i++)
+              clearTree(&(postfix[i]));
+            postfix.clear();
+            *errorColumn = (tk != nullptr) ? tk->column : -1;
+            return nullptr;
+          }
         }
 
-        free(stack);
+        while(!stack.empty()) {
+          stack.pop();
+        }
+
+        // TODO: Now we have a postfix expression, we need to convert it to a recursive expression tree
+
         *start = idx;
-        ast = postfix[0];
+        NMAST<T>* result = convertPostfixToRecursiveTree(postfix);
         postfix.clear();
-        return ast;
+        return result;
     }
 
     template <typename T>

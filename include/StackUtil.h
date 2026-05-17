@@ -139,6 +139,98 @@ namespace nmath {
 		return NMATH_NO_ERROR;
 	}
 
+  template <typename T>
+	int addOperatorFunctionToPostfix(std::vector<nmath::NMAST<T>* > &postfix, Token *stItm, NMASTPool<T> *pool) {
+		NMAST<T> *ast = nullptr;
+		// LOGI(2, "Type: %d (%s)", stItm->type, stItm->text);
+		switch (stItm->type) {
+			case PLUS:
+				if (postfix.size() > 1) {
+					ast = pool->get();
+					ast->type = stItm->type;
+					ast->column = stItm->column;
+					ast->text = "+";
+					ast->priority = stItm->priority;
+          ast->left = ast->right = nullptr;
+					postfix.push_back(ast);
+				}
+				break;
+
+			case MINUS:
+				if (postfix.size() == 1) {
+					// This is because, in the postfix we have operand1 operand2 operator
+					// in this case, the operator is MINUS, it means operand1 - operand2 and if we miss one operand
+					// we assume that missing operand is always operand1 then we have -operand2
+					if ((postfix[0]) != nullptr)
+						(postfix[0])->sign = -1;
+				} else {
+					ast = pool->get();
+					ast->type = stItm->type;
+					ast->column = stItm->column;
+					ast->text = "-";
+					ast->priority = stItm->priority;
+					postfix.push_back(ast);
+				}
+				break;
+
+			case MULTIPLY:
+			case DIVIDE:
+			case POWER:
+
+			case LT:
+			case GT:
+			case LTE:
+			case GTE:
+			case AND:
+			case OR:
+
+				// These operators are binary-operators so
+				// we need to check for the case missing operand
+				if(postfix.size() < 2) {
+					return ERROR_OPERAND_MISSING;
+				}
+
+				ast = pool->get();
+				ast->type = stItm->type;
+				ast->text = stItm->text;
+				ast->column = stItm->column;
+				ast->priority = stItm->priority;
+				postfix.push_back(ast);
+				break;
+
+			case SIN:
+			case COS:
+			case TAN:
+			case COTAN:
+			case ASIN:
+			case ACOS:
+			case ATAN:
+			case SQRT:
+			case LN:
+				ast = pool->get();
+				ast->type = stItm->type;
+				ast->text = stItm->text;
+				ast->column = stItm->column;
+				ast->priority = stItm->priority;
+        postfix.push_back(ast);
+				break;
+
+			case LOG:
+        // log(2, 4.5) mean log base 2 of 4.5
+        // RPN: 4.5 2 LOG
+        // base will be on the left, value on the right
+				ast = pool->get();
+				ast->type = stItm->type;
+				ast->text = stItm->text;
+				ast->column = stItm->column;
+				ast->priority = stItm->priority;
+				postfix.push_back(ast);
+				break;
+		}
+
+		return NMATH_NO_ERROR;
+	}
+
 }
 
 #endif

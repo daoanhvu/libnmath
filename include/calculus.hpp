@@ -44,7 +44,7 @@ NMAST<T>* d_sqrt(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *
 template <typename T>
 NMAST<T>* d_pow_exp(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x);
 template <typename T>
-NMAST<T>* d_sum_subtract(NMAST<T> *t, int type, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x);
+NMAST<T>* d_sum_subtract(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x);
 template <typename T>
 NMAST<T>* d_quotient(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x);
 template <typename T>
@@ -471,50 +471,51 @@ NMAST<T>* d_product(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T
   return r;
 }
 
-/* (sin(v))' = cos(v)*dv */
+/* (sin(u))' = cos(u)*du */
 template <typename T>
-NMAST<T>* d_sin(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x){
-  NMAST<T> *r;
-  /* (cos(v))' = -sin(v)*dv */
-  r = new NMAST<T>;
+NMAST<T>* d_sin(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, string x){
+  NMAST<T> *r = new NMAST<T>;
   r->type = MULTIPLY;
+  r->text = "*";
   r->sign = 1;
   r->parent = nullptr;
   
   r->left = new NMAST<T>;
   r->left->type = COS;
+  (r->left)->text = "cos";
   r->left->sign = 1;
   r->left->parent = r;
-  r->left->left = nullptr;
-  r->left->right = cloneTree(v, r);
+  r->left->left = cloneTree(u, r->left);
+  r->left->right = nullptr;
   
-  r->right = dv;
-  if (dv != nullptr)
-    dv->parent = r;
+  r->right = du;
+  if (du != nullptr) {
+    du->parent = r;
+  }
   
   return r;
 }
 
-/* (cos(v))' = -sin(v)dv */
+/* (cos(u))' = -sin(u) * du */
 template <typename T>
-NMAST<T>* d_cos(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x){
-  NMAST<T> *r;
-  /* (cos(v))' = -sin(v)*dv */
-  r = new NMAST<T>;
+NMAST<T>* d_cos(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, string x){
+  NMAST<T> *r = new NMAST<T>;
   r->type = MULTIPLY;
+  r->text = "*";
   r->sign = 1;
   r->parent = nullptr;
   
   r->left = new NMAST<T>;
   r->left->type = SIN; /* <== negative here */
+  r->left->text = "sin";
   r->left->sign = -1;
   r->left->parent = r;
-  r->left->left = nullptr;
-  r->left->right = cloneTree(v, r);
+  r->left->left = cloneTree(u, r->left);
+  r->left->right = nullptr;
   
-  r->right = dv;
-  if (dv != nullptr)
-    dv->parent = r;
+  r->right = du;
+  if (du != nullptr)
+    du->parent = r;
   
   return r;
 }
@@ -841,13 +842,20 @@ NMAST<T>* d_quotient(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<
   return r;
 } //2.0 got here
 
-/*
+/**
+ * Calculate the derivative of the sum or subtract of two functions
  * (u +- v) = u' +- v'
- *
- * TODO: Should remove the parameter type
- * */
+
+ * Parameters:
+ * - t: the AST representation of the sum or subtract of two functions
+ * - u: the AST representation of the first function
+ * - du: the derivative of the first function
+ * - v: the AST representation of the second function
+ * - dv: the derivative of the second function
+ * - x: the variable of the function
+ */
 template <typename T>
-NMAST<T>* d_sum_subtract(NMAST<T> *t, int type, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x){
+NMAST<T>* d_sum_subtract(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x){
   NMAST<T> *r;
   
   if(dv == 0 && du != 0) {
@@ -859,7 +867,7 @@ NMAST<T>* d_sum_subtract(NMAST<T> *t, int type, NMAST<T> *u, NMAST<T> *du, NMAST
   
   r = new NMAST<T>;
   r->sign = 1;
-  r->type = type;
+  r->type = t->type;
   r->text = t->text;
   r->value = 0.0;
   r->parent = nullptr;
@@ -1254,6 +1262,17 @@ void* calc_t(void *param){
     string x = dp->variables[0];
     NMAST<T> *u, *du, *v, *dv;
     DParam<T> pdu, pdv;
+
+    // Initialize pdu and pdv
+    pdu.error = 0;
+    pdu.varCount = dp->varCount;
+    pdu.returnValue = nullptr;
+    pdu.variables[0] = dp->variables[0];
+
+    pdv.error = 0;
+    pdv.varCount = dp->varCount;
+    pdv.returnValue = nullptr;
+    pdv.variables[0] = dp->variables[0];
           
     dp->returnValue = nullptr;
     if (t == nullptr) {
@@ -1299,6 +1318,7 @@ void* calc_t(void *param){
     
     dv = du = nullptr;
           
+    // For the convention consistent: u is always the left child, v is always the right child
     u = t->left;
     v = t->right;
     
@@ -1329,11 +1349,11 @@ void* calc_t(void *param){
     // 2.0 get done here
     switch (t->type) {
       case SIN:
-        dp->returnValue = d_sin(t, u, du, v, dv, x);
+        dp->returnValue = d_sin(t, u, du, x);
         return dp->returnValue;
         
       case COS:
-        dp->returnValue = d_cos(t, u, du, v, dv, x);
+        dp->returnValue = d_cos(t, u, du, x);
         return dp->returnValue;
           
       case TAN:
@@ -1366,7 +1386,7 @@ void* calc_t(void *param){
           
       case PLUS:
       case MINUS:
-        dp->returnValue = d_sum_subtract<T>(t, t->type, u, du, v, dv, x);
+        dp->returnValue = d_sum_subtract<T>(t, u, du, v, dv, x);
         return dp->returnValue;
         
       case MULTIPLY:
