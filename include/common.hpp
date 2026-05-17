@@ -30,14 +30,14 @@ namespace nmath {
 
     /** Greatest Common Divisor*/
     template <typename T>
-    T gcd(T a, T b){
-        T c;
-        while(a !=0 ){
-            c = a;
-            a = b % a;
-            b = c;
-        }
-        return b;
+    T gcd(T a, T b) {
+      T c;
+      while(a !=0 ) {
+        c = a;
+        a = b % a;
+        b = c;
+      }
+      return b;
     }
 
     template <typename T>
@@ -54,75 +54,114 @@ namespace nmath {
 
         *error = -1;
         if(str == nullptr)
-            return 0;
+          return 0;
 
         if(str[start] == '-'){
-            negative = -1;
-            start++;
+          negative = -1;
+          start++;
+        } else if(str[start] == '+'){
+          start++;
         }
 
         for(int i=start; i<end; i++) {
+          // TODO: Fix this
+          if(str[i]=='\0')
+            return (T)0;
 
-            // TODO: Fix this
-            if(str[i]=='\0')
-                return (T)0;
-
-            if((str[i]<48) || (str[i]>57)) {
-                if( str[i] == 46 && isFloatingPoint==0)
-                    isFloatingPoint = 1;
-                else{
-                    *error = ERROR_PARSE;
-                    /*printf(" Floating point ERROR F\n");*/
-                    return (T)0;
-                }
-            } else {
-                if(isFloatingPoint){
-                    floating *= 10;
-                    val = val + (T)(str[i] - 48)/floating;
-                } else {
-                    val = val * 10 + (str[i] - 48);
-                }
+          if((str[i]<48) || (str[i]>57)) {
+            if( str[i] == 46 && isFloatingPoint == 0)
+              isFloatingPoint = 1;
+            else{
+              *error = ERROR_PARSE;
+              /*printf(" Floating point ERROR F\n");*/
+              return (T)0;
             }
+          } else {
+            if(isFloatingPoint) {
+              floating *= 10;
+              val = val + (T)(str[i] - 48)/floating;
+            } else {
+              val = val * 10 + (str[i] - 48);
+            }
+          }
         }
         (*error) = 0;
-        return val*negative;
+        return val * negative;
+    }
+
+    /**
+     * Parse a string to an integer
+     * @param str the string to parse
+     * @param start the start index inclusive
+     * @param end the end index exclusive
+     * @param error the error code
+     * @return the parsed integer
+     * @note The function will ignore the decimal part if it exists and return the integer part.
+     * @note The function will set the error code to ERROR_OVERFLOW if the integer overflows.
+     * @note The function will set the error code to ERROR_TOO_MANY_FLOATING_POINT if there are too many floating points.
+     */
+    template <typename T>
+    T parseInteger(const char *str, int start, int end, int *error) {
+      T val = (T)0;
+      const char C_48 = 48;
+      const char C_57 = 57;
+      *error = -1;
+      if(str == nullptr)
+        return 0;
+
+      bool negative = false;
+      if(str[start] == '-') {
+        negative = true;
+        start++;
+      } else if(str[start] == '+') {
+        start++;
+      }
+
+      bool metFloatingPoint = false;
+
+      for(int i = start; i < end; i++) {
+        if((str[i] >= C_48) && (str[i]<=C_57)) {
+          if(metFloatingPoint) {
+            // Ignore the decimal part
+            continue;
+          }
+          // Check for potential overflow before multiplying
+          if (val > (std::numeric_limits<T>::max() - (T)(str[i] - C_48)) / (T)10) {
+            *error = ERROR_OVERFLOW;
+            return 0;
+          }
+          val = val * (T)10 + (T)(str[i] - C_48);
+        } else {
+          if (str[i] == '.') {
+            if (metFloatingPoint) {
+              *error = ERROR_TOO_MANY_FLOATING_POINT;
+              return 0;
+            }
+            metFloatingPoint = true;
+          }
+          *error = i;
+          return negative ? -val : val;
+        }
+      }
+      *error = NMATH_NO_ERROR;
+      return negative ? -val : val;
     }
 
     template <typename T>
-    T parseInteger(const char *str, int start, int end, int *error) {
-        T val = (T)0;
-        const char C_48 = 48;
-        const char C_57 = 57;
-        *error = -1;
-        if(str == nullptr)
-            return 0;
-
-        int negative = 1;
-        if(str[start] == '-') {
-            negative = -1;
-            start++;
-        }
-        for(auto i=start; i<end; i++) {
-            if((str[i] >= C_48) && (str[i]<=C_57)) {
-                val = val * (T)10 + (T)(str[i] - C_48);
-            } else {
-                *error = i;
-                return val;
-            }
-        }
-        return val;
+    T parseInteger(const std::string &str, int start, int end, int *error) {
+      return parseInteger<T>(str.c_str(), start, end, error);
     }
 
     template <typename T>
     void clearTree(NMAST<T> **prf){
-        if((*prf) == nullptr)
-            return;
-        if((*prf)->left != nullptr)
-            nmath::clearTree(&((*prf)->left));
-        if((*prf)->right != nullptr)
-            nmath::clearTree(&((*prf)->right));
-        delete (*prf);
-        (*prf) = nullptr;
+      if((*prf) == nullptr)
+          return;
+      if((*prf)->left != nullptr)
+          nmath::clearTree(&((*prf)->left));
+      if((*prf)->right != nullptr)
+          nmath::clearTree(&((*prf)->right));
+      delete (*prf);
+      (*prf) = nullptr;
     }
 
     template <typename T>
@@ -216,7 +255,7 @@ namespace nmath {
             case ACOS:
                 return acos(val2);
 
-            case ABS:
+            case ABSOLUTE:
                 return (val2<0)?(-val2):val2;
 
             case COTAN:
@@ -484,12 +523,12 @@ namespace nmath {
 
     /*****************************************************************************************************************/
     template <typename T>
-    void releaseNMATree(std::vector<NMAST<T>*> &t) {
-        if (t.size() <= 0) return;
-        for (unsigned long i = 0; i<t.size(); i++){
-            clearTree(&(t[i]));
-        }
-        t.clear();
+    void releaseNMASTree(std::vector<NMAST<T>*> &t) {
+      if (t.size() <= 0) return;
+      for (unsigned long i = 0; i<t.size(); i++){
+          clearTree(&(t[i]));
+      }
+      t.clear();
     }
 
 
@@ -499,41 +538,53 @@ namespace nmath {
         @param x variable to check if existed
     */
     template <typename T>
-    bool isContainVar(NMAST<T> *t, std::string x){
+    bool isContainVar(NMAST<T> *t, std::string x) {
+      if ((t == nullptr) || (t->type == NUMBER) || (t->type == PI_TYPE) || (t->type == E_TYPE))
+        return false;
 
-        if ((t == nullptr) || (t->type == NUMBER) || (t->type == PI_TYPE) || (t->type == E_TYPE))
-            return false;
-
-        if (t->type == VARIABLE) {
-            if (t->text == x)
-                return (t->sign>0);
-            return false;
-        }
-
-        return (isContainVar(t->left, x) || isContainVar(t->right, x));
+      if (t->type == VARIABLE) {
+        if (t->text == x)
+          return true;
+        return false;
+      }
+      return (isContainVar(t->left, x) || isContainVar(t->right, x));
     }
 
     template <typename T>
     NMAST<T>* cloneTree(NMAST<T> *t, NMAST<T> *cloneParent){
-        NMAST<T> *c;
+      NMAST<T> *c;
 
-        if(t==nullptr) {
-            return nullptr;
-        }
+      if(t==nullptr) {
+        return nullptr;
+      }
 
-        c = new NMAST<T>;
-        c->text = t->text;
-        c->type = t->type;
-        c->value = t->value;
-        c->priority = t->priority;
-        c->level = t->level;
-        c->sign = t->sign;
+      c = new NMAST<T>;
+      c->text = t->text;
+      c->type = t->type;
+      c->value = t->value;
+      c->priority = t->priority;
+      c->level = t->level;
+      c->sign = t->sign;
 
-        c->parent = cloneParent;
-        c->left = cloneTree(t->left, c);
-        c->right = cloneTree(t->right, c);
-        return c;
+      c->parent = cloneParent;
+      c->left = cloneTree(t->left, c);
+      c->right = cloneTree(t->right, c);
+      return c;
     }
+
+  template <typename T>
+  void increaseLevel(NMAST<T> *t) {
+    if(t == nullptr) {
+      return;
+    }
+    t->level = t->level + 1;
+    if(t->left != nullptr) {
+      increaseLevel(t->left);
+    }
+    if(t->right != nullptr) {
+      increaseLevel(t->right);
+    }
+  }
 
 // #ifdef _PCDEBUG
     template <typename T>

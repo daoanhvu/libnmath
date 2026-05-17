@@ -90,6 +90,8 @@ namespace nmath {
                 node->value = 0;
                 node->type = NUMBER;
                 node->priority = 0;
+                node->level = 0;
+                node->column = -1;
             }
             return node;
         }
@@ -97,7 +99,7 @@ namespace nmath {
         /**
          * To be safe, when calling this method, please ensure that the node->left, node->right and node->parent
          * are nullptr
-         * @param node
+         * @param node the node to be put back the pool
          */
         void put(NMAST<T> *node) {
             NMAST<T> *p;
@@ -105,26 +107,26 @@ namespace nmath {
             if(node == nullptr) return;
 
             if(node->left != nullptr) {
-                NMAST<T> *l = node->left;
-                l->parent = nullptr;
-                node->left = nullptr;
-                put(l);
+              NMAST<T> *l = node->left;
+              l->parent = nullptr;
+              node->left = nullptr;
+              put(l);
             }
 
             if(node->right != nullptr) {
-                NMAST<T> *r = node->right;
-                r->parent = nullptr;
-                node->right = nullptr;
-                put(r);
+              NMAST<T> *r = node->right;
+              r->parent = nullptr;
+              node->right = nullptr;
+              put(r);
             }
 
             if(node->parent != nullptr) {
-                p = node->parent;
-                if(p->left == node)
-                    p->left = nullptr;
-                else if(p->right == node)
-                    p->right = nullptr;
-                node->parent = nullptr;
+              p = node->parent;
+              if(p->left == node)
+                p->left = nullptr;
+              else if(p->right == node)
+                p->right = nullptr;
+              node->parent = nullptr;
             }
 
             node->sign = 1;
@@ -133,6 +135,8 @@ namespace nmath {
             node->value = 0;
             node->type = NUMBER;
             node->priority = 0;
+            node->level = 0;
+            node->column = -1;
 #ifdef _WIN32
             WaitForSingleObject(poolMutex,INFINITE);
 #else

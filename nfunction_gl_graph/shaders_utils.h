@@ -2,7 +2,6 @@
 #define _SHADERS_UTILS_H_
 
 #include <string>
-#include <GL/glew.h>
 
 enum BUFFER_TYPE {
     ONE_BUFFER,
@@ -10,29 +9,29 @@ enum BUFFER_TYPE {
 };
 
 typedef struct tagLocation {
-  GLuint positionLocation;
-  GLuint normalLocation;
-  GLuint colorLocation;
-  GLuint textureLocation;
+  unsigned int positionLocation;
+  unsigned int normalLocation;
+  unsigned int colorLocation;
+  unsigned int textureLocation;
   
   //uniform variables
-  GLuint mvpMatrixId;
-  GLuint perspectiveMatrixId;
-  GLuint viewMatrixId;
-  GLuint viewPosId;
-  GLuint modelMatrixId;
-	GLuint modelViewMatrixId;
-  GLuint normalMatrixId;
-  GLuint useNormalID;
-  GLuint useLightingLocation;
-  GLuint pointSizeLocation;
-  GLuint lightPos1ID;
-  GLuint lightPos2ID;
-  GLuint lightColor1ID;
-  GLuint lightColor2ID;
+  unsigned int mvpMatrixId;
+  unsigned int perspectiveMatrixId;
+  unsigned int viewMatrixId;
+  unsigned int viewPosId;
+  unsigned int modelMatrixId;
+	unsigned int modelViewMatrixId;
+  unsigned int normalMatrixId;
+  unsigned int useNormalID;
+  unsigned int useLightingLocation;
+  unsigned int pointSizeLocation;
+  unsigned int lightPos1ID;
+  unsigned int lightPos2ID;
+  unsigned int lightColor1ID;
+  unsigned int lightColor2ID;
 } ShaderVarLocation;
 
 std::string readShaderFile(const char* filePath);
-GLuint compileShader(const char* source, GLenum shaderType);
+unsigned int compileShader(const char* source, unsigned int shaderType);
 
 #endif

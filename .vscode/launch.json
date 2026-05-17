@@ -19,17 +19,18 @@
             "preLaunchTask": "clang++ build active file"
         },
         {
-            "name": "BuildIndicesGenerate",
+            "name": "nfunction_gl",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/output/testImageData",
+            "program": "${workspaceFolder}/nfunction_gl_graph/test/${fileBasenameNoExtension}",
+            // "program": "${workspaceFolder}/output/test",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "lldb",
-            "preLaunchTask": "build with makefile"
+            "preLaunchTask": "clang++ nfunction_gl_test"
         },
         {
             "name": "TestNLabLexer",
@@ -48,14 +49,14 @@
             "name": "TestNFunction",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/output/testFunction",
+            "program": "${workspaceFolder}/testFunction",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "lldb",
-            "preLaunchTask": "BuildAll"
+            "preLaunchTask": "Build testFunction"
         },
         {
             "name": "TestFunctionLinux",

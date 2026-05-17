@@ -21,7 +21,7 @@
 #include "nlablexer.h"
 #include "nfunction.hpp"
 #include "SimpleCriteria.hpp" 
-#include "function_utils.h"
+#include "command_handler.h"
 #include "windows_helper.h"
 
 struct MeshBufferIndices {
@@ -105,18 +105,18 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
 // Function to handle mouse button events
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
-    if (ImGui::GetIO().WantCaptureMouse) {
-      return;  // Skip processing if ImGui is using the mouse
-    }
+  if (ImGui::GetIO().WantCaptureMouse) {
+    return;  // Skip processing if ImGui is using the mouse
+  }
 
-    if (button == GLFW_MOUSE_BUTTON_LEFT) {
-      if (action == GLFW_PRESS) {
-        mousePressed = true;
-        firstMouse = true;
-      } else if (action == GLFW_RELEASE) {
-        mousePressed = false;
-      }
+  if (button == GLFW_MOUSE_BUTTON_LEFT) {
+    if (action == GLFW_PRESS) {
+      mousePressed = true;
+      firstMouse = true;
+    } else if (action == GLFW_RELEASE) {
+      mousePressed = false;
     }
+  }
 }
 
 int main() {
@@ -232,12 +232,16 @@ int main() {
 
     // Coordinate system
     GLCoordinates axisVBO = initCoordinates(locations);
+    CommandHandler commandHandler(locations);
+    bool shouldRotate = false;
 
     // Generate mesh and set up vertex data and buffers
     std::vector<VboObject*> meshes;
     float values[4] = {-1.8f, 1.8f, -1.8f, 1.8f};
     float epsilon = 0.1f;
     bool shouldReInitMeshes = false;
+    glm::vec4 objectColor(0.3f, 0.5f, 0.2f, 1.0f);
+    float arrColor[4];
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
@@ -256,11 +260,23 @@ int main() {
         // TODO: Handle text input (when Enter is pressed)
         std::cout << "Entered text: " << inputText << std::endl;
         shouldReInitMeshes = true;
+        arrColor[0] = objectColor.r;
+        arrColor[1] = objectColor.g;
+        arrColor[2] = objectColor.b;
+        arrColor[3] = objectColor.a;
+        commandHandler.handleCommand(inputText, arrColor, meshes);
+        if (commandHandler.getErrorCode() == NMATH_NO_ERROR) {
+          shouldReInitMeshes = false;
+        } else {
+          std::cerr << "Error in command: " << commandHandler.getErrorCode() << " at column: " << commandHandler.getErrorColumn() << std::endl;
+        }
       }
+      ImGui::ColorEdit4("Object Color", glm::value_ptr(objectColor));
 
       // Add lighting controls
       ImGui::Checkbox("Use Lighting", &useLighting);
-      
+      ImGui::Checkbox("Rotate", &shouldRotate);
+
       if (useLighting) {
         ImGui::ColorEdit3("Light Color", glm::value_ptr(lightColor));
         ImGui::DragFloat3("Light Position", glm::value_ptr(lightPos), 0.1f);
@@ -302,7 +318,7 @@ int main() {
         }
         meshes.clear();
         // generateMeshAndIndices(inputText, values, epsilon, locations, meshes);
-        generateRoundedCone(1.0f, 0.5f, 0.2f, 10, 8, 0.3f, 0.5f, 0.2f, 1.0f, locations, meshes);
+        // generateRoundedCone(1.0f, 0.5f, 0.2f, 10, 8, 0.3f, 0.5f, 0.2f, 1.0f, locations, meshes);
         for(auto i=0; i< meshes.size(); i++) {
           meshes[i]->setupArrayAttributes();
         }
@@ -310,10 +326,10 @@ int main() {
       }
 
       // Check for OpenGL errors
-      GLenum err;
-      while ((err = glGetError()) != GL_NO_ERROR) {
-        std::cerr << "OpenGL error: " << err << std::endl;
-      }
+      // GLenum err;
+      // while ((err = glGetError()) != GL_NO_ERROR) {
+      //   std::cerr << "OpenGL error: " << err << std::endl;
+      // }
 
       // Render ImGui
       ImGui::Render();

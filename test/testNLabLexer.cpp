@@ -6,9 +6,11 @@
 #include <fstream>
 #include <iomanip>
 #include <string>
+#include <cstring>
 #include <vector>
 
 #include "nlablexer.h"
+#include "nlabparser.hpp"
 #include "gtest/gtest.h"
 
 using namespace nmath;
@@ -68,6 +70,15 @@ void printError(int col, int code) {
 			std::cout << "Number format exception at "<< col << std::endl;
 			break;
 	}
+}
+
+TEST(ParsingIntegerTest, BasicAssertions) {
+	std::string text = "1123";
+  int errorCode = 0;
+  int value = nmath::parseInteger<int>(text, 0, text.length(), &errorCode);
+
+  ASSERT_EQ(value, 1123);
+	ASSERT_EQ(errorCode, NMATH_NO_ERROR);
 }
 
 TEST(FloatingPointErrorTest, BasicAssertions) {
@@ -190,6 +201,8 @@ TEST(ConeFunctionTest, BasicAssertions) {
   ASSERT_EQ(tokens.size(), 12);
 
   ASSERT_EQ(tokens[0]->type, NAME);
+  int cmpValue = strcmp(tokens[0]->text, "cone");
+  ASSERT_EQ(cmpValue, 0);
 
   int errorCode = lexer.getErrorCode();
 	int errorColumn = lexer.getErrorColumn();
@@ -202,6 +215,37 @@ TEST(ConeFunctionTest, BasicAssertions) {
   }
 	tokens.clear();
 }
+
+TEST(ComplicatedDomainTest, BasicAssertions) {
+	std::string str = "f(x)= x^2 D: x > 1.5 and x < 2";
+	nmath::NLabLexer lexer;
+	vector<nmath::Token*> tokens;
+  int lastMeanIdx = -1;
+	unsigned int tokenCount = lexer.lexicalAnalysis(str, false, 0, tokens, &lastMeanIdx);
+
+  ASSERT_EQ(tokens.size(), 16);
+
+  int errorCode = lexer.getErrorCode();
+	int errorColumn = lexer.getErrorColumn();
+  ASSERT_EQ(errorCode, NMATH_NO_ERROR);
+  ASSERT_EQ(errorColumn, -1);
+
+  std::vector<nmath::NMAST<float>* > variables;
+  nmath::NLabParser<float> parser;
+  int nextIndex = parser.functionNotation(tokens, 0, variables, &errorCode, &errorColumn);
+
+  ASSERT_EQ(nextIndex, 4);
+
+	for(int i=0; i<tokens.size(); i++) {
+    delete tokens[i];
+  }
+  for (int i=0; i<variables.size(); i++) {
+    delete variables[i];
+  }
+  variables.clear();
+	tokens.clear();
+}
+
 
 // Test 1
 // void testLexicalAnalysis() {

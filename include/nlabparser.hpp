@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <string>
+#include <stack>
 #include <cstdlib>
 #include "nlablexer.h"
 #include "common.hpp"
@@ -16,45 +17,48 @@ namespace nmath {
 	template <typename T>
 	class NLabParser {
 	private:
-        NMASTPool<T> *nmastPool;
-        bool needReleasePool;
+    NMASTPool<T> *nmastPool;
+    bool needReleasePool;
+
+    NMAST<T>* convertPostfixToRecursiveTree(std::vector<NMAST<T>* > postfix);
+
 	public:
-        NLabParser() {
-            nmastPool = new NMASTPool<T>;
-            needReleasePool = true;
-        }
+    NLabParser() {
+      nmastPool = new NMASTPool<T>;
+      needReleasePool = true;
+    }
 
-        NLabParser(NMASTPool<T> *aPool): nmastPool(aPool), needReleasePool(false) {
-        }
+    NLabParser(NMASTPool<T> *aPool): nmastPool(aPool), needReleasePool(false) {
+    }
 
-        virtual ~NLabParser() {
-            if(needReleasePool) {
-                delete nmastPool;
-            }
-        }
+    virtual ~NLabParser() {
+      if(needReleasePool) {
+        delete nmastPool;
+      }
+    }
 
-        int getType(const Token *t, std::vector<nmath::NMAST<T>* > variables);
-        int functionNotation(std::vector<Token*> tokens, int index,
-                             std::vector<nmath::NMAST<T> *> &variables,
-                             int *errorCode, int *errorColumn);
-        NMAST<T>* buildIntervalTree(Token* valtk1, Token* o1, Token* variable,
-                                    Token* o2, Token* valtk2, int *errorCode, int *errorColumn);
+    int getType(const Token *t, std::vector<nmath::NMAST<T>* > variables);
+    int functionNotation(std::vector<Token*> tokens, int index,
+                          std::vector<nmath::NMAST<T> *> &variables,
+                          int *errorCode, int *errorColumn);
+    NMAST<T>* buildIntervalTree(Token* valtk1, Token* o1, Token* variable,
+                                Token* o2, Token* valtk2, int *errorCode, int *errorColumn);
 
-        int parseFunctionExpression(std::vector<Token*> tokens, std::vector<nmath::NMAST<T>* > &prefix, std::vector<nmath::NMAST<T>* > &domain,
-                                    std::vector<nmath::NMAST<T>* > &variables, int *errorCode, int *errorColumn);
-        NMAST<T>* parseExpression(std::vector<Token*> tokens, int *start, std::vector<nmath::NMAST<T>*> variables, int *errorCode, int *errorColumn);
-        NMAST<T>* parseDomain(std::vector<Token*> tokens, int *start, int *errorCode, int *errorColumn);
+    int parseFunctionExpression(std::vector<Token*> tokens, std::vector<nmath::NMAST<T>* > &prefix, std::vector<nmath::NMAST<T>* > &domain,
+                                std::vector<nmath::NMAST<T>* > &variables, int *errorCode, int *errorColumn);
+    NMAST<T>* parseExpression(std::vector<Token*> tokens, int *start, std::vector<nmath::NMAST<T>*> variables, int *errorCode, int *errorColumn);
+    NMAST<T>* parseDomain(std::vector<Token*> tokens, int *start, int *errorCode, int *errorColumn);
 	};
 
 
     template <typename T>
     int NLabParser<T>::getType(const Token *t, std::vector<nmath::NMAST<T>* > variables) {
-        for(int i=0; i<variables.size(); i++) {
-            if( strcmp(t->text, variables[i]->text) == 0 ) {
-                return VARIABLE;
-            }
+      for(int i=0; i<variables.size(); i++) {
+        if( strcmp(t->text, variables[i]->text) == 0 ) {
+          return VARIABLE;
         }
-        return t->type;
+      }
+      return t->type;
     }
 
     /******************************************************************************************/
@@ -65,15 +69,15 @@ namespace nmath {
      */
     template <typename T>
     int NLabParser<T>::parseFunctionExpression(std::vector<Token*> tokens,
-            std::vector<nmath::NMAST<T>* > &prefix,
+            std::vector<nmath::NMAST<T>* > &postfix,
             std::vector<nmath::NMAST<T>* > &domain,
             std::vector<nmath::NMAST<T>* > &variables,
             int *errorCode, int *errorColumn) {
         int k, l, idx = 0;
         *errorCode = ERROR_NOT_A_FUNCTION;
         if(tokens.size() <= 0) {
-            *errorColumn = 0;
-            return *errorCode;
+          *errorColumn = 0;
+          return *errorCode;
         }
         *errorColumn = tokens[idx]->column;
         auto tokenCount = tokens.size();
@@ -81,71 +85,67 @@ namespace nmath {
 
         /** This array will hold the variables of the function */
         if ((k = functionNotation(tokens, idx, variables, errorCode, errorColumn)) > idx) {
+          if( *errorCode != NMATH_NO_ERROR ) {
+            return *errorCode;
+          }
+          *errorCode = ERROR_NOT_A_FUNCTION;
 
-            if( *errorCode != NMATH_NO_ERROR ) {
-                return *errorCode;
-            }
+          if(k<tokenCount && tokens[k]->type == EQ) {
+            k++;
+            do {
+              /*
+                  Parse expression
+              */
+              if (tokenCount <= k) {
+                *errorCode = ERROR_NOT_AN_EXPRESSION;
+                *errorColumn = k;
+                return ERROR_NOT_AN_EXPRESSION;
+              }
 
-            *errorCode = ERROR_NOT_A_FUNCTION;
-
-            if(k<tokenCount && tokens[k]->type == EQ) {
-                k++;
-                do {
-                    /*
-                        Parse expression
-                    */
-                    if (tokenCount <= k) {
-                        *errorCode = ERROR_NOT_AN_EXPRESSION;
-                        *errorColumn = k;
-                        return ERROR_NOT_AN_EXPRESSION;
+              //
+              for(int j = k; j < tokenCount; j++) {
+                if(tokens[j]->type == NAME) {
+                  for(int v = 0; v < variables.size(); v++) {
+                    if(tokens[j]->text == variables[v]->text) {
+                      tokens[j]->type = VARIABLE;
                     }
+                  }
+                }
+              }
 
-                    //
-                    for(int j = k; j < tokenCount; j++) {
-                        if(tokens[j]->type == NAME) {
-                            for(int v = 0; v < variables.size(); v++) {
-                                if(tokens[j]->text == variables[v]->text) {
-                                    tokens[j]->type = VARIABLE;
-                                }
-                            }
-                        }
-                    }
+              item = parseExpression(tokens, &k, variables, errorCode, errorColumn);
+              /** after parseExpression, we may get error, so MUST check if it's OK here */
+              if( *errorCode != NMATH_NO_ERROR ) {
+                break;
+              }
 
-                    item = parseExpression(tokens, &k, variables, errorCode, errorColumn);
-                    /** after parseExpression, we may get error, so MUST check if it's OK here */
-                    if( *errorCode != NMATH_NO_ERROR ) {
-                        break;
-                    }
+              postfix.push_back(item);
 
-                    prefix.push_back(item);
-
-                    item = nullptr;
-                    if( (k < tokenCount) && (tokens[k]->type == DOMAIN_NOTATION) ) {
-                        *errorCode = ERROR_MISSING_DOMAIN;
-                        *errorColumn = tokens[k]->column;
-                        if(k+1 < tokenCount) {
-                            l = k + 1;
-                            item = parseDomain(tokens, &l, errorCode, errorColumn);
-                            k = l;
-                        }
-                    }
-
-                    domain.push_back(item);
-
-                } while ( errorCode==NMATH_NO_ERROR && k < tokenCount );
-            }
+              item = nullptr;
+              if( (k < tokenCount) && (tokens[k]->type == DOMAIN_NOTATION) ) {
+                *errorCode = ERROR_MISSING_DOMAIN;
+                *errorColumn = tokens[k]->column;
+                if(k+1 < tokenCount) {
+                  l = k + 1;
+                  item = parseDomain(tokens, &l, errorCode, errorColumn);
+                  k = l;
+                }
+              }
+              domain.push_back(item);
+            } while ( errorCode==NMATH_NO_ERROR && k < tokenCount );
+          }
         }
 
         if(*errorCode != NMATH_NO_ERROR) {
-            for(k=0; k<prefix.size(); k++) {
-                clearTree(&(prefix[k]));
+          for(k=0; k<postfix.size(); k++) {
+            clearTree(&(postfix[k]));
 
-                if(domain[k] != nullptr){
-                    clearTree(&(domain[k]));
-                }
+            if(domain[k] != nullptr){
+              clearTree(&(domain[k]));
             }
-            prefix.clear();
-            domain.clear();
+          }
+          postfix.clear();
+          domain.clear();
         }
         return *errorCode;
     }
@@ -157,6 +157,10 @@ namespace nmath {
             - If the tokens match the pattern the function will return the next index, this index equals
             input index plus the length of the matched tokens.
             - If not, the function return the input index
+        @example
+            f(x, y) = x^2 + y^2
+            - The function will return 6
+            - The variables vector will contain 2 elements: x and y
     */
     template <typename T>
     int NLabParser<T>::functionNotation(std::vector<Token*> tokens, int index,
@@ -169,48 +173,96 @@ namespace nmath {
         *errorColumn = tokens[index]->column;
 
         if( (tokenCount < 4) || (index < 0) || (index >= tokenCount-3) )
-            return index;
+          return index;
 
         if(tokens[index]->type == NAME ) {
-            *errorCode = ERROR_PARENTHESE_MISSING;
-            if(tokens[index+1]->type == LPAREN) {
-                *errorCode = ERROR_MISSING_VARIABLE;
-                *errorColumn = tokens[index+1]->column;
+          *errorCode = ERROR_PARENTHESE_MISSING;
+          if(tokens[index+1]->type == LPAREN) {
+            *errorCode = ERROR_MISSING_VARIABLE;
+            *errorColumn = tokens[index+1]->column;
 
-                if(tokens[index+2]->type == NAME) {
-                    tokens[index+2]->type = VARIABLE;
-                    NMAST<T>* var = nmastPool->get();
-                    var->type = VARIABLE;
-                    var->text = tokens[index+2]->text;
-                    var->column = tokens[index+2]->column;
-                    variables.push_back(var);
-                    index += 3;
-                    while( (index+1<tokenCount) && (tokens[index]->type == COMMA)
-                            && (tokens[index+1]->type == NAME ) ) {
-                        tokens[index+1]->type = VARIABLE;
-                        var = nmastPool->get();
-                        var->type = VARIABLE;
-                        var->text = tokens[index+1]->text;
-                        var->column = tokens[index+1]->column;
-                        variables.push_back(var);
-                        index += 2;
-                    }
-                    *errorCode = ERROR_PARENTHESE_MISSING;
-                    *errorColumn = tokens[index]->column;
-                    if( (index < tokenCount) && (tokens[index]->type == RPAREN)){
-                        *errorCode = NMATH_NO_ERROR;
-                        *errorColumn = -1;
-                        return (index + 1);
-                    }
-                }
+            if(tokens[index+2]->type == NAME) {
+              tokens[index+2]->type = VARIABLE;
+              NMAST<T>* var = nmastPool->get();
+              var->type = VARIABLE;
+              var->text = tokens[index+2]->text;
+              var->column = tokens[index+2]->column;
+              variables.push_back(var);
+              index += 3;
+              while( (index+1<tokenCount) && (tokens[index]->type == COMMA)
+                      && (tokens[index+1]->type == NAME ) ) {
+                tokens[index+1]->type = VARIABLE;
+                var = nmastPool->get();
+                var->type = VARIABLE;
+                var->text = tokens[index+1]->text;
+                var->column = tokens[index+1]->column;
+                variables.push_back(var);
+                index += 2;
+              }
+              *errorCode = ERROR_PARENTHESE_MISSING;
+              *errorColumn = tokens[index]->column;
+              if( (index < tokenCount) && (tokens[index]->type == RPAREN)){
+                *errorCode = NMATH_NO_ERROR;
+                *errorColumn = -1;
+                return (index + 1);
+              }
             }
+          }
         }
         return oldIndex;
     }//done
 
     /******************************************************************************************/
+    
+    template <typename T>
+    NMAST<T>* NLabParser<T>::convertPostfixToRecursiveTree(std::vector<NMAST<T>* > postfix) {
+      std::stack<NMAST<T>* > stack;
+      for(auto it = postfix.begin(); it != postfix.end(); it++) {
+        if(isAnOperatorType((*it)->type)) {
+          // if this is a binary operator, then we need to pop two elements from the stack and create a new node
+          NMAST<T>* right = stack.top();
+          stack.pop();
+          NMAST<T>* left = stack.top();
+          stack.pop();
+          NMAST<T>* node = *it;
+          node->left = left;
+          node->right = right;
+          if(left != nullptr) {
+            left->parent = node;
+            increaseLevel(left);
+          }
+          if(right != nullptr) {
+            right->parent = node;
+            increaseLevel(right);
+          }
+          stack.push(node);
+        } else if(isAFunctionType((*it)->type)) {
+          // if this is a function, then we need to pop one element from the stack and create a new node
+          NMAST<T>* arg = stack.top();
+          stack.pop();
+          NMAST<T>* node = *it;
+          node->left = arg;
+          if(arg != nullptr) {
+            arg->parent = node;
+            increaseLevel(arg);
+          }
+          stack.push(node);
+        } else {
+          // if this is a number, variable, or constant, then we need to create a new node
+          NMAST<T>* node = *it;
+          stack.push(node);
+        }
+      }
+      NMAST<T>* result = stack.top();
+      stack.pop();
+      while(!stack.empty()) {
+        stack.pop();
+      }
+      return result;
+    }
+    
     /**
-        Parse the input string in object f to NMAST tree using PRN
+        Parse the input string in object f to NMAST tree using Reverse Polish Notation
     */
     template <typename T>
     nmath::NMAST<T>* NLabParser<T>::parseExpression(vector<Token*> tokens,
@@ -221,59 +273,58 @@ namespace nmath {
         T val;
         size_t size = tokens.size();
         Token *tk = nullptr;
-        Token **stack = nullptr;
-        Token *stItm = nullptr;
+        std::stack<Token*> stack;
+        Token *stTopItem = nullptr;
         NMAST<T> *ast = nullptr;
-        std::vector<NMAST<T>* >mPrefix;
+        std::vector<NMAST<T>* >postfix;
 
         *errorColumn = -1;
         *errorCode = NMATH_NO_ERROR;
 
         idx = (*start);
         while( (idx < size) && !isEndExp) {
-            tk = tokens[idx];
-            switch(tk->type) {
-            case NUMBER:
-                val = parseDouble<T>(tk->text, 0, tk->textLength, &error);
-                if(val == (T)0 && error < 0) {
-                    clearStackWithoutFreeItem(stack, top+1);
-                    free(stack);
-                    for (int i = 0; i<mPrefix.size(); i++)
-                        clearTree(&(mPrefix[i]));
-                    mPrefix.clear();
-                    *errorColumn = tk->column;
-                    *errorCode = ERROR_PARSING_NUMBER;
-                    return nullptr;
-                }
+          tk = tokens[idx];
+          switch(tk->type) {
+          case NUMBER:
+            val = parseDouble<T>(tk->text, 0, tk->textLength, &error);
+            if(val == (T)0 && error != 0) {
+              stack = {};
+              for (int i = 0; i<postfix.size(); i++)
+                  clearTree(&(postfix[i]));
+              postfix.clear();
+              *errorColumn = tk->column;
+              *errorCode = ERROR_PARSING_NUMBER;
+              return nullptr;
+            }
 
-                ast = nmastPool->get();
-                ast->value = val;
-                ast->type = tk->type;
-                ast->text = tk->text;
-                ast->column = tk->column;
-                mPrefix.push_back(ast);
-                idx++;
+            ast = nmastPool->get();
+            ast->value = val;
+            ast->type = tk->type;
+            ast->text = tk->text;
+            ast->column = tk->column;
+            postfix.push_back(ast);
+            idx++;
             break;
 
-            case E_TYPE:
-                ast = nmastPool->get();
-                ast->value = (T)E;
-                ast->text = "e";
-                ast->type = E_TYPE;
-                ast->column = tk->column;
-                mPrefix.push_back(ast); //add this item to prefix
-                idx++;
-            break;
+          case E_TYPE:
+            ast = nmastPool->get();
+            ast->value = (T)MATH_E;
+            ast->text = "e";
+            ast->type = E_TYPE;
+            ast->column = tk->column;
+            postfix.push_back(ast); //add this item to prefix
+            idx++;
+          break;
 
-            case PI_TYPE:
-                ast = nmastPool->get();
-                ast->value = (T)PI;
-                ast->text = "3.14159";
-                ast->type = PI_TYPE;
-                ast->column = tk->column;
-                mPrefix.push_back(ast); //add this item to prefix
-                idx++;
-            break;
+          case PI_TYPE:
+            ast = nmastPool->get();
+            ast->value = (T)PI;
+            ast->text = "3.14159";
+            ast->type = PI_TYPE;
+            ast->column = tk->column;
+            postfix.push_back(ast); //add this item to prefix
+            idx++;
+          break;
 
 
             case PLUS:
@@ -281,112 +332,91 @@ namespace nmath {
             case MULTIPLY:
             case DIVIDE:
             case POWER:
-                /**
-                 * When we meet an arithmetic operator, let call it o1, 
-                 * C1: we check if there is an arithmetic operator o2
-                 * at the top of the stack and o2.priotiry >= o1.priority (*)
-                 * then we take o2 out of the stack, and take operand1 and operand2 from postfix
-                 * and do the calculate operand1 operator2 operand2 and then we push the result
-                 * back to the postfix
-                 * - Repeat (C1) until (*) not hold
-                 */ 
-                if(top >= 0) {
-                    stItm = stack[top];
-                    while(isAnOperatorType(stItm->type) && (stItm->priority) >= tk->priority) {
-                        stItm = popFromStack(stack, &top);
-                        if (mPrefix.size() == 1) {
-                            mPrefix[0]->sign = -1;
-                        } else {
-                            ast = nmastPool->get();
-                            ast->type = stItm->type;
-                            ast->text = stItm->text;
-                            ast->column = stItm->column;
-                            ast->priority = stItm->priority;
-                            ast->left = mPrefix[mPrefix.size() - 2];
-                            ast->right = mPrefix[mPrefix.size() - 1];
+              /**
+               * When we meet an arithmetic operator, let call it o1, 
+               * C1: we check if there is an arithmetic operator o2
+               * at the top of the stack and o2.priotiry >= o1.priority (*)
+               * then we take o2 out of the stack, and take operand1 and operand2 from postfix
+               * and do the calculate operand1 operator2 operand2 and then we push the result
+               * back to the postfix
+               * - Repeat (C1) until (*) not hold
+               */ 
+              if(!stack.empty()) {
+                stTopItem = stack.top();
+                while(isAnOperatorType(stTopItem->type) && (stTopItem->priority) >= tk->priority) {
+                  ast = nmastPool->get();
+                  ast->type = stTopItem->type;
+                  ast->text = stTopItem->text;
+                  ast->column = stTopItem->column;
+                  ast->priority = stTopItem->priority;
 
-                            if((ast->left)!=nullptr)
-                                (ast->left)->parent = ast;
-                            if((ast->right)!=nullptr)
-                                (ast->right)->parent = ast;
+                  // We will convert from RPN to Recursive Expression Tree later
+                  // int postfixSize = postfix.size();
+                  // ast->left = postfixSize - 2 >= 0 ? postfix[postfixSize - 2] : nullptr;
+                  // ast->right = postfixSize - 1 >= 0 ? postfix[postfixSize - 1] : nullptr;
+                  // if((ast->left)!=nullptr)
+                  //   (ast->left)->parent = ast;
+                  // if((ast->right)!=nullptr)
+                  //   (ast->right)->parent = ast;
 
-                            mPrefix[mPrefix.size() - 2] = ast;
-                            mPrefix[mPrefix.size() - 1] = nullptr;
-                            mPrefix.pop_back();
-                        }
+                  postfix.push_back(ast);
+                  
+                  stack.pop();
+                  
+                  if(stack.empty())
+                    break;
 
-                        if(top < 0)
-                            break;
-
-                        stItm = stack[top];
-                    }
+                  stTopItem = stack.top();
                 }
-                //push operation o1 (tk) into stack
-                pushItem2Stack(&stack, &top, &allocLen, tk);
-                if(*errorCode == E_NOT_ENOUGH_MEMORY) {
-                    clearStackWithoutFreeItem(stack, top+1);
-                    free(stack);
-                    for (int i = 0; i<mPrefix.size(); i++)
-                        clearTree(&(mPrefix[i]));
-                    mPrefix.clear();
-                    *errorColumn = tk->column;
-                    return nullptr;
-                }
-                idx++;
+              }
+              //push operation o1 (tk) into stack
+              stack.push(tk);
+              idx++;
             break;
 
             case LPAREN:/*If it an open parentheses then put it to stack*/
-                pushItem2Stack(&stack, &top, &allocLen, tk);
-                if(*errorCode == E_NOT_ENOUGH_MEMORY) {
-                    clearStackWithoutFreeItem(stack, top+1);
-                    free(stack);
-                    for (int i = 0; i<mPrefix.size(); i++)
-                        clearTree(&(mPrefix[i]));
-                    mPrefix.clear();
-                    *errorColumn = tk->column;
-                    return nullptr;
-                }
-                idx++;
+              stack.push(tk);
+              idx++;
             break;
 
             case RPAREN:
-                stItm = popFromStack(stack, &top);
+              /* got an opening-parenthese but can not find a closing-parenthese */
+              if(stack.empty()) {
+                for (int i = 0; i<postfix.size(); i++)
+                  clearTree(&(postfix[i]));
+                postfix.clear();
+                *errorColumn = tk->column;
+                *errorCode = ERROR_PARENTHESE_MISSING;
+                return nullptr;
+              }
 
-                /* got an opening-parenthese but can not find a closing-parenthese */
-                if(stItm == nullptr) {
-                    clearStackWithoutFreeItem(stack, top+1);
-                    free(stack);
-                    for (int i = 0; i<mPrefix.size(); i++)
-                        clearTree(&(mPrefix[i]));
-                    mPrefix.clear();
-                    *errorColumn = tk->column;
-                    *errorCode = ERROR_PARENTHESE_MISSING;
-                    return nullptr;
-                }
+              stTopItem = stack.top();
+                
+              /* pop operator from stack until we see an LPAREN */
+              while( (!stack.empty()) && (stTopItem != nullptr) && (stTopItem->type != LPAREN) && !isAFunctionType(stTopItem->type) ) {
+                stack.pop();
+                addOperatorFunctionToPostfix<T>(postfix, stTopItem, nmastPool);
+                //free(stItm);
+                stTopItem = stack.top();
+              }
 
-                /*  */
-                while( (stItm != nullptr) && (stItm->type != LPAREN) && !isAFunctionType(stItm->type) ) {
-                    addFunction2Tree<T>(mPrefix, stItm, nmastPool);
-                    //free(stItm);
-                    stItm = popFromStack(stack, &top);
-                }
+              /* got an opening-parenthese but can not find a closing-parenthese */
+              if(stack.empty() || stTopItem == nullptr) {
+                for (int i = 0; i<postfix.size(); i++)
+                  clearTree(&(postfix[i]));
+                postfix.clear();
+                *errorColumn = tk->column;
+                *errorCode = ERROR_PARENTHESE_MISSING;
+                return nullptr;
+              }
 
-                /* got an opening-parenthese but can not find a closing-parenthese */
-                if(stItm == nullptr) {
-                    clearStackWithoutFreeItem(stack, top+1);
-                    free(stack);
-                    for (int i = 0; i<mPrefix.size(); i++)
-                    clearTree(&(mPrefix[i]));
-                    mPrefix.clear();
-                    *errorColumn = tk->column;
-                    *errorCode = ERROR_PARENTHESE_MISSING;
-                    return nullptr;
-                }
+              stack.pop();
 
-                if(isAFunctionType(stItm->type)) {
-                    addFunction2Tree<T>(mPrefix, stItm, nmastPool);
-                }
-                idx++;
+              if(isAFunctionType(stTopItem->type)) {
+                // If a function found, then add that function to postfix
+                addOperatorFunctionToPostfix<T>(postfix, stTopItem, nmastPool);
+              }
+              idx++;
             break;
 
             //functions
@@ -400,85 +430,76 @@ namespace nmath {
             case SQRT:
             case LN:
             case LOG:
-            case ABS:
-                pushItem2Stack(&stack, &top, &allocLen, tk);
-                if(*errorCode == E_NOT_ENOUGH_MEMORY) {
-                    clearStackWithoutFreeItem(stack, top+1);
-                    free(stack);
-                    for (int i = 0; i<mPrefix.size(); i++)
-                        clearTree(&(mPrefix[i]));
-                    mPrefix.clear();
-                    *errorColumn = tk->column;
-                    return nullptr;
-                }
-                /*
-                    After a function name must be a LPAREN, and we just ignore that LPAREN token
-                    idx += 2;
-                */
-                // the left-parenthese right after a function name is dimissed, so just don't care of it
-                idx++;
+            case ABSOLUTE:
+              stack.push(tk);
+              /*
+                  After a function name must be a LPAREN, and we just ignore that LPAREN token
+                  idx += 2;
+              */
+              // the left-parenthese right after a function name is dimissed, so just don't care of it
+              idx++;
             break;
 
             case NAME:
             case VARIABLE:
-                ast = nmastPool->get();
-                ast->text = tk->text;
-                ast->type = tk->type;
-                ast->column = tk->column;
-                mPrefix.push_back(ast);
-                idx++;
+              ast = nmastPool->get();
+              ast->text = tk->text;
+              ast->type = tk->type;
+              ast->column = tk->column;
+              postfix.push_back(ast);
+              idx++;
             break;
 
             case SEMI:
             case DOMAIN_NOTATION:
-                /* 	End of this expression, kindly stop the while loop, consume
-                    this expression and start processing the next expression.
-                */
-                isEndExp = true;
+              /* 	End of this expression, kindly stop the while loop, consume
+                  this expression and start processing the next expression.
+              */
+              isEndExp = true;
             break;
 
             default:
-                clearStackWithoutFreeItem(stack, top+1);
-                free(stack);
-                for (int i = 0; i<mPrefix.size(); i++)
-                    clearTree(&(mPrefix[i]));
-                mPrefix.clear();
-                *errorColumn = tk->column;
-                *errorCode = ERROR_BAD_TOKEN;
-                return nullptr;
+              for (int i = 0; i<postfix.size(); i++)
+                clearTree(&(postfix[i]));
+              postfix.clear();
+              *errorColumn = tk->column;
+              *errorCode = ERROR_BAD_TOKEN;
+              return nullptr;
             }//end switch
         }//end while
 
-        while( top >= 0 ) {
-            stItm = popFromStack(stack, &top);
-            if( (stItm->type == LPAREN) || isAFunctionType(stItm->type)) {
-                clearStackWithoutFreeItem(stack, top+1);
-                free(stack);
-                for (int i = 0; i<mPrefix.size(); i++)
-                    clearTree(&(mPrefix[i]));
-                mPrefix.clear();
-                *errorColumn = (tk != nullptr) ? tk->column : -1;
-                *errorCode = ERROR_PARENTHESE_MISSING;
-                return nullptr;
-            }
+        while( !stack.empty() ) {
+          stTopItem = stack.top();
+          stack.pop();
+          if( (stTopItem->type == LPAREN) || isAFunctionType(stTopItem->type)) {
+            for (int i = 0; i<postfix.size(); i++)
+              clearTree(&(postfix[i]));
+            postfix.clear();
+            *errorColumn = (tk != nullptr) ? tk->column : -1;
+            *errorCode = ERROR_PARENTHESE_MISSING;
+            return nullptr;
+          }
 
-            *errorCode = addFunction2Tree(mPrefix, stItm, nmastPool);
-            if(*errorCode != NMATH_NO_ERROR) {
-                clearStackWithoutFreeItem(stack, top+1);
-                free(stack);
-                for (int i = 0; i<mPrefix.size(); i++)
-                    clearTree(&(mPrefix[i]));
-                mPrefix.clear();
-                *errorColumn = (tk != nullptr) ? tk->column : -1;
-                return nullptr;
-            }
+          *errorCode = addOperatorFunctionToPostfix(postfix, stTopItem, nmastPool);
+          if(*errorCode != NMATH_NO_ERROR) {
+            for (int i = 0; i<postfix.size(); i++)
+              clearTree(&(postfix[i]));
+            postfix.clear();
+            *errorColumn = (tk != nullptr) ? tk->column : -1;
+            return nullptr;
+          }
         }
 
-        free(stack);
+        while(!stack.empty()) {
+          stack.pop();
+        }
+
+        // TODO: Now we have a postfix expression, we need to convert it to a recursive expression tree
+
         *start = idx;
-        ast = mPrefix[0];
-        mPrefix.clear();
-        return ast;
+        NMAST<T>* result = convertPostfixToRecursiveTree(postfix);
+        postfix.clear();
+        return result;
     }
 
     template <typename T>
@@ -546,7 +567,7 @@ namespace nmath {
                             val = (T)PI;
                             break;
                         case E_TYPE:
-                            val = (T)E;
+                            val = (T)MATH_E;
                             break;
 
                         default:
@@ -725,7 +746,7 @@ namespace nmath {
                                     val = (T)PI;
                                     break;
                                 case E_TYPE:
-                                    val = (T)E;
+                                    val = (T)MATH_E;
                                     break;
                             }
 
@@ -747,7 +768,7 @@ namespace nmath {
                                     val2 = (T)PI;
                                     break;
                                 case E_TYPE:
-                                    val2 = (T)E;
+                                    val2 = (T)MATH_E;
                                     break;
                             }
                             /* ========END parsing floating point values=====*/
@@ -879,7 +900,7 @@ namespace nmath {
                 val1 = (T)PI;
                 break;
             case E_TYPE:
-                val1 = (T)E;
+                val1 = (T)MATH_E;
                 break;
             default:
                 val1 = (T)0;
@@ -898,7 +919,7 @@ namespace nmath {
                 val2 = (T)PI;
                 break;
             case E_TYPE:
-                val2 = (T)E;
+                val2 = (T)MATH_E;
                 break;
 
             default:

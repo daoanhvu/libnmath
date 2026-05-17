@@ -11,7 +11,7 @@ namespace nmath {
     template <typename T>
 	class CompositeCriteria: public Criteria<T> {
 		private:
-			std::vector<nmath::Criteria<T>* > list;
+			std::vector<nmath::Criteria<T>* > componentCriteria;
 
 			int logicOp; // AND OR
 
@@ -27,13 +27,12 @@ namespace nmath {
 			int logicOperator() const { return logicOp; }
 			void setOperator(int op)	{ logicOp = op; }
 
-			size_t size() const { return list.size(); }
+			size_t size() const { return componentCriteria.size(); }
 
-            T getLeftValue() const override { return (T)-1; }
-            T getRightValue() const override { return (T)-1; };
+      T getLeftValue() const override { return (T)-1; }
+      T getRightValue() const override { return (T)-1; };
 
 			bool check(const double* values);
-
 			void add(Criteria<T>* c);
 
 			Criteria<T>& normalize(std::vector<NMAST<T>* > variables) override ;
@@ -47,7 +46,7 @@ namespace nmath {
 			CompositeCriteria<T>* orCriteria(CompositeCriteria<T> &c);
 			
 			Criteria<T>* operator [](int index) const;
-			Criteria<T>* get(int index) const { return list[index]; }
+			Criteria<T>* get(int index) const { return componentCriteria[index]; }
 
 			Criteria<T>* operator |(Criteria<T> &) override ;
 			Criteria<T>* operator &(Criteria<T> &) override ;
@@ -57,12 +56,11 @@ namespace nmath {
 
 			Criteria<T>* getInterval(const T *values, const std::vector<std::string> &variables) override {
 				Criteria<T> *listIn;
-				int i;
 				auto *out = new CompositeCriteria<T>();
 				out->setOperator(logicOp);
 				
-				for (i = 0; i<list.size(); i++) {
-					listIn = list[i]->getInterval(values, variables);
+				for (int i = 0; i<componentCriteria.size(); i++) {
+					listIn = componentCriteria[i]->getInterval(values, variables);
 					if (listIn != nullptr) {
 						out->add(listIn);
 					}
@@ -79,24 +77,26 @@ namespace nmath {
 
 	template <typename T>
 	CompositeCriteria<T>::~CompositeCriteria() {
-		if (list.empty()) return;
-		for (auto &i : list)
-	        delete i;
-		list.clear();
+		if (componentCriteria.empty()) return;
+		for (auto &cr : componentCriteria) {
+      delete cr;
+    }
+    componentCriteria.clear();
 	}
 
 	template <typename T>
 	void CompositeCriteria<T>::release() {
-	    if (list.empty()) return;
-		for (auto &i : list)
-	        delete i;
-		list.clear();
+    if (componentCriteria.empty()) return;
+		for (auto &cr : componentCriteria) {
+      delete cr;
+    }
+    componentCriteria.clear();
 	}
 
 	template <typename T>
 	bool CompositeCriteria<T>::containsVar(const std::string &var) {
-		for (auto &i : list) {
-			if(i->containsVar(var))
+		for (auto &cr : componentCriteria) {
+			if(cr->containsVar(var))
 				return true;
 		}
 		return false;
@@ -106,25 +106,25 @@ namespace nmath {
 	Criteria<T>* CompositeCriteria<T>::clone() {
 		auto *out = new CompositeCriteria<T>();
 		out->setOperator(this->logicOp);
-		for (auto &i : list) {
-			out->add(i->clone());
+		for (auto &cr : componentCriteria) {
+			out->add(cr->clone());
 		}
 		return out;
 	}
 
 	template <typename T>
 	void CompositeCriteria<T>::add(Criteria<T>* c) {
-		list.push_back(c);
+		componentCriteria.push_back(c);
 	}
 
 	template <typename T>
 	Criteria<T>* CompositeCriteria<T>::operator [](int index) const {
-		return (index >= list.size())? nullptr : list[index];
+		return (index >= componentCriteria.size())? nullptr : componentCriteria[index];
 	}
 
 	template <typename T>
 	bool CompositeCriteria<T>::check(const double* values) {
-		for(auto &c: list) {
+		for(auto &c: componentCriteria) {
 			if( c->check(values) )
 				return true;
 		}
@@ -134,17 +134,16 @@ namespace nmath {
 	template <typename T>
 	Criteria<T>* CompositeCriteria<T>::andSelf(Criteria<T> &c) {
 
-		if (c.getCClassType() == SIMPLE)
-			return andSimpleSelf((SimpleCriteria<T>&)c);
-
+		if (c.getCClassType() == SIMPLE) {
+      return andSimpleSelf((SimpleCriteria<T>&)c);
+    }
 		return andCompositeSelf((CompositeCriteria<T>&)c);
-
 	}
 
 	/**
 	 * Implement an AND operator between this criteria and c
 	 * @param c an other CompositeCriteria
-	 * @return
+	 * @return return AND result from this criteria with c
 	 */
 	template <typename T>
 	Criteria<T>* CompositeCriteria<T>::andCompositeSelf(CompositeCriteria<T> &c) {
@@ -161,7 +160,7 @@ namespace nmath {
 			}
 			else {
 				//AND and OR
-				for (auto &itm: list) {
+				for (auto &itm: componentCriteria) {
 					tmp = itm->andSelf(c);
 					if (tmp != nullptr) {
 						itm = tmp;
@@ -206,10 +205,10 @@ namespace nmath {
 		Criteria<T> *itm;
 
 		if (logicOp == AND){
-			for(i=0; i<list.size(); i++) {
-				if(list[i]->containsVar(c.getVariable())) {
-					itm = list[i]->andSelf(c);
-					list[i] = itm;
+			for(i=0; i<componentCriteria.size(); i++) {
+				if(componentCriteria[i]->containsVar(c.getVariable())) {
+					itm = componentCriteria[i]->andSelf(c);
+					componentCriteria[i] = itm;
 					return this;
 				}
 			}
@@ -219,9 +218,9 @@ namespace nmath {
 		}
 		
 		//OR
-		for(i=0; i<list.size(); i++) {
-			itm = list[i]->andSelf(c);
-			list[i] = itm;
+		for(i=0; i<componentCriteria.size(); i++) {
+			itm = componentCriteria[i]->andSelf(c);
+			componentCriteria[i] = itm;
 		}
 		
 		return this;
@@ -240,12 +239,13 @@ namespace nmath {
 
 		out = new CompositeCriteria<T>();
 		out->setOperator(OR);
-		for (i = 0; i<list.size(); i++) {
+		for (i = 0; i<componentCriteria.size(); i++) {
 
-			if(list[i]->getCClassType() == SIMPLE) {
+			if(componentCriteria[i]->getCClassType() == SIMPLE) {
+        // TODO: what should be done here?
 			}
 
-			tmp = (*list[i]) & (Criteria<T>&)c;
+			tmp = (*componentCriteria[i]) & (Criteria<T>&)c;
 			if (tmp != nullptr) {
 				out->add(tmp);
 			}
@@ -271,8 +271,8 @@ namespace nmath {
 				//AND and OR
 				out = new CompositeCriteria<T>();
 				out->setOperator(OR);
-				for (i = 0; i<list.size(); i++) {
-					tmp = (*list[i]) & c;
+				for (i = 0; i<componentCriteria.size(); i++) {
+					tmp = (*componentCriteria[i]) & c;
 					if (tmp != nullptr) {
 						out->add(tmp);
 					}
@@ -400,7 +400,7 @@ namespace nmath {
 		out->setOperator(logicOp);
 
 		for (i = 0; i<mSize; i++) {
-			listIn = list[i]->getIntervalF(values, var, varCount);
+			listIn = componentCriteria[i]->getIntervalF(values, var, varCount);
 			if (listIn != NULL) {
 				out->add(listIn);
 			}
@@ -416,7 +416,7 @@ namespace nmath {
 		out->setOperator(logicOp);
 		
 		for (i = 0; i<mSize; i++) {
-			listIn = list[i]->getInterval(values, var, varCount);
+			listIn = componentCriteria[i]->getInterval(values, var, varCount);
 			if (listIn != NULL) {
 				out->add(listIn);
 			}
@@ -431,17 +431,17 @@ namespace nmath {
 		CompositeCriteria<T> *ncc;
 		SimpleCriteria<T> *sc;
 
-		for (i = 0; i<list.size(); i++) {
+		for (i = 0; i<componentCriteria.size(); i++) {
 			for (k = 0; k < variables.size(); k++) {
-				if (!list[i]->containsVar(variables[k]->text)){
+				if (!componentCriteria[i]->containsVar(variables[k]->text)){
 					sc = new SimpleCriteria<T>(GTE_LTE, variables[k]->text, (T)0, (T)0, true, true);
 					ncc = new CompositeCriteria<T>();
 					ncc->setOperator(AND);
 
-					ncc->add(list[i]);
+					ncc->add(componentCriteria[i]);
 					ncc->add(sc);
 
-					list[i] = ncc;
+					componentCriteria[i] = ncc;
 				}
 			}
 		}

@@ -5,6 +5,9 @@
 #endif
 #include "StringUtil.h"
 
+#define TRUE 1
+#define FALSE 0
+
 using namespace nmath;
 
 /*
@@ -63,13 +66,13 @@ bool nmath::isOneOf(char c, int numCh, ...) {
 	int i = 0;
 
 	while(i < numCh) {
-		char chAti = va_arg(args, char);
+		char chAti = va_arg(ap, int);
 		if(c == chAti) {
 			return true;
 		}
 		i++;
 	}
-	va_end(args);
+	va_end(ap);
 
 	return false;
 }

@@ -52,6 +52,8 @@ class VboObject {
 
       void setupArrayAttributes();
 
+      void setColor(const glm::vec4 &color);
+
       virtual ~VboObject();
 
       void release();

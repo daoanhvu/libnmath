@@ -31,7 +31,7 @@ namespace nmath{
 		bool parseSubtractSign(const char *mInputString, int mInputLen, int idx, int *type,
                                   vector<Token*> mList, int *outlen);
 		bool isFunctionName(const char *mInputString, int mInputLen, int index, int *outType, int *outlen);
-        bool isAName(const char* inStr, int inputLen, int idx, int *tlen);
+    bool isAName(const char* inStr, int inputLen, int idx, int *tlen);
 
     public:
 
