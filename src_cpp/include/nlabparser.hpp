@@ -129,9 +129,11 @@ namespace nmath {
                   l = k + 1;
                   item = parseDomain(tokens, &l, errorCode, errorColumn);
                   k = l;
+                  if (item != nullptr) {
+                    domain.push_back(item);
+                  }
                 }
               }
-              domain.push_back(item);
             } while ( errorCode==NMATH_NO_ERROR && k < tokenCount );
           }
         }
@@ -336,37 +338,21 @@ namespace nmath {
                * When we meet an arithmetic operator, let call it o1, 
                * C1: we check if there is an arithmetic operator o2
                * at the top of the stack and o2.priotiry >= o1.priority (*)
-               * then we take o2 out of the stack, and take operand1 and operand2 from postfix
-               * and do the calculate operand1 operator2 operand2 and then we push the result
-               * back to the postfix
+               * then we take o2 out of the stack, and put it into postfix
                * - Repeat (C1) until (*) not hold
                */ 
-              if(!stack.empty()) {
+              while(!stack.empty()) {
                 stTopItem = stack.top();
-                while(isAnOperatorType(stTopItem->type) && (stTopItem->priority) >= tk->priority) {
+                if(isAnOperatorType(stTopItem->type) && (stTopItem->priority) >= tk->priority) {
+                  stack.pop();
                   ast = nmastPool->get();
                   ast->type = stTopItem->type;
                   ast->text = stTopItem->text;
                   ast->column = stTopItem->column;
                   ast->priority = stTopItem->priority;
-
-                  // We will convert from RPN to Recursive Expression Tree later
-                  // int postfixSize = postfix.size();
-                  // ast->left = postfixSize - 2 >= 0 ? postfix[postfixSize - 2] : nullptr;
-                  // ast->right = postfixSize - 1 >= 0 ? postfix[postfixSize - 1] : nullptr;
-                  // if((ast->left)!=nullptr)
-                  //   (ast->left)->parent = ast;
-                  // if((ast->right)!=nullptr)
-                  //   (ast->right)->parent = ast;
-
                   postfix.push_back(ast);
-                  
-                  stack.pop();
-                  
-                  if(stack.empty())
-                    break;
-
-                  stTopItem = stack.top();
+                } else {
+                  break;
                 }
               }
               //push operation o1 (tk) into stack
@@ -391,13 +377,23 @@ namespace nmath {
               }
 
               stTopItem = stack.top();
+              stack.pop();
                 
               /* pop operator from stack until we see an LPAREN */
-              while( (!stack.empty()) && (stTopItem != nullptr) && (stTopItem->type != LPAREN) && !isAFunctionType(stTopItem->type) ) {
-                stack.pop();
+              while( (stTopItem != nullptr) && (stTopItem->type != LPAREN) && !isAFunctionType(stTopItem->type) ) {
                 addOperatorFunctionToPostfix<T>(postfix, stTopItem, nmastPool);
-                //free(stItm);
+
+                if(stack.empty()) {
+                  for (int i = 0; i<postfix.size(); i++)
+                    clearTree(&(postfix[i]));
+                  postfix.clear();
+                  *errorColumn = tk->column;
+                  *errorCode = ERROR_PARENTHESE_MISSING;
+                  return nullptr;
+                }
+
                 stTopItem = stack.top();
+                stack.pop();
               }
 
               /* got an opening-parenthese but can not find a closing-parenthese */
@@ -488,10 +484,6 @@ namespace nmath {
             *errorColumn = (tk != nullptr) ? tk->column : -1;
             return nullptr;
           }
-        }
-
-        while(!stack.empty()) {
-          stack.pop();
         }
 
         // TODO: Now we have a postfix expression, we need to convert it to a recursive expression tree
