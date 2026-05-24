@@ -26,21 +26,21 @@ NMAST<T>* cloneTree(NMAST<T> *t, NMAST<T> *cloneParent);
 template <typename T>
 NMAST<T>* d_product(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x);
 template <typename T>
-NMAST<T>* d_sin(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x);
+NMAST<T>* d_sin(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, string x);
 template <typename T>
-NMAST<T>* d_cos(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x);
+NMAST<T>* d_cos(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, string x);
 template <typename T>
-NMAST<T>* d_tan(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x);
+NMAST<T>* d_tan(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, string x);
 template <typename T>
-NMAST<T>* d_cotan(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x);
+NMAST<T>* d_cotan(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, string x);
 template <typename T>
-NMAST<T>* d_asin(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x);
+NMAST<T>* d_asin(NMAST<T> *t, NMAST<T> *v, NMAST<T> *dv, string x);
 template <typename T>
-NMAST<T>* d_acos(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x);
+NMAST<T>* d_acos(NMAST<T> *t, NMAST<T> *v, NMAST<T> *dv, string x);
 template <typename T>
-NMAST<T>* d_atan(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x);
+NMAST<T>* d_atan(NMAST<T> *t, NMAST<T> *v, NMAST<T> *dv, string x);
 template <typename T>
-NMAST<T>* d_sqrt(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x);
+NMAST<T>* d_sqrt(NMAST<T> *t, NMAST<T> *v, NMAST<T> *dv, string x);
 template <typename T>
 NMAST<T>* d_pow_exp(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x);
 template <typename T>
@@ -48,9 +48,7 @@ NMAST<T>* d_sum_subtract(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NM
 template <typename T>
 NMAST<T>* d_quotient(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x);
 template <typename T>
-NMAST<T>* d_ln(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x);
-template <typename T>
-bool isContainVar(NMAST<T> *t, string x);
+NMAST<T>* d_ln(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, string x);
 
 template <typename T> int reduce_plus(NMAST<T> *t);
 template <typename T> int reduce_multiply(NMAST<T> *t);
@@ -64,14 +62,14 @@ template <typename T> void* derivative(void *p);
 
 template <typename T>
 int calculate_function(NMAST<T>* t) {
-  
-  if(!isConstant(t->right->type)) {
+  const NMAST<T>* operand = unaryChild(t);
+  if (operand == nullptr || !isConstant(operand->type)) {
     return NMATH_NO_ERROR;
   }
   
   NMAST<T> *p;
   int error;
-  t->value = doCalculate<T>(0, t->right->value, t->type, &error);
+  t->value = doCalculate<T>(operand->value, (T)0, t->type, &error);
   if (error != 0) {
     return error;
   }
@@ -522,7 +520,7 @@ NMAST<T>* d_cos(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, string x){
 
 /* tan(v)' =  (sec(v)^2)*dv  */
 template <typename T>
-NMAST<T>* d_tan(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x){
+NMAST<T>* d_tan(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, string x){
   NMAST<T> *r;
   
   r = new NMAST<T>;
@@ -539,8 +537,8 @@ NMAST<T>* d_tan(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *d
   r->left->left->parent = r->left;
   r->left->left->type = SEC;
   
-  r->left->left->left = nullptr;
-  r->left->left->right = cloneTree(v, r->left->left);
+  r->left->left->left = cloneTree(u, r->left->left);
+  r->left->left->right = nullptr;
   
   r->left->right = new NMAST<T>;
   r->left->right->parent = r->left;
@@ -548,16 +546,16 @@ NMAST<T>* d_tan(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *d
   r->left->right->value = 2;
   r->left->right->sign = 1;
   
-  r->right = dv;
-  if (dv != nullptr)
-    dv->parent = r;
+  r->right = du;
+  if (du != nullptr)
+    du->parent = r;
   
   return r;
 }
 
 /* cotan(v)' = -(1 -sqrt(cotan(v))) * dv  */
 template <typename T>
-NMAST<T>* d_cotan(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x){
+NMAST<T>* d_cotan(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, string x){
   NMAST<T> *r;
   
   r = new NMAST<T>;
@@ -565,42 +563,44 @@ NMAST<T>* d_cotan(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> 
   r->sign = 1;
   r->parent = nullptr;
   
-  r->left = new NMAST<T>;
-  r->left->type = PLUS;
-  r->left->value = 1.0;
-  r->left->sign = -1;
-  r->left->parent = r;
+  NMAST<T> *rLeft = new NMAST<T>;
+  rLeft->type = PLUS;
+  rLeft->value = 1.0;
+  rLeft->sign = -1;
+  rLeft->parent = r;
+  r->left = rLeft;
   
-  r->left->left = new NMAST<T>;
-  r->left->left->type = NUMBER;
-  r->left->left->value = 1.0;
-  r->left->left->sign = 1;
-  r->left->left->parent = r->left;
+  rLeft->left = new NMAST<T>;
+  rLeft->left->type = NUMBER;
+  rLeft->left->value = 1.0;
+  rLeft->left->sign = 1;
+  rLeft->left->parent = rLeft;
   
-  r->left->right = new NMAST<T>;
-  r->left->right->type = SQRT;
-  r->left->right->value = 1.0;
-  r->left->right->sign = 1;
-  r->left->right->parent = r->left;
+  rLeft->right = new NMAST<T>;
+  rLeft->right->type = SQRT;
+  rLeft->right->value = 1.0;
+  rLeft->right->sign = 1;
+  rLeft->right->parent = rLeft;
   
-  r->left->right->left = new NMAST<T>;
-  r->left->right->left->type = COTAN;
-  r->left->right->left->value = 1.0;
-  r->left->right->left->sign = 1;
-  r->left->right->left->parent = r->left->right;
+  rLeft->right->left = new NMAST<T>;
+  rLeft->right->left->type = COTAN;
+  rLeft->right->left->value = 1.0;
+  rLeft->right->left->sign = 1;
+  rLeft->right->left->parent = rLeft->right;
   
-  r->left->right->left->left = cloneTree(v, r->left->right->left);
+  rLeft->right->left->left = cloneTree(u, rLeft->right->left);
   
-  r->right = dv;
-  if (dv != nullptr)
-    dv->parent = r;
+  r->right = du;
+  if (du != nullptr) {
+    du->parent = r;
+  }
   
   return r;
 }
 
 /* arcsin(v)' = (1/sqrt(1-v^2))*dv */
 template <typename T>
-NMAST<T>* d_asin(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x){
+NMAST<T>* d_asin(NMAST<T> *t, NMAST<T> *v, NMAST<T> *dv, string x){
   NMAST<T> *r;
   r = new NMAST<T>;
   r->type = MULTIPLY;
@@ -623,33 +623,33 @@ NMAST<T>* d_asin(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *
   r->left->right = new NMAST<T>;
   r->left->right->type = SQRT;
   r->left->right->parent = r->left;
-  r->left->right->left = nullptr;
+  r->left->right->right = nullptr;
   
-  r->left->right->right = new NMAST<T>;
-  r->left->right->right->type = MINUS;
-  r->left->right->right->parent = r->left->right;
+  r->left->right->left = new NMAST<T>;
+  r->left->right->left->type = MINUS;
+  r->left->right->left->parent = r->left->right;
   
-  r->left->right->right->left = new NMAST<T>;
-  r->left->right->right->left->type = NUMBER;
-  r->left->right->right->left->value = 1;
-  r->left->right->right->left->sign = 1;
-  r->left->right->right->left->parent = r->left->right->right;
-  r->left->right->right->left->left = r->left->right->right->left->right = nullptr;
+  r->left->right->left->left = new NMAST<T>;
+  r->left->right->left->left->type = NUMBER;
+  r->left->right->left->left->value = 1;
+  r->left->right->left->left->sign = 1;
+  r->left->right->left->left->parent = r->left->right->left;
+  r->left->right->left->left->left = r->left->right->left->left->right = nullptr;
   
-  r->left->right->right->right = new NMAST<T>;
-  r->left->right->right->right->type = POWER;
-  r->left->right->right->right->value = 0;
-  r->left->right->right->right->sign = 1;
-  r->left->right->right->right->parent = r->left->right->right;
+  r->left->right->left->right = new NMAST<T>;
+  r->left->right->left->right->type = POWER;
+  r->left->right->left->right->value = 0;
+  r->left->right->left->right->sign = 1;
+  r->left->right->left->right->parent = r->left->right->left;
   
-  r->left->right->right->right->left = cloneTree(v, r->left->right->right->right);
+  r->left->right->left->right->left = cloneTree(v, r->left->right->left->right);
   
-  r->left->right->right->right->right = new NMAST<T>;
-  r->left->right->right->right->right->type = NUMBER;
-  r->left->right->right->right->right->value = 2;
-  r->left->right->right->right->right->sign = 1;
-  r->left->right->right->right->right->parent = r->left->right->right->right;
-  r->left->right->right->right->right->left = r->left->right->right->right->right->right = nullptr;
+  r->left->right->left->right->right = new NMAST<T>;
+  r->left->right->left->right->right->type = NUMBER;
+  r->left->right->left->right->right->value = 2;
+  r->left->right->left->right->right->sign = 1;
+  r->left->right->left->right->right->parent = r->left->right->left->right;
+  r->left->right->left->right->right->left = r->left->right->left->right->right->right = nullptr;
   
   r->right = dv;
   if (dv != nullptr)
@@ -659,7 +659,7 @@ NMAST<T>* d_asin(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *
 
 /* arccos(v)' = (-1/sqrt(1-v^2))*dv */
 template <typename T>
-NMAST<T>* d_acos(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x){
+NMAST<T>* d_acos(NMAST<T> *t, NMAST<T> *v, NMAST<T> *dv, string x){
   NMAST<T> *r;
   r = new NMAST<T>;
   r->type = MULTIPLY;
@@ -683,34 +683,34 @@ NMAST<T>* d_acos(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *
   r->left->right->sign = 1;
   r->left->right->type = SQRT;
   r->left->right->parent = r->left;
-  r->left->right->left = nullptr;
+  r->left->right->right = nullptr;
   
-  r->left->right->right = new NMAST<T>;
-  r->left->right->right->sign = 1;
-  r->left->right->right->type = MINUS;
-  r->left->right->right->parent = r->left->right;
+  r->left->right->left = new NMAST<T>;
+  r->left->right->left->sign = 1;
+  r->left->right->left->type = MINUS;
+  r->left->right->left->parent = r->left->right;
   
-  r->left->right->right->left = new NMAST<T>;
-  r->left->right->right->left->type = NUMBER;
-  r->left->right->right->left->value = 1;
-  r->left->right->right->left->sign = 1;
-  r->left->right->right->left->parent = r->left->right->right;
-  r->left->right->right->left->left = r->left->right->right->left->right = nullptr;
+  r->left->right->left->left = new NMAST<T>;
+  r->left->right->left->left->type = NUMBER;
+  r->left->right->left->left->value = 1;
+  r->left->right->left->left->sign = 1;
+  r->left->right->left->left->parent = r->left->right->left;
+  r->left->right->left->left->left = r->left->right->left->left->right = nullptr;
   
-  r->left->right->right->right = new NMAST<T>;
-  r->left->right->right->right->type = POWER;
-  r->left->right->right->right->value = 0;
-  r->left->right->right->right->sign = 1;
-  r->left->right->right->right->parent = r->left->right->right;
+  r->left->right->left->right = new NMAST<T>;
+  r->left->right->left->right->type = POWER;
+  r->left->right->left->right->value = 0;
+  r->left->right->left->right->sign = 1;
+  r->left->right->left->right->parent = r->left->right->left;
   
-  r->left->right->right->right->left = cloneTree(v, r->left->right->right->right);
+  r->left->right->left->right->left = cloneTree(v, r->left->right->left->right);
   
-  r->left->right->right->right->right = new NMAST<T>;
-  r->left->right->right->right->right->type = NUMBER;
-  r->left->right->right->right->right->value = 2;
-  r->left->right->right->right->right->sign = 1;
-  r->left->right->right->right->right->parent = r->left->right->right->right;
-  r->left->right->right->right->right->left = r->left->right->right->right->right->right = nullptr;
+  r->left->right->left->right->right = new NMAST<T>;
+  r->left->right->left->right->right->type = NUMBER;
+  r->left->right->left->right->right->value = 2;
+  r->left->right->left->right->right->sign = 1;
+  r->left->right->left->right->right->parent = r->left->right->left->right;
+  r->left->right->left->right->right->left = r->left->right->left->right->right->right = nullptr;
   
   r->right = dv;
   if (dv != nullptr)
@@ -720,7 +720,7 @@ NMAST<T>* d_acos(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *
 
 /* arctan(v)' = (1/(v^2+1))*dv */
 template <typename T>
-NMAST<T>* d_atan(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x){
+NMAST<T>* d_atan(NMAST<T> *t, NMAST<T> *v, NMAST<T> *dv, string x){
   NMAST<T> *r;
   r = new NMAST<T>;
   r->type = MULTIPLY;
@@ -883,6 +883,9 @@ NMAST<T>* d_sum_subtract(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NM
   return r;
 }
 
+/**
+ * (u^v) = u^v(v*(u'/u) + v'ln(u))
+ */
 template <typename T>
 NMAST<T>* d_pow_exp(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x){
   NMAST<T> *r;
@@ -957,8 +960,8 @@ NMAST<T>* d_pow_exp(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T
     ((r->left)->left)->value = 0;
     ((r->left)->left)->sign = 1;
     ((r->left)->left)->parent = r->left;
-    ((r->left)->left)->left = nullptr;
-    ((r->left)->left)->right = cloneTree(u, (r->left)->left);
+    ((r->left)->left)->right = nullptr;
+    ((r->left)->left)->left = cloneTree(u, (r->left)->left);
     
     (r->left)->right = new NMAST<T>;
     ((r->left)->right)->type = POWER;
@@ -1003,8 +1006,8 @@ NMAST<T>* d_pow_exp(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T
     ((r->left)->left)->right = new NMAST<T>;
     ((r->left)->left)->right->sign = 1;
     ((r->left)->left)->right->type = LN;
-    ((r->left)->left)->right->left = nullptr;
-    ((r->left)->left)->right->right = cloneTree(u, ((r->left)->left)->right);
+    ((r->left)->left)->right->right = nullptr;
+    ((r->left)->left)->right->left = cloneTree(u, ((r->left)->left)->right);
     
     (r->left)->right = new NMAST<T>;
     ((r->left)->right)->type = MULTIPLY;
@@ -1038,7 +1041,7 @@ NMAST<T>* d_pow_exp(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T
 
 /* (sqrt(v))' = dv/(2*sqrt(v)) */
 template <typename T>
-NMAST<T>* d_sqrt(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x){
+NMAST<T>* d_sqrt(NMAST<T> *t, NMAST<T> *v, NMAST<T> *dv, string x){
   NMAST<T> *r;
   
   r = new NMAST<T>;
@@ -1068,9 +1071,23 @@ NMAST<T>* d_sqrt(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *
   return r;
 }
 
+/**
+ * (ln(u))' = u'/u
+ */
 template <typename T>
-NMAST<T>* d_ln(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, NMAST<T> *v, NMAST<T> *dv, string x){
-  return nullptr;
+NMAST<T>* d_ln(NMAST<T> *t, NMAST<T> *u, NMAST<T> *du, string x) {
+  NMAST<T> *d = new NMAST<T>;
+  d->type = DIVIDE;
+  d->sign = 1;
+  d->parent = nullptr;
+
+  d->left = du;
+  du->parent = d;
+
+  d->right = cloneTree(u, d);
+  d->right->parent = d;
+
+  return d;
 }
 
 template <typename T>
@@ -1148,22 +1165,31 @@ void* reduce_t(void *param) {
         dp->error = calculate_function(dp->t);
         break;
         
-      case LN:
-        if(dp->t->right->type == E_TYPE && dp->t->right->sign == 1 ) {
+      case LN: {
+        const NMAST<T>* lnArg = unaryChild(dp->t);
+        if (lnArg != nullptr && lnArg->type == E_TYPE && lnArg->sign == 1) {
           
           dp->t->type = NUMBER;
           dp->t->text = "1";
           dp->t->value = (T)1;
           dp->t->priority = 0;
           
-          p = dp->t->right;
-          dp->t->right = nullptr;
-          delete p;
+          if (dp->t->left != nullptr) {
+            p = dp->t->left;
+            dp->t->left = nullptr;
+            delete p;
+          }
+          if (dp->t->right != nullptr) {
+            p = dp->t->right;
+            dp->t->right = nullptr;
+            delete p;
+          }
           
           return &(dp->error);
         }
         dp->error = calculate_function(dp->t);
         break;
+      }
         
       case SQRT:
         dp->error = calculate_function(dp->t);
@@ -1248,7 +1274,15 @@ void* calc_t(void *param){
     return dp->error;
     }*/
       
-  dp->retv = t->sign * doCalculate(this_param_left.retv, this_param_right.retv, t->type, &(dp->error));
+  if (isUnaryFunctionType(t->type)) {
+    T operand = (t->left != nullptr) ? this_param_left.retv : this_param_right.retv;
+    dp->retv = t->sign * doCalculate(operand, (T)0, t->type, &(dp->error));
+  } else if (t->type == ABSOLUTE) {
+    T operand = (t->left != nullptr) ? this_param_left.retv : this_param_right.retv;
+    dp->retv = t->sign * doCalculate(operand, (T)0, t->type, &(dp->error));
+  } else {
+    dp->retv = t->sign * doCalculate(this_param_left.retv, this_param_right.retv, t->type, &(dp->error));
+  }
   return &(dp->error);
 }
     
@@ -1357,31 +1391,31 @@ void* calc_t(void *param){
         return dp->returnValue;
           
       case TAN:
-        dp->returnValue = d_tan(t, u, du, v, dv, dp->variables[0]);
+        dp->returnValue = d_tan(t, u, du, dp->variables[0]);
         return dp->returnValue;
         
       case COTAN:
-        dp->returnValue = d_cotan(t, u, du, v, dv, dp->variables[0]);
+        dp->returnValue = d_cotan(t, u, du, dp->variables[0]);
         return dp->returnValue;
         
       case ASIN:
-        dp->returnValue = d_asin(t, u, du, v, dv, dp->variables[0]);
+        dp->returnValue = d_asin(t, u, du, x);
         return dp->returnValue;
         
       case ACOS:
-        dp->returnValue = d_acos(t, u, du, v, dv, dp->variables[0]);
+        dp->returnValue = d_acos(t, u, du, x);
         return dp->returnValue;
         
       case ATAN:
-        dp->returnValue = d_atan(t, u, du, v, dv, dp->variables[0]);
+        dp->returnValue = d_atan(t, u, du, x);
         return dp->returnValue;
         
       case SQRT:
-        dp->returnValue = d_sqrt(t, u, du, v, dv, x);
+        dp->returnValue = d_sqrt(t, u, du, x);
         return dp->returnValue;
         
       case LN:
-        dp->returnValue = d_ln(t, u, du, v, dv, x);
+        dp->returnValue = d_ln(t, u, du, x);
         return dp->returnValue;
           
       case PLUS:

@@ -6,6 +6,8 @@
 namespace nmath {
     char getPriorityOfType(int type);
     bool isAFunctionType(int type);
+    /// Unary functions (operand on left); excludes binary LOG.
+    bool isUnaryFunctionType(int type);
     bool isAnOperatorType(int type);
     bool isFunctionOROperator(int type);
     bool isComparationOperator(int type);

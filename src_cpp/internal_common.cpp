@@ -47,6 +47,10 @@ bool nmath::isAFunctionType(int type){
   return false;
 }
 
+bool nmath::isUnaryFunctionType(int type) {
+  return isAFunctionType(type) && type != LOG;
+}
+
 bool nmath::isAnOperatorType(int type){
   int i;
   for(i=0; i<OPERATOR_COUNT; i++)

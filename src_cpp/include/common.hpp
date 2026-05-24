@@ -211,87 +211,107 @@ namespace nmath {
         return 0;
     }
 
-    template <typename T>
-    T doCalculate(T val1, T val2, int type, int *error) {
-        (*error) = 0;
-        switch(type){
-            case PLUS:
-                /*printf("%lf+%lf=%lf\n", val1, val2, val1 + val2);*/
-                return val1 + val2;
+  /// Operand of a unary function/operator (left child preferred; right for legacy trees).
+  template <typename T>
+  const NMAST<T>* unaryChild(const NMAST<T>* t) {
+    if (t == nullptr) {
+      return nullptr;
+    }
+    if (t->left != nullptr) {
+      return t->left;
+    }
+    return t->right;
+  }
 
-            case MINUS:
-                /*printf("%lf-%lf=%lf\n", val1, val2, val1 - val2);*/
-                return val1 - val2;
+  template <typename T>
+  T doCalculate(T val1, T val2, int type, int *error) {
+    (*error) = 0;
+    switch(type){
+      case PLUS:
+        /*printf("%lf+%lf=%lf\n", val1, val2, val1 + val2);*/
+        return val1 + val2;
 
-            case MULTIPLY:
-                /*printf("%lf*%lf=%lf\n", val1, val2, val1 * val2);*/
-                return val1 * val2;
+      case MINUS:
+        /*printf("%lf-%lf=%lf\n", val1, val2, val1 - val2);*/
+        return val1 - val2;
 
-            case DIVIDE:
-                if(val2 == 0.0){
-                    (*error) = ERROR_DIV_BY_ZERO;
-                    return 0;
-                }
-                return val1/val2;
+      case MULTIPLY:
+        /*printf("%lf*%lf=%lf\n", val1, val2, val1 * val2);*/
+        return val1 * val2;
 
-            case POWER:
-                return pow(val1, val2);
-
-            case LOG:
-                return logab(val1, val2, error);
-
-            case LN:
-                return log(val2);
-
-            case SIN:
-                return sin(val2);
-
-            case ASIN:
-                return asin(val2);
-
-            case COS:
-                return cos(val2);
-
-            case ACOS:
-                return acos(val2);
-
-            case ABSOLUTE:
-                return (val2<0)?(-val2):val2;
-
-            case COTAN:
-                if((val2 == (T)0) || (val2 == (T)PI)){
-                    (*error) = ERROR_DIV_BY_ZERO;
-                    return 0;
-                }
-                return cos(val2)/sin(val2);
-
-            case TAN:
-                if(val2==PI/2){
-                    (*error) = ERROR_DIV_BY_ZERO;
-                    return 0;
-                }
-                return tan(val2);
-
-            case ATAN:
-                return atan(val2);
-
-            case SEC:
-                if(val2==PI/2){
-                    (*error) = ERROR_DIV_BY_ZERO;
-                    return 0;
-                }
-                return 1/cos(val2);
-
-            case SQRT:
-                if(val2 < 0){
-                    (*error) = ERROR_OUT_OF_DOMAIN;
-                    return 0;
-                }
-                return sqrt(val2);
-
-            default:
-                return 0;
+      case DIVIDE:
+        if(val2 == 0.0){
+          (*error) = ERROR_DIV_BY_ZERO;
+          return 0;
         }
+        return val1/val2;
+
+      case POWER:
+        return pow(val1, val2);
+
+      case LOG:
+        return logab(val1, val2, error);
+
+      case LN:
+        return log(val1);
+
+      case SIN:
+        return sin(val1);
+
+      case ASIN:
+        return asin(val1);
+
+      case COS:
+        return cos(val1);
+
+      case ACOS:
+        return acos(val1);
+
+      case ABSOLUTE:
+        return (val1 < 0) ? (-val1) : val1;
+
+      case COTAN:
+        if((val1 == (T)0) || (val1 == (T)PI)){
+          (*error) = ERROR_DIV_BY_ZERO;
+          return 0;
+        }
+        return cos(val1)/sin(val1);
+
+      case TAN:
+        if(val1 == PI/2){
+          (*error) = ERROR_DIV_BY_ZERO;
+          return 0;
+        }
+        return tan(val1);
+
+      case ATAN:
+        return atan(val1);
+
+      case SEC:
+        if(val1 == PI/2){
+          (*error) = ERROR_DIV_BY_ZERO;
+          return 0;
+        }
+        return 1/cos(val1);
+
+      case SQRT:
+        if(val1 < 0){
+          (*error) = ERROR_OUT_OF_DOMAIN;
+          return 0;
+        }
+        return sqrt(val1);
+
+      default:
+        return 0;
+      }
+    }
+
+    template <typename IT, typename FT>
+    void toStringUnaryOperand(const NMAST<FT> *t, char *str, int *curpos, int len) {
+      const NMAST<FT> *arg = unaryChild(t);
+      if (arg != nullptr) {
+        toString<IT, FT>(arg, str, curpos, len);
+      }
     }
 
     template <typename IT, typename FT>
@@ -378,8 +398,7 @@ namespace nmath {
                 str[(*curpos) + 3] = '(';
                 (*curpos) += 4;
 
-                if (t->right != nullptr)
-                    toString<IT,FT>(t->right, str, curpos, len);
+                toStringUnaryOperand<IT, FT>(t, str, curpos, len);
                 str[(*curpos)] = ')';
                 (*curpos)++;
                 break;
@@ -393,8 +412,7 @@ namespace nmath {
                 str[(*curpos) + 4] = '(';
                 (*curpos) += 5;
 
-                if (t->right != nullptr)
-                    toString<IT, FT>(t->right, str, curpos, len);
+                toStringUnaryOperand<IT, FT>(t, str, curpos, len);
 
                 str[(*curpos)] = ')';
                 (*curpos)++;
@@ -408,8 +426,7 @@ namespace nmath {
                 str[(*curpos) + 3] = '(';
                 (*curpos) += 4;
 
-                if (t->right != nullptr)
-                    toString<IT,FT>(t->right, str, curpos, len);
+                toStringUnaryOperand<IT, FT>(t, str, curpos, len);
 
                 str[(*curpos)] = ')';
                 (*curpos)++;
@@ -424,8 +441,7 @@ namespace nmath {
                 str[(*curpos) + 4] = '(';
                 (*curpos) += 5;
 
-                if (t->right != nullptr)
-                    toString<IT,FT>(t->right, str, curpos, len);
+                toStringUnaryOperand<IT, FT>(t, str, curpos, len);
 
                 str[(*curpos)] = ')';
                 (*curpos)++;
@@ -440,8 +456,7 @@ namespace nmath {
                 str[(*curpos) + 4] = '(';
                 (*curpos) += 5;
 
-                if (t->right != nullptr)
-                    toString<IT,FT>(t->right, str, curpos, len);
+                toStringUnaryOperand<IT, FT>(t, str, curpos, len);
 
                 str[(*curpos)] = ')';
                 (*curpos)++;
@@ -454,8 +469,7 @@ namespace nmath {
                 str[(*curpos) + 2] = '(';
                 (*curpos) += 3;
 
-                if (t->right != nullptr)
-                    toString<IT,FT>(t->right, str, curpos, len);
+                toStringUnaryOperand<IT, FT>(t, str, curpos, len);
 
                 str[(*curpos)] = ')';
                 (*curpos)++;
@@ -484,8 +498,7 @@ namespace nmath {
                 str[(*curpos) + 3] = 't';
                 str[(*curpos) + 4] = '(';
                 (*curpos) += 5;
-                if (t->right != nullptr)
-                    toString<IT,FT>(t->right, str, curpos, len);
+                toStringUnaryOperand<IT, FT>(t, str, curpos, len);
                 str[(*curpos)] = ')';
                 (*curpos)++;
                 break;
@@ -497,8 +510,7 @@ namespace nmath {
                 str[(*curpos) + 2] = 'c';
                 str[(*curpos) + 3] = '(';
                 (*curpos) += 4;
-                if (t->right != nullptr)
-                    toString<IT,FT>(t->right, str, curpos, len);
+                toStringUnaryOperand<IT, FT>(t, str, curpos, len);
                 str[(*curpos)] = ')';
                 (*curpos)++;
                 break;
