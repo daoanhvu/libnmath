@@ -10,9 +10,11 @@
 #include "SimpleCriteria.hpp"
 #include "vbo_objects.h"
 #include "builtin/cone.hpp"
+#include "builtin/game/tank.hpp"
 
 // extended token types
 #define TYPE_CONE 		0x00010005
+#define TYPE_TANK 		0x00010006
 
 #define TYPE_ACTION_UP 		    0x00010015
 #define TYPE_ACTION_DOWN 		  0x00010016
@@ -83,6 +85,8 @@ private:
 
     VboObject* createCone(float height, float radius, float capRadius, int stacks, int capStacks,
       float red, float green, float blue, float alpha);
+
+    VboObject* createTank(float turretDegrees, float gunDegrees, const float *color);
       
     int createMesh(const vector<nmath::Token*> &tokens, const float *values, float epsilon, const float *color, std::vector<VboObject*> &results);
 };

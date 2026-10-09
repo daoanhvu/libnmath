@@ -114,7 +114,7 @@ void renderMeshes(std::vector<VboObject*>& meshes, const ShaderVarLocation &loca
   // glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(model)));
   // glUniformMatrix3fv(locations.normalMatrixId, 1, GL_FALSE, glm::value_ptr(normalMatrix));
   for (auto& mesh : meshes) {
-    // For testing purposes
+    // TODO: For testing purposes
     // smoothly rotate the mesh around the axis (0.5f, 1.0f, 0.0f)
     mesh->applyRotation(0.01f, glm::vec3(0.5f, 1.0f, 0.0f));
 
