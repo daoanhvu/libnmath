@@ -11,10 +11,12 @@
 #include "vbo_objects.h"
 #include "builtin/cone.hpp"
 #include "builtin/game/tank/tank.hpp"
+#include "builtin/game/vehicles/us_vehicles.hpp"
 
 // extended token types
 #define TYPE_CONE 		0x00010005
 #define TYPE_TANK 		0x00010006
+#define TYPE_VEHICLE 	0x00010007
 
 #define TYPE_ACTION_UP 		    0x00010015
 #define TYPE_ACTION_DOWN 		  0x00010016
@@ -87,6 +89,10 @@ private:
       float red, float green, float blue, float alpha);
 
     VboObject* createTank(float turretDegrees, float gunDegrees, const float *color);
+
+    VboObject* createVehicle(const UsVehicleInfo &info, float turretDegrees, float gunDegrees);
+
+    bool parseAngleArguments(const std::vector<nmath::Token*> &arguments, float &turretDegrees, float &gunDegrees);
       
     int createMesh(const vector<nmath::Token*> &tokens, const float *values, float epsilon, const float *color, std::vector<VboObject*> &results);
 };

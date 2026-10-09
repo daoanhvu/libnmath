@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../src_cpp"
+		}
+	],
+  "settings": {
+    "files.associations": {
+      "__bit_reference": "cpp"
+    }
+  }
+}

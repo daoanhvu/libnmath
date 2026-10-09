@@ -28,6 +28,8 @@ nmath::Token* transformToken(nmath::Token* token) {
       token->type = TYPE_CONE;
     } else if (strcmp(token->text, "tank") == 0) {
       token->type = TYPE_TANK;
+    } else if (findUsVehicleByCommand(token->text) != nullptr) {
+      token->type = TYPE_VEHICLE;
     } else if (strcmp(token->text, "up") == 0) {
       token->type = TYPE_ACTION_UP;
     } else if (strcmp(token->text, "down") == 0) {
@@ -98,7 +100,8 @@ void CommandHandler::parseCommand(const vector<nmath::Token*> &tokens, const flo
     switch(token->type) {
       case TYPE_CONE:
       case TYPE_TANK:
-        // Handle cone / tank function
+      case TYPE_VEHICLE:
+        // Handle cone / tank / vehicle function
         tokenStack.push(token);
         break;
       case TYPE_ACTION_UP:
@@ -190,26 +193,23 @@ void CommandHandler::parseCommand(const vector<nmath::Token*> &tokens, const flo
           tempList.clear();
         } else if (topToken->type == TYPE_TANK) {
           // tank() or tank(turretDegrees) or tank(turretDegrees, gunDegrees)
-          // tempList holds the arguments in reverse order
           float turretDegrees = 0.0f;
           float gunDegrees = 0.0f;
-          if (!tempList.empty()) {
-            nmath::Token* turretToken = tempList[tempList.size() - 1];
-            turretDegrees = nmath::parseDouble<float>(turretToken->text, 0, turretToken->textLength, &errorCode);
-            if (errorCode != NMATH_NO_ERROR) {
-              std::cerr << "Error parsing turret angle: " << errorCode << std::endl;
-              return;
-            }
-          }
-          if (tempList.size() >= 2) {
-            nmath::Token* gunToken = tempList[tempList.size() - 2];
-            gunDegrees = nmath::parseDouble<float>(gunToken->text, 0, gunToken->textLength, &errorCode);
-            if (errorCode != NMATH_NO_ERROR) {
-              std::cerr << "Error parsing gun angle: " << errorCode << std::endl;
-              return;
-            }
+          if (!parseAngleArguments(tempList, turretDegrees, gunDegrees)) {
+            return;
           }
           results.push_back(createTank(turretDegrees, gunDegrees, color));
+          tempList.clear();
+        } else if (topToken->type == TYPE_VEHICLE) {
+          // sepv3, sepv4, booker, m88, m1a2d, mpf, ampv, bradley with (turretDegrees, gunDegrees)
+          // For m88 the angles turn the commander's cupola and raise the crane boom
+          const UsVehicleInfo *info = findUsVehicleByCommand(topToken->text);
+          float turretDegrees = 0.0f;
+          float gunDegrees = 0.0f;
+          if (info == nullptr || !parseAngleArguments(tempList, turretDegrees, gunDegrees)) {
+            return;
+          }
+          results.push_back(createVehicle(*info, turretDegrees, gunDegrees));
           tempList.clear();
         }
         break;
@@ -279,6 +279,46 @@ VboObject* CommandHandler::createTank(float turretDegrees, float gunDegrees, con
   vboObject->initialize(vertices.data(), vertices.size(), vertexCount, colors.data(), indices.data(), indices.size(), 3);
   vboObject->setName("Tank");
   return vboObject;
+}
+
+VboObject* CommandHandler::createVehicle(const UsVehicleInfo &info, float turretDegrees, float gunDegrees) {
+  std::unique_ptr<ArmoredVehicle> vehicle =
+      createUsVehicle(info.type, turretDegrees * M_PI / 180.0f, gunDegrees * M_PI / 180.0f);
+  std::vector<float> vertices;
+  std::vector<unsigned short> indices;
+  std::vector<float> colors;
+  int vertexCount = vehicle->generateMesh(vertices, indices, colors);
+  std::cout << "Done generating " << info.displayName << " with vertex count = " << vertexCount << std::endl;
+
+  VboObject* vboObject = new VboObject(locations, GL_TRIANGLES);
+  vboObject->initialize(vertices.data(), vertices.size(), vertexCount, colors.data(), indices.data(), indices.size(), 3);
+  vboObject->setName(info.displayName);
+  return vboObject;
+}
+
+/**
+ * Reads up to two optional angles in degrees: (turret) or (turret, gun).
+ * arguments holds the tokens between the parentheses in reverse order.
+ */
+bool CommandHandler::parseAngleArguments(const std::vector<nmath::Token*> &arguments, float &turretDegrees,
+    float &gunDegrees) {
+  if (!arguments.empty()) {
+    nmath::Token* turretToken = arguments[arguments.size() - 1];
+    turretDegrees = nmath::parseDouble<float>(turretToken->text, 0, turretToken->textLength, &errorCode);
+    if (errorCode != NMATH_NO_ERROR) {
+      std::cerr << "Error parsing turret angle: " << errorCode << std::endl;
+      return false;
+    }
+  }
+  if (arguments.size() >= 2) {
+    nmath::Token* gunToken = arguments[arguments.size() - 2];
+    gunDegrees = nmath::parseDouble<float>(gunToken->text, 0, gunToken->textLength, &errorCode);
+    if (errorCode != NMATH_NO_ERROR) {
+      std::cerr << "Error parsing gun angle: " << errorCode << std::endl;
+      return false;
+    }
+  }
+  return true;
 }
 
 int CommandHandler::createMesh(const vector<nmath::Token *> &tokens, 

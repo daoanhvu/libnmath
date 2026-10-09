@@ -66,6 +66,10 @@ struct TankPalette {
   static TankPalette defaultPalette() {
     return fromHullColor(0.33f, 0.38f, 0.22f);
   }
+
+  static TankPalette desertTan() {
+    return fromHullColor(0.74f, 0.64f, 0.45f);
+  }
 };
 
 /**
