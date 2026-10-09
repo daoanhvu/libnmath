@@ -10,8 +10,61 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <cmath>
+#include <limits>
 
 #include "vbo_objects.h"
+
+namespace {
+
+const float MIN_SCALE = 0.001f;
+
+// Two-sided Moller-Trumbore ray/triangle intersection
+bool rayIntersectsTriangle(const glm::vec3 &origin, const glm::vec3 &direction,
+      const glm::vec3 &v0, const glm::vec3 &v1, const glm::vec3 &v2, float &t) {
+  glm::vec3 edge1 = v1 - v0;
+  glm::vec3 edge2 = v2 - v0;
+  glm::vec3 p = glm::cross(direction, edge2);
+  float det = glm::dot(edge1, p);
+  if (std::fabs(det) < 1e-12f) {
+    return false;
+  }
+  float invDet = 1.0f / det;
+  glm::vec3 s = origin - v0;
+  float u = glm::dot(s, p) * invDet;
+  if (u < 0.0f || u > 1.0f) {
+    return false;
+  }
+  glm::vec3 q = glm::cross(s, edge1);
+  float v = glm::dot(direction, q) * invDet;
+  if (v < 0.0f || u + v > 1.0f) {
+    return false;
+  }
+  t = glm::dot(edge2, q) * invDet;
+  return t > 0.0f;
+}
+
+bool rayIntersectsBox(const glm::vec3 &origin, const glm::vec3 &direction,
+      const glm::vec3 &boxMin, const glm::vec3 &boxMax) {
+  float tMin = 0.0f;
+  float tMax = std::numeric_limits<float>::max();
+  for (int axis = 0; axis < 3; axis++) {
+    float invD = 1.0f / direction[axis];
+    float t0 = (boxMin[axis] - origin[axis]) * invD;
+    float t1 = (boxMax[axis] - origin[axis]) * invD;
+    if (invD < 0.0f) {
+      std::swap(t0, t1);
+    }
+    tMin = t0 > tMin ? t0 : tMin;
+    tMax = t1 < tMax ? t1 : tMax;
+    if (tMax < tMin) {
+      return false;
+    }
+  }
+  return true;
+}
+
+}
 
 VboObject::VboObject(ShaderVarLocation locations, GLuint drawType) {
   vaoId = 0;
@@ -19,19 +72,22 @@ VboObject::VboObject(ShaderVarLocation locations, GLuint drawType) {
   colorVbo = 0;
   elementBufferObject = 0;
   indexCount = 0;
+  verticeCount = 0;
   this->locations = locations;
   this->drawType = drawType;
   this->isReadyForRendering = false;
-  this->rotationMatrix = glm::mat4(1.0f);
-  this->translationMatrix = glm::mat4(1.0f);
-  this->scaleMatrix = glm::mat4(1.0f);
+  this->position = glm::vec3(0.0f);
+  this->rotationDegrees = glm::vec3(0.0f);
+  this->scale = glm::vec3(1.0f);
   this->positionOffset = 0;
   this->normalOffset = -1;
   this->colorOffset = 0;
   this->strideInBytes = 3 * sizeof(float);
   this->colorStrideInBytes = 4 * sizeof(float);
+  this->boundsMin = glm::vec3(0.0f);
+  this->boundsMax = glm::vec3(0.0f);
 
-  this->isSelected = false;
+  this->selected = false;
   this->frameVaoId = 0;
   this->frameVboId = 0;
   this->frameColorVboId = 0;
@@ -51,12 +107,22 @@ VboObject::VboObject(ShaderVarLocation locations, GLuint drawType) {
  */
 void VboObject::initialize(const float* vertices, unsigned int dataSize, unsigned int _vertexCount,
               const float* colors, const unsigned short* triangleTripIndices, unsigned int _indexCount, 
-                          unsigned int _normalOffset) {
+                          int _normalOffset) {
   this->isReadyForRendering = false;
   this->normalOffset = _normalOffset;
   this->verticeCount = _vertexCount;
   this->indexCount = _indexCount;
   this->strideInBytes = normalOffset >= 0 ? 6 * sizeof(float) : 3 * sizeof(float);
+
+  unsigned int floatsPerVertex = this->strideInBytes / sizeof(float);
+  cpuPositions.clear();
+  cpuPositions.reserve(_vertexCount * 3);
+  for (unsigned int i = 0; i < _vertexCount && (i * floatsPerVertex + 2) < dataSize; i++) {
+    cpuPositions.push_back(vertices[i * floatsPerVertex]);
+    cpuPositions.push_back(vertices[i * floatsPerVertex + 1]);
+    cpuPositions.push_back(vertices[i * floatsPerVertex + 2]);
+  }
+  cpuIndices.assign(triangleTripIndices, triangleTripIndices + (triangleTripIndices != nullptr ? _indexCount : 0));
 
   glGenVertexArrays(1, &vaoId);
   glBindVertexArray(vaoId);
@@ -78,7 +144,7 @@ void VboObject::initialize(const float* vertices, unsigned int dataSize, unsigne
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferObject);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexCount * sizeof(unsigned short), triangleTripIndices, GL_STATIC_DRAW);
 
-  this->buildCuboidFrame(vertices, dataSize, _vertexCount);
+  this->buildCuboidFrame();
 }
 
 void VboObject::setColor(const glm::vec4 &color) {
@@ -113,29 +179,30 @@ void VboObject::setColor(const glm::vec4 &color) {
 }
 
 /**
- * @brief Build a cuboid frame, that wraps around this VBO object
- * 
- * @param vertices 
- * @param dataSize 
- * @param _vertexCount 
+ * @brief Build a cuboid frame, that wraps around this VBO object.
+ * Also computes the local-space bounding box used for picking.
  */
-void VboObject::buildCuboidFrame(const float* vertices, unsigned int dataSize, unsigned int _vertexCount) {
-  float minX = vertices[0];
-  float maxX = vertices[0];
-  float minY = vertices[1];
-  float maxY = vertices[1];
-  float minZ = vertices[2];
-  float maxZ = vertices[2];
-  unsigned int k;
-  for (unsigned int i = 0; i < _vertexCount; i++) {
-    k = i * 3;
-    if (vertices[k] < minX) minX = vertices[k];
-    if (vertices[k] > maxX) maxX = vertices[k];
-    if (vertices[k + 1] < minY) minY = vertices[k + 1];
-    if (vertices[k + 1] > maxY) maxY = vertices[k + 1];
-    if (vertices[k + 2] < minZ) minZ = vertices[k + 2];
-    if (vertices[k + 2] > maxZ) maxZ = vertices[k + 2];
+void VboObject::buildCuboidFrame() {
+  if (cpuPositions.empty()) {
+    return;
   }
+  float minX = cpuPositions[0];
+  float maxX = cpuPositions[0];
+  float minY = cpuPositions[1];
+  float maxY = cpuPositions[1];
+  float minZ = cpuPositions[2];
+  float maxZ = cpuPositions[2];
+  for (size_t k = 0; k + 2 < cpuPositions.size(); k += 3) {
+    if (cpuPositions[k] < minX) minX = cpuPositions[k];
+    if (cpuPositions[k] > maxX) maxX = cpuPositions[k];
+    if (cpuPositions[k + 1] < minY) minY = cpuPositions[k + 1];
+    if (cpuPositions[k + 1] > maxY) maxY = cpuPositions[k + 1];
+    if (cpuPositions[k + 2] < minZ) minZ = cpuPositions[k + 2];
+    if (cpuPositions[k + 2] > maxZ) maxZ = cpuPositions[k + 2];
+  }
+  boundsMin = glm::vec3(minX, minY, minZ);
+  boundsMax = glm::vec3(maxX, maxY, maxZ);
+
   float cuboidVertices[] = {
     minX, minY, minZ,
     maxX, minY, minZ,
@@ -188,6 +255,7 @@ void VboObject::renderFrame(const glm::mat4 &combinedModel) {
   
   glUniformMatrix4fv(locations.modelMatrixId, 1, GL_FALSE, glm::value_ptr(combinedModel));
   glUniform1i(locations.useLightingLocation, 0);
+  glUniform1i(locations.selectedLocation, 0);
 
   glBindVertexArray(this->frameVaoId);
   glBindBuffer(GL_ARRAY_BUFFER, this->frameVboId);
@@ -259,17 +327,104 @@ void VboObject::setupArrayAttributes() {
 }
 
 void VboObject::applyRotation(float rad, const glm::vec3 &axis) {
-  glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), rad, axis);
+  glm::quat current = glm::quat(glm::radians(this->rotationDegrees));
+  glm::quat rotation = glm::angleAxis(rad, glm::normalize(axis));
   // Accumulate the rotation
-  this->rotationMatrix = rotation * this->rotationMatrix;
+  this->rotationDegrees = glm::degrees(glm::eulerAngles(rotation * current));
 }
 
 void VboObject::applyTranslation(const glm::vec3 &translation) {
-  this->translationMatrix = glm::translate(this->translationMatrix, translation);
+  this->position += translation;
 }
 
 void VboObject::applyScale(const glm::vec3 &scale) {
-  this->scaleMatrix = glm::scale(this->scaleMatrix, scale);
+  setScale(this->scale * scale);
+}
+
+void VboObject::setScale(const glm::vec3 &value) {
+  // A zero scale would make the model matrix non-invertible, which breaks picking and normals
+  this->scale = glm::max(value, glm::vec3(MIN_SCALE));
+}
+
+void VboObject::resetTransform() {
+  this->position = glm::vec3(0.0f);
+  this->rotationDegrees = glm::vec3(0.0f);
+  this->scale = glm::vec3(1.0f);
+}
+
+glm::mat4 VboObject::getModelMatrix() const {
+  glm::mat4 translation = glm::translate(glm::mat4(1.0f), this->position);
+  glm::mat4 rotation = glm::mat4_cast(glm::quat(glm::radians(this->rotationDegrees)));
+  glm::mat4 scaling = glm::scale(glm::mat4(1.0f), this->scale);
+  return translation * rotation * scaling;
+}
+
+bool VboObject::intersectRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDirection,
+        const glm::mat4 &globalModel, float &hitDistance) const {
+  if (cpuPositions.empty()) {
+    return false;
+  }
+  if (drawType != GL_TRIANGLES && drawType != GL_TRIANGLE_STRIP && drawType != GL_TRIANGLE_FAN) {
+    return false;
+  }
+
+  // Bring the ray into the object's local space so the stored vertices can be used as-is
+  glm::mat4 combinedModel = globalModel * getModelMatrix();
+  glm::mat4 inverseModel = glm::inverse(combinedModel);
+  glm::vec3 localOrigin = glm::vec3(inverseModel * glm::vec4(rayOrigin, 1.0f));
+  glm::vec3 localDirection = glm::vec3(inverseModel * glm::vec4(rayDirection, 0.0f));
+
+  if (!rayIntersectsBox(localOrigin, localDirection, boundsMin, boundsMax)) {
+    return false;
+  }
+
+  unsigned int localVertexCount = cpuPositions.size() / 3;
+  unsigned int elementCount = cpuIndices.empty() ? localVertexCount : cpuIndices.size();
+  auto vertexAt = [&](unsigned int element) -> unsigned int {
+    return cpuIndices.empty() ? element : cpuIndices[element];
+  };
+  auto position = [&](unsigned int idx) {
+    return glm::vec3(cpuPositions[idx * 3], cpuPositions[idx * 3 + 1], cpuPositions[idx * 3 + 2]);
+  };
+
+  bool hit = false;
+  float closestT = std::numeric_limits<float>::max();
+  auto testTriangle = [&](unsigned int e0, unsigned int e1, unsigned int e2) {
+    unsigned int i0 = vertexAt(e0);
+    unsigned int i1 = vertexAt(e1);
+    unsigned int i2 = vertexAt(e2);
+    if (i0 >= localVertexCount || i1 >= localVertexCount || i2 >= localVertexCount) {
+      return;
+    }
+    float t;
+    if (rayIntersectsTriangle(localOrigin, localDirection, position(i0), position(i1), position(i2), t)
+        && t < closestT) {
+      closestT = t;
+      hit = true;
+    }
+  };
+
+  if (drawType == GL_TRIANGLES) {
+    for (unsigned int e = 0; e + 2 < elementCount; e += 3) {
+      testTriangle(e, e + 1, e + 2);
+    }
+  } else if (drawType == GL_TRIANGLE_STRIP) {
+    for (unsigned int e = 0; e + 2 < elementCount; e++) {
+      testTriangle(e, e + 1, e + 2);
+    }
+  } else {
+    for (unsigned int e = 1; e + 1 < elementCount; e++) {
+      testTriangle(0, e, e + 1);
+    }
+  }
+
+  if (!hit) {
+    return false;
+  }
+
+  glm::vec3 worldHit = glm::vec3(combinedModel * glm::vec4(localOrigin + localDirection * closestT, 1.0f));
+  hitDistance = glm::length(worldHit - rayOrigin);
+  return true;
 }
 
 void VboObject::render(const glm::mat4 &globalModel) {
@@ -278,13 +433,14 @@ void VboObject::render(const glm::mat4 &globalModel) {
     return;
   }
 
-  glm::mat4 modelMatrix = this->translationMatrix * this->rotationMatrix * this->scaleMatrix;
-  glm::mat4 combinedModel = globalModel * modelMatrix;
-  glUniformMatrix4fv(locations.modelMatrixId, 1, GL_FALSE, glm::value_ptr(combinedModel));
+  glm::mat4 combinedModel = globalModel * getModelMatrix();
 
-  if (this->isSelected) {
+  if (this->selected) {
     renderFrame(combinedModel);
   }
+
+  glUniformMatrix4fv(locations.modelMatrixId, 1, GL_FALSE, glm::value_ptr(combinedModel));
+  glUniform1i(locations.selectedLocation, this->selected ? 1 : 0);
 
   // Turn on lighting
   glUniform1i(locations.useLightingLocation, 1);
@@ -333,6 +489,7 @@ void VboObject::render(const glm::mat4 &globalModel) {
     glDisableVertexAttribArray(this->locations.normalLocation);
     glDisableVertexAttribArray(this->locations.colorLocation);
   }
+  glUniform1i(locations.selectedLocation, 0);
 }
 
 VboObject::~VboObject() {
@@ -358,10 +515,10 @@ void VboObject::release() {
   frameColorVboId = 0;
   frameElementBufferObject = 0;
   this->isReadyForRendering = false;
-  this->isSelected = false;
-  this->rotationMatrix = glm::mat4(1.0f);
-  this->translationMatrix = glm::mat4(1.0f);
-  this->scaleMatrix = glm::mat4(1.0f);
+  this->selected = false;
+  resetTransform();
+  cpuPositions.clear();
+  cpuIndices.clear();
   this->positionOffset = 0;
   this->normalOffset = -1;
   this->colorOffset = 0;

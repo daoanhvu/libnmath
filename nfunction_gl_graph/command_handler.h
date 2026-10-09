@@ -10,7 +10,7 @@
 #include "SimpleCriteria.hpp"
 #include "vbo_objects.h"
 #include "builtin/cone.hpp"
-#include "builtin/game/tank.hpp"
+#include "builtin/game/tank/tank.hpp"
 
 // extended token types
 #define TYPE_CONE 		0x00010005

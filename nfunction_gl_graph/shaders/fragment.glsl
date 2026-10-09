@@ -3,6 +3,8 @@ uniform int uUseLighting;
 uniform vec3 uLightColor;
 uniform vec3 uLightPos;
 uniform vec3 uViewPos;
+uniform int uSelected;
+uniform vec4 uHighlightColor;
 
 in vec3 vPos;
 in vec4 vColor;
@@ -11,6 +13,7 @@ out vec4 FragColor;
 
 void main()
 {
+    vec4 baseColor = uSelected > 0 ? uHighlightColor : vColor;
     if(uUseLighting > 0) {
       // Ambient lighting
       float ambientStrength = 0.3;
@@ -32,9 +35,9 @@ void main()
       vec3 specular = specularStrength * spec * uLightColor;
 
       // Combine lighting components
-      vec3 result = (ambient + diffuse + specular) * vColor.rgb;
-      FragColor = vec4(result, vColor.a);
+      vec3 result = (ambient + diffuse + specular) * baseColor.rgb;
+      FragColor = vec4(result, baseColor.a);
     } else {
-      FragColor = vColor;
+      FragColor = baseColor;
     }
 } 

@@ -41,6 +41,6 @@ GLCoordinates initCoordinates(ShaderVarLocation locations);
 void renderCoordinates(const GLCoordinates &axes, ShaderVarLocation locations, glm::mat4 model);
 void releaseCoordinates(GLCoordinates &axes);
 void renderMeshes(std::vector<VboObject*>& meshes, const ShaderVarLocation &locations, const glm::mat4 &model, 
-  int useLighting, const glm::vec3 &lightPos, const glm::vec3 &lightColor);
+  int useLighting, const glm::vec3 &lightPos, const glm::vec3 &lightColor, const glm::vec4 &highlightColor);
 
 #endif

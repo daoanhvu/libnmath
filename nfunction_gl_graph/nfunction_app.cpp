@@ -1,6 +1,8 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <cmath>
+#include <cstdio>
 #include <vector>
 #include <cstring>
 #include <fstream>
@@ -66,6 +68,44 @@ glm::vec3 lightColor(1.0f, 1.0f, 1.0f); // White light
 
 bool mousePressed = false;
 
+// Object picking: a press + release without much movement counts as a click
+const double CLICK_MOVE_TOLERANCE = 4.0;
+double pressX = 0.0;
+double pressY = 0.0;
+bool pickRequested = false;
+double pickX = 0.0;
+double pickY = 0.0;
+glm::vec4 highlightColor(1.0f, 0.75f, 0.1f, 1.0f);
+
+/**
+ * @brief Find the mesh under the cursor
+ *
+ * @return index of the closest mesh hit by the cursor ray, or -1 if none
+ */
+int pickMesh(GLFWwindow* window, double cursorX, double cursorY, const std::vector<VboObject*> &meshes,
+      const glm::mat4 &view, const glm::mat4 &projection, const glm::mat4 &globalModel) {
+  int windowWidth, windowHeight;
+  glfwGetWindowSize(window, &windowWidth, &windowHeight);
+  glm::vec4 viewport(0.0f, 0.0f, (float)windowWidth, (float)windowHeight);
+  // GLFW's cursor origin is top-left, OpenGL's is bottom-left
+  float winY = (float)(windowHeight - cursorY);
+  glm::vec3 nearPoint = glm::unProject(glm::vec3((float)cursorX, winY, 0.0f), view, projection, viewport);
+  glm::vec3 farPoint = glm::unProject(glm::vec3((float)cursorX, winY, 1.0f), view, projection, viewport);
+  glm::vec3 rayDirection = glm::normalize(farPoint - nearPoint);
+
+  int closestIndex = -1;
+  float closestDistance = 0.0f;
+  for (int i = 0; i < (int)meshes.size(); i++) {
+    float distance;
+    if (meshes[i]->intersectRay(nearPoint, rayDirection, globalModel, distance)
+        && (closestIndex < 0 || distance < closestDistance)) {
+      closestIndex = i;
+      closestDistance = distance;
+    }
+  }
+  return closestIndex;
+}
+
 // Function to handle mouse input
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
   if (ImGui::GetIO().WantCaptureMouse) {
@@ -110,11 +150,20 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
   }
 
   if (button == GLFW_MOUSE_BUTTON_LEFT) {
+    double xpos, ypos;
+    glfwGetCursorPos(window, &xpos, &ypos);
     if (action == GLFW_PRESS) {
       mousePressed = true;
       firstMouse = true;
+      pressX = xpos;
+      pressY = ypos;
     } else if (action == GLFW_RELEASE) {
       mousePressed = false;
+      if (std::abs(xpos - pressX) <= CLICK_MOVE_TOLERANCE && std::abs(ypos - pressY) <= CLICK_MOVE_TOLERANCE) {
+        pickRequested = true;
+        pickX = xpos;
+        pickY = ypos;
+      }
     }
   }
 }
@@ -222,6 +271,8 @@ int main() {
   locations.useLightingLocation = glGetUniformLocation(shaderProgram, "uUseLighting");
   locations.lightPos1ID = glGetUniformLocation(shaderProgram, "uLightPos");
   locations.lightColor1ID = glGetUniformLocation(shaderProgram, "uLightColor");
+  locations.selectedLocation = glGetUniformLocation(shaderProgram, "uSelected");
+  locations.highlightColorLocation = glGetUniformLocation(shaderProgram, "uHighlightColor");
 
   glm::vec3 cameraPos(0.0f, 0.0f, 16.0f); 
   glm::mat4 view = glm::lookAt(
@@ -242,6 +293,17 @@ int main() {
   bool shouldReInitMeshes = false;
   glm::vec4 objectColor(0.3f, 0.5f, 0.2f, 1.0f);
   float arrColor[4];
+
+  int selectedIndex = -1;
+  auto selectMesh = [&](int index) {
+    if (selectedIndex >= 0 && selectedIndex < (int)meshes.size()) {
+      meshes[selectedIndex]->setSelected(false);
+    }
+    selectedIndex = (index >= 0 && index < (int)meshes.size()) ? index : -1;
+    if (selectedIndex >= 0) {
+      meshes[selectedIndex]->setSelected(true);
+    }
+  };
 
   // Render loop
   while (!glfwWindowShouldClose(window)) {
@@ -288,7 +350,50 @@ int main() {
       );
     }
 
+    ImGui::Separator();
+    ImGui::Text("Objects (click one in the scene or here)");
+    ImGui::ColorEdit4("Selection Color", glm::value_ptr(highlightColor));
+    for (int i = 0; i < (int)meshes.size(); i++) {
+      char label[64];
+      snprintf(label, sizeof(label), "%d: %s", i, meshes[i]->getName().c_str());
+      if (ImGui::Selectable(label, selectedIndex == i)) {
+        selectMesh(selectedIndex == i ? -1 : i);
+      }
+    }
+
     ImGui::End();
+
+    if (selectedIndex >= 0) {
+      VboObject* selectedMesh = meshes[selectedIndex];
+      ImGui::Begin("Selected Object");
+      ImGui::Text("%d: %s", selectedIndex, selectedMesh->getName().c_str());
+
+      glm::vec3 position = selectedMesh->getPosition();
+      if (ImGui::DragFloat3("Position", glm::value_ptr(position), 0.05f)) {
+        selectedMesh->setPosition(position);
+      }
+      glm::vec3 rotation = selectedMesh->getRotationDegrees();
+      if (ImGui::DragFloat3("Rotation (deg)", glm::value_ptr(rotation), 0.5f)) {
+        selectedMesh->setRotationDegrees(rotation);
+      }
+      glm::vec3 scale = selectedMesh->getScale();
+      if (ImGui::DragFloat3("Scale", glm::value_ptr(scale), 0.01f, 0.01f, 100.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp)) {
+        selectedMesh->setScale(scale);
+      }
+      float uniformScale = scale.x;
+      if (ImGui::DragFloat("Uniform Scale", &uniformScale, 0.01f, 0.01f, 100.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp)) {
+        selectedMesh->setScale(glm::vec3(uniformScale));
+      }
+
+      if (ImGui::Button("Reset Transform")) {
+        selectedMesh->resetTransform();
+      }
+      ImGui::SameLine();
+      if (ImGui::Button("Deselect")) {
+        selectMesh(-1);
+      }
+      ImGui::End();
+    }
 
     // Clear the color buffer and depth buffer
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -302,6 +407,11 @@ int main() {
     globalModel = glm::rotate(globalModel, glm::radians(rotationParams.rotationY), glm::vec3(0.0f, 1.0f, 0.0f));
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
 
+    if (pickRequested) {
+      pickRequested = false;
+      selectMesh(pickMesh(window, pickX, pickY, meshes, view, projection, globalModel));
+    }
+
     // Set transformation matrices in shader
     glUniformMatrix4fv(locations.viewMatrixId, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(locations.perspectiveMatrixId, 1, GL_FALSE, glm::value_ptr(projection));
@@ -309,9 +419,10 @@ int main() {
     glUniform3fv(locations.viewPosId, 1, glm::value_ptr(cameraPos));
 
     renderCoordinates(axisVBO, locations, globalModel);
-    renderMeshes(meshes, locations, globalModel, useLighting ? 1 : 0, lightPos, lightColor);
+    renderMeshes(meshes, locations, globalModel, useLighting ? 1 : 0, lightPos, lightColor, highlightColor);
 
     if (shouldReInitMeshes) {
+      selectMesh(-1);
       for(auto i=0; i< meshes.size(); i++) {
         meshes[i]->release();
         delete meshes[i];

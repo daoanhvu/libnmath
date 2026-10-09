@@ -259,6 +259,7 @@ VboObject* CommandHandler::createCone(float height, float radius, float capRadiu
   VboObject* vboObject = new VboObject(locations, GL_TRIANGLES);
   std::cout << "Done initializing VboObject." << std::endl;
   vboObject->initialize(vertices.data(), vertices.size(), vertexCount, colors, indices.data(), indices.size(), 3);
+  vboObject->setName("Cone");
 
   delete[] colors;
   std::cout << "Done Creating Cone." << std::endl;
@@ -276,6 +277,7 @@ VboObject* CommandHandler::createTank(float turretDegrees, float gunDegrees, con
 
   VboObject* vboObject = new VboObject(locations, GL_TRIANGLES);
   vboObject->initialize(vertices.data(), vertices.size(), vertexCount, colors.data(), indices.data(), indices.size(), 3);
+  vboObject->setName("Tank");
   return vboObject;
 }
 
@@ -320,6 +322,7 @@ int CommandHandler::createMesh(const vector<nmath::Token *> &tokens,
 
     VboObject* vboObject = new VboObject(locations, GL_TRIANGLE_STRIP);
     vboObject->initialize(vertices, dataSize, vertexCount, colors, triangleTripIndices, indexLength, normalOffset);
+    vboObject->setName("Surface");
     results.push_back(vboObject);
 
     delete[] triangleTripIndices;

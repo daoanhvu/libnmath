@@ -29,6 +29,8 @@ typedef struct tagLocation {
   unsigned int lightPos2ID;
   unsigned int lightColor1ID;
   unsigned int lightColor2ID;
+  unsigned int selectedLocation;
+  unsigned int highlightColorLocation;
 } ShaderVarLocation;
 
 std::string readShaderFile(const char* filePath);

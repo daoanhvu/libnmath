@@ -66,6 +66,7 @@ GLCoordinates initCoordinates(ShaderVarLocation locations) {
 
 void renderCoordinates(const GLCoordinates &axes, ShaderVarLocation locations, glm::mat4 model) {
   glUniform1i(locations.useLightingLocation, 0);
+  glUniform1i(locations.selectedLocation, 0);
   glUniformMatrix4fv(locations.modelMatrixId, 1, GL_FALSE, glm::value_ptr(model));
   // Render the coordinate system here
   glBindVertexArray(axes.axisVao);
@@ -104,11 +105,12 @@ void releaseCoordinates(GLCoordinates &axes) {
 }
 
 void renderMeshes(std::vector<VboObject*>& meshes, const ShaderVarLocation &locations, const glm::mat4 &model, 
-      int useLighting, const glm::vec3 &lightPos, const glm::vec3 &lightColor) {
+      int useLighting, const glm::vec3 &lightPos, const glm::vec3 &lightColor, const glm::vec4 &highlightColor) {
   // Set lighting uniforms
   glUniform1i(locations.useLightingLocation, useLighting);
   glUniform3fv(locations.lightPos1ID, 1, glm::value_ptr(lightPos));
   glUniform3fv(locations.lightColor1ID, 1, glm::value_ptr(lightColor));
+  glUniform4fv(locations.highlightColorLocation, 1, glm::value_ptr(highlightColor));
 
   // Calculate and set normal matrix
   // glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(model)));
@@ -116,7 +118,7 @@ void renderMeshes(std::vector<VboObject*>& meshes, const ShaderVarLocation &loca
   for (auto& mesh : meshes) {
     // TODO: For testing purposes
     // smoothly rotate the mesh around the axis (0.5f, 1.0f, 0.0f)
-    mesh->applyRotation(0.01f, glm::vec3(0.5f, 1.0f, 0.0f));
+    // mesh->applyRotation(0.01f, glm::vec3(0.5f, 1.0f, 0.0f));
 
     mesh->render(model);
   }

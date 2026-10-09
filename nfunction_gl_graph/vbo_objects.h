@@ -2,6 +2,7 @@
 #define _VBO_H_
 
 #include <iostream>
+#include <string>
 #include <vector>
 #include <GL/glew.h>
 #include <glm/glm.hpp>
@@ -28,13 +29,22 @@ class VboObject {
     GLintptr colorStrideInBytes;
     // shader's variables locations
     ShaderVarLocation locations;
-    glm::mat4 rotationMatrix;
-    glm::mat4 translationMatrix;
-    glm::mat4 scaleMatrix;
+    // Object transform, applied as translate * rotate * scale
+    glm::vec3 position;
+    // Euler angles in degrees (pitch, yaw, roll)
+    glm::vec3 rotationDegrees;
+    glm::vec3 scale;
     GLuint drawType;
     bool isReadyForRendering;
 
-    bool isSelected;
+    bool selected;
+    std::string name;
+
+    // CPU copies of the geometry (local space), used for mouse picking
+    std::vector<float> cpuPositions;
+    std::vector<unsigned short> cpuIndices;
+    glm::vec3 boundsMin;
+    glm::vec3 boundsMax;
 
     GLuint frameVaoId;
     GLuint frameVboId;
@@ -46,9 +56,9 @@ class VboObject {
 
       void initialize(const float* vertices, unsigned int dataSize, unsigned int _vertexCount,
               const float* colors, const unsigned short* triangleTripIndices, unsigned int _indexCount, 
-                          unsigned int _normalOffset);
+                          int _normalOffset);
 
-      void buildCuboidFrame(const float* vertices, unsigned int dataSize, unsigned int _vertexCount);
+      void buildCuboidFrame();
 
       void setupArrayAttributes();
 
@@ -63,6 +73,37 @@ class VboObject {
       void applyTranslation(const glm::vec3 &translation);
 
       void applyScale(const glm::vec3 &scale);
+
+      const glm::vec3 &getPosition() const { return position; }
+      void setPosition(const glm::vec3 &value) { position = value; }
+
+      const glm::vec3 &getRotationDegrees() const { return rotationDegrees; }
+      void setRotationDegrees(const glm::vec3 &value) { rotationDegrees = value; }
+
+      const glm::vec3 &getScale() const { return scale; }
+      void setScale(const glm::vec3 &value);
+
+      void resetTransform();
+
+      glm::mat4 getModelMatrix() const;
+
+      bool isSelected() const { return selected; }
+      void setSelected(bool value) { selected = value; }
+
+      const std::string &getName() const { return name; }
+      void setName(const std::string &value) { name = value; }
+
+      /**
+       * @brief Test a world-space ray against this object's triangles
+       *
+       * @param rayOrigin world-space ray origin
+       * @param rayDirection world-space ray direction
+       * @param globalModel the scene transform this object is rendered with
+       * @param hitDistance world-space distance from rayOrigin to the closest hit
+       * @return true if the ray hits the object
+       */
+      bool intersectRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDirection,
+              const glm::mat4 &globalModel, float &hitDistance) const;
 
       void render(const glm::mat4 &globalModel);
 
