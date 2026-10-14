@@ -17,7 +17,8 @@
 #include "imgui_impl_opengl3.h"
 
 #include "shaders_utils.h"
-#include "vbo_objects.h"
+#include "vbo.h"
+#include "simple_vbo.h"
 #include "common.hpp"
 #include "imagedata.hpp"
 #include "nlablexer.h"
@@ -82,7 +83,7 @@ glm::vec4 highlightColor(1.0f, 0.75f, 0.1f, 1.0f);
  *
  * @return index of the closest mesh hit by the cursor ray, or -1 if none
  */
-int pickMesh(GLFWwindow* window, double cursorX, double cursorY, const std::vector<VboObject*> &meshes,
+int pickMesh(GLFWwindow* window, double cursorX, double cursorY, const std::vector<VBO*> &meshes,
       const glm::mat4 &view, const glm::mat4 &projection, const glm::mat4 &globalModel) {
   int windowWidth, windowHeight;
   glfwGetWindowSize(window, &windowWidth, &windowHeight);
@@ -287,7 +288,7 @@ int main() {
   bool shouldRotate = false;
 
   // Generate mesh and set up vertex data and buffers
-  std::vector<VboObject*> meshes;
+  std::vector<VBO*> meshes;
   float values[4] = {-1.8f, 1.8f, -1.8f, 1.8f};
   float epsilon = 0.1f;
   bool shouldReInitMeshes = false;
@@ -364,7 +365,7 @@ int main() {
     ImGui::End();
 
     if (selectedIndex >= 0) {
-      VboObject* selectedMesh = meshes[selectedIndex];
+      VBO* selectedMesh = meshes[selectedIndex];
       ImGui::Begin("Selected Object");
       ImGui::Text("%d: %s", selectedIndex, selectedMesh->getName().c_str());
 

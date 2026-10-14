@@ -5,9 +5,10 @@
 #include <GLFW/glfw3.h>
 #include "function_utils.h"
 #include "builtin/cone.hpp"
+#include "simple_vbo.h"
 
 int generateMeshAndIndices(std::string inputFunction, const float *values, float epsilon, 
-        ShaderVarLocation locations, std::vector<VboObject*> &results) {
+        ShaderVarLocation locations, std::vector<VBO*> &results) {
   nmath::NFunction<float> f;
   nmath::NLabLexer lexer;
   nmath::NLabParser<float> parser;
@@ -30,7 +31,7 @@ int generateMeshAndIndices(std::string inputFunction, const float *values, float
     return -1;
   }
   
-  VboObject* vboObject;
+  VBO* vboMesh;
   unsigned int indexLength;
 
   for(auto i=0; i< spaces.size(); i++) {
@@ -57,9 +58,9 @@ int generateMeshAndIndices(std::string inputFunction, const float *values, float
     // std::cout << "indexLength: " << indexLength << std::endl;
     // std::cout << "normalOffset: " << normalOffset << std::endl;
 
-    vboObject = new VboObject(locations, GL_TRIANGLE_STRIP);
-    vboObject->initialize(vertices, dataSize, vertexCount, colors, triangleTripIndices, indexLength, normalOffset);
-    results.push_back(vboObject);
+    vboMesh = new SimpleVbo(locations, GL_TRIANGLE_STRIP);
+    vboMesh->initialize(vertices, dataSize, vertexCount, colors, triangleTripIndices, indexLength, normalOffset);
+    results.push_back(vboMesh);
 
     delete[] triangleTripIndices;
     delete[] colors;
@@ -69,7 +70,7 @@ int generateMeshAndIndices(std::string inputFunction, const float *values, float
 }
 
 int generateRoundedCone(float height, float radius, float capRadius, int stacks, int capStacks,
-  float red, float green, float blue, float alpha, ShaderVarLocation locations, std::vector<VboObject*> &results) {
+  float red, float green, float blue, float alpha, ShaderVarLocation locations, std::vector<VBO*> &results) {
   
   // Create a rounded cone mesh
   Cone cone(height, radius, capRadius, stacks, capStacks);
@@ -91,10 +92,10 @@ int generateRoundedCone(float height, float radius, float capRadius, int stacks,
   }
 
   // Create a VboObject for the cone
-  VboObject* vboObject = new VboObject(locations, GL_TRIANGLES);
-  vboObject->initialize(vertices.data(), vertices.size(), vertexCount, colors, indices.data(), indices.size(), 3);
+  VBO* vboCone = new SimpleVbo(locations, GL_TRIANGLES);
+  vboCone->initialize(vertices.data(), vertices.size(), vertexCount, colors, indices.data(), indices.size(), 3);
 
-  results.push_back(vboObject);
+  results.push_back(vboCone);
 
   delete[] colors;
 

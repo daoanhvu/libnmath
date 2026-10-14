@@ -13,11 +13,9 @@
 #include <cmath>
 #include <limits>
 
-#include "vbo_objects.h"
+#include "simple_vbo.h"
 
 namespace {
-
-const float MIN_SCALE = 0.001f;
 
 // Two-sided Moller-Trumbore ray/triangle intersection
 bool rayIntersectsTriangle(const glm::vec3 &origin, const glm::vec3 &direction,
@@ -66,7 +64,7 @@ bool rayIntersectsBox(const glm::vec3 &origin, const glm::vec3 &direction,
 
 }
 
-VboObject::VboObject(ShaderVarLocation locations, GLuint drawType) {
+SimpleVbo::SimpleVbo(ShaderVarLocation locations, GLuint drawType) {
   vaoId = 0;
   positionNormalVbo = 0;
   colorVbo = 0;
@@ -105,7 +103,7 @@ VboObject::VboObject(ShaderVarLocation locations, GLuint drawType) {
  * @param _indexCount 
  * @param _hasNormal 
  */
-void VboObject::initialize(const float* vertices, unsigned int dataSize, unsigned int _vertexCount,
+void SimpleVbo::initialize(const float* vertices, unsigned int dataSize, unsigned int _vertexCount,
               const float* colors, const unsigned short* triangleTripIndices, unsigned int _indexCount, 
                           int _normalOffset) {
   this->isReadyForRendering = false;
@@ -147,7 +145,7 @@ void VboObject::initialize(const float* vertices, unsigned int dataSize, unsigne
   this->buildCuboidFrame();
 }
 
-void VboObject::setColor(const glm::vec4 &color) {
+void SimpleVbo::setColor(const glm::vec4 &color) {
   this->isReadyForRendering = false;
 
   if (this->colorVbo != 0) {
@@ -182,7 +180,7 @@ void VboObject::setColor(const glm::vec4 &color) {
  * @brief Build a cuboid frame, that wraps around this VBO object.
  * Also computes the local-space bounding box used for picking.
  */
-void VboObject::buildCuboidFrame() {
+void SimpleVbo::buildCuboidFrame() {
   if (cpuPositions.empty()) {
     return;
   }
@@ -247,7 +245,7 @@ void VboObject::buildCuboidFrame() {
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, 24 * sizeof(unsigned short), cuboidIndices, GL_STATIC_DRAW);
 }
 
-void VboObject::renderFrame(const glm::mat4 &combinedModel) {
+void SimpleVbo::renderFrame(const glm::mat4 &combinedModel) {
   if (this->frameVaoId == 0) {
     std::cout << "Frame VBO is not initialized" << std::endl;
     return;
@@ -285,17 +283,23 @@ void VboObject::renderFrame(const glm::mat4 &combinedModel) {
   glBindVertexArray(0);
 }
 
-void VboObject::setupArrayAttributes() {
+void SimpleVbo::setupArrayAttributes() {
   if (this->vaoId == 0) {
+#ifdef _DEBUG_
     std::cout << "VBO is not initialized" << std::endl;
+#endif
     return;
   }
   if (this->positionNormalVbo == 0) {
+#ifdef _DEBUG_
     std::cout << "Position/Normal VBO is not initialized" << std::endl;
+#endif
     return;
   }
   if (this->colorVbo == 0) {
+#ifdef _DEBUG_
     std::cout << "Color VBO is not initialized" << std::endl;
+#endif
     return;
   }
   
@@ -326,40 +330,35 @@ void VboObject::setupArrayAttributes() {
   this->isReadyForRendering = true;
 }
 
-void VboObject::applyRotation(float rad, const glm::vec3 &axis) {
+void SimpleVbo::applyRotation(float rad, const glm::vec3 &axis) {
   glm::quat current = glm::quat(glm::radians(this->rotationDegrees));
   glm::quat rotation = glm::angleAxis(rad, glm::normalize(axis));
   // Accumulate the rotation
   this->rotationDegrees = glm::degrees(glm::eulerAngles(rotation * current));
 }
 
-void VboObject::applyTranslation(const glm::vec3 &translation) {
+void SimpleVbo::applyTranslation(const glm::vec3 &translation) {
   this->position += translation;
 }
 
-void VboObject::applyScale(const glm::vec3 &scale) {
+void SimpleVbo::applyScale(const glm::vec3 &scale) {
   setScale(this->scale * scale);
 }
 
-void VboObject::setScale(const glm::vec3 &value) {
-  // A zero scale would make the model matrix non-invertible, which breaks picking and normals
-  this->scale = glm::max(value, glm::vec3(MIN_SCALE));
-}
-
-void VboObject::resetTransform() {
+void SimpleVbo::resetTransform() {
   this->position = glm::vec3(0.0f);
   this->rotationDegrees = glm::vec3(0.0f);
   this->scale = glm::vec3(1.0f);
 }
 
-glm::mat4 VboObject::getModelMatrix() const {
+glm::mat4 SimpleVbo::getModelMatrix() const {
   glm::mat4 translation = glm::translate(glm::mat4(1.0f), this->position);
   glm::mat4 rotation = glm::mat4_cast(glm::quat(glm::radians(this->rotationDegrees)));
   glm::mat4 scaling = glm::scale(glm::mat4(1.0f), this->scale);
   return translation * rotation * scaling;
 }
 
-bool VboObject::intersectRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDirection,
+bool SimpleVbo::intersectRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDirection,
         const glm::mat4 &globalModel, float &hitDistance) const {
   if (cpuPositions.empty()) {
     return false;
@@ -427,9 +426,11 @@ bool VboObject::intersectRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDir
   return true;
 }
 
-void VboObject::render(const glm::mat4 &globalModel) {
+void SimpleVbo::render(const glm::mat4 &globalModel) {
   if (!this->isReadyForRendering) {
+#ifdef _DEBUG_
     std::cout << "VBO is not ready for rendering" << std::endl;
+#endif
     return;
   }
 
@@ -492,11 +493,11 @@ void VboObject::render(const glm::mat4 &globalModel) {
   glUniform1i(locations.selectedLocation, 0);
 }
 
-VboObject::~VboObject() {
+SimpleVbo::~SimpleVbo() {
   release();
 }
 
-void VboObject::release() {
+void SimpleVbo::release() {
   glDeleteVertexArrays(1, &vaoId);
   glDeleteBuffers(1, &positionNormalVbo);
   glDeleteBuffers(1, &colorVbo);
@@ -524,5 +525,7 @@ void VboObject::release() {
   this->colorOffset = 0;
   this->strideInBytes = 3 * sizeof(float);
   this->colorStrideInBytes = 4 * sizeof(float);
+#ifdef _DEBUG_
   std::cout << "Done releasing VBO" << std::endl;
+#endif
 }

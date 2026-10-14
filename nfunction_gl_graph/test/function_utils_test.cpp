@@ -47,7 +47,7 @@ TEST(ParseFunctionTest, BasicAssertions) {
   std::cout << "Command: " << command << std::endl;
   ShaderVarLocation locations;
   float color[4] = {1.0f, 0.0f, 0.0f, 1.0f};
-  std::vector<VboObject *> results;
+  std::vector<VBO *> results;
   CommandHandler commandHandler(locations);
   commandHandler.handleCommand(command, color, results);
   EXPECT_EQ(commandHandler.getErrorCode(), 0);

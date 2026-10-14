@@ -12,7 +12,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include "shaders_utils.h"
-#include "vbo_objects.h"
+#include "simple_vbo.h"
 #include "common.hpp"
 #include "imagedata.hpp"
 #include "nlablexer.h"

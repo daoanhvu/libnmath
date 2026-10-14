@@ -8,7 +8,8 @@
 #include "nlablexer.h"
 #include "nfunction.hpp"
 #include "SimpleCriteria.hpp"
-#include "vbo_objects.h"
+#include "vbo.h"
+#include "simple_vbo.h"
 #include "builtin/cone.hpp"
 #include "builtin/game/tank/tank.hpp"
 #include "builtin/game/vehicles/us_vehicles.hpp"
@@ -72,7 +73,7 @@ public:
     }
 
     // Function to handle commands
-    void handleCommand(const std::string& commandText, const float *color, std::vector<VboObject *> &results);
+    void handleCommand(const std::string& commandText, const float *color, std::vector<VBO *> &results);
     // Add more member functions as needed
 private:
     ShaderVarLocation locations;
@@ -83,18 +84,18 @@ private:
     int errorColumn;
     // Private member variables and functions
     // For example, a function to parse the command string
-    void parseCommand(const vector<nmath::Token*> &tokens, const float *color, std::vector<VboObject *> &results);
+    void parseCommand(const vector<nmath::Token*> &tokens, const float *color, std::vector<VBO *> &results);
 
-    VboObject* createCone(float height, float radius, float capRadius, int stacks, int capStacks,
+    VBO* createCone(float height, float radius, float capRadius, int stacks, int capStacks,
       float red, float green, float blue, float alpha);
 
-    VboObject* createTank(float turretDegrees, float gunDegrees, const float *color);
+    VBO* createTank(float turretDegrees, float gunDegrees, const float *color);
 
-    VboObject* createVehicle(const UsVehicleInfo &info, float turretDegrees, float gunDegrees);
+    VBO* createVehicle(const UsVehicleInfo &info, float turretDegrees, float gunDegrees);
 
     bool parseAngleArguments(const std::vector<nmath::Token*> &arguments, float &turretDegrees, float &gunDegrees);
       
-    int createMesh(const vector<nmath::Token*> &tokens, const float *values, float epsilon, const float *color, std::vector<VboObject*> &results);
+    int createMesh(const vector<nmath::Token*> &tokens, const float *values, float epsilon, const float *color, std::vector<VBO*> &results);
 };
 
 #endif

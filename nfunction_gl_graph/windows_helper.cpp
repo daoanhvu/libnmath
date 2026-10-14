@@ -104,7 +104,7 @@ void releaseCoordinates(GLCoordinates &axes) {
   glDeleteBuffers(1, &axes.axisColorVbo);
 }
 
-void renderMeshes(std::vector<VboObject*>& meshes, const ShaderVarLocation &locations, const glm::mat4 &model, 
+void renderMeshes(std::vector<VBO*>& meshes, const ShaderVarLocation &locations, const glm::mat4 &model, 
       int useLighting, const glm::vec3 &lightPos, const glm::vec3 &lightColor, const glm::vec4 &highlightColor) {
   // Set lighting uniforms
   glUniform1i(locations.useLightingLocation, useLighting);

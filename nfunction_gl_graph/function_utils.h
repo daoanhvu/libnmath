@@ -10,7 +10,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include "shaders_utils.h"
-#include "vbo_objects.h"
+#include "vbo.h"
 #include "common.hpp"
 #include "imagedata.hpp"
 #include "nlablexer.h"
@@ -20,8 +20,8 @@
 int parseCommand(std::string commandText);
 
 int generateMeshAndIndices(std::string inputFunction, const float *values, float epsilon, 
-  ShaderVarLocation locations, std::vector<VboObject*> &results);
+  ShaderVarLocation locations, std::vector<VBO*> &results);
 
 int generateRoundedCone(float height, float radius, float capRadius, int stacks, int capStacks,
-  float red, float green, float blue, float alpha, ShaderVarLocation locations, std::vector<VboObject*> &results);
+  float red, float green, float blue, float alpha, ShaderVarLocation locations, std::vector<VBO*> &results);
 #endif

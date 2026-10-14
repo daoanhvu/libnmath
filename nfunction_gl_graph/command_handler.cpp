@@ -49,7 +49,7 @@ nmath::Token* transformToken(nmath::Token* token) {
 }
 
 void CommandHandler::handleCommand(const std::string& commandText, 
-        const float *color, std::vector<VboObject *> &results) {
+        const float *color, std::vector<VBO *> &results) {
   // Implementation of command handling logic
   vector<nmath::Token*> tokens;
   int lastMeanIdx = -1;
@@ -83,13 +83,13 @@ void CommandHandler::handleCommand(const std::string& commandText,
 
   // setup GL parameters for vbo objects
   for (size_t i = 0; i < results.size(); ++i) {
-    VboObject* vboObject = results[i];
+    VBO* vboObject = results[i];
     vboObject->setupArrayAttributes();
   }
 }
 
 // Private member variables and functions
-void CommandHandler::parseCommand(const vector<nmath::Token*> &tokens, const float *color, std::vector<VboObject *> &results) {
+void CommandHandler::parseCommand(const vector<nmath::Token*> &tokens, const float *color, std::vector<VBO *> &results) {
   // Implementation of command parsing logic
   int currentIndex = 0;
   size_t tokenCount = tokens.size();
@@ -183,7 +183,7 @@ void CommandHandler::parseCommand(const vector<nmath::Token*> &tokens, const flo
             return;
           }
           
-          VboObject* aCone = createCone(height, radius, capRadius, stacks, capStacks, color[0], color[1], color[2], color[3]);
+          VBO* aCone = createCone(height, radius, capRadius, stacks, capStacks, color[0], color[1], color[2], color[3]);
           if (aCone != nullptr) {
             std::cout << "Cone created successfully." << std::endl;
             results.push_back(aCone);
@@ -230,7 +230,7 @@ void CommandHandler::parseCommand(const vector<nmath::Token*> &tokens, const flo
   }
 }
 
-VboObject* CommandHandler::createCone(float height, float radius, float capRadius, int stacks, int capStacks, 
+VBO* CommandHandler::createCone(float height, float radius, float capRadius, int stacks, int capStacks, 
     float red, float green, float blue, float alpha) {
   
   // Create a rounded cone mesh
@@ -255,8 +255,8 @@ VboObject* CommandHandler::createCone(float height, float radius, float capRadiu
   }
   std::cout << "Done assigning color." << std::endl;
 
-  // Create a VboObject for the cone
-  VboObject* vboObject = new VboObject(locations, GL_TRIANGLES);
+  // Create a Vbo Object for the cone
+  VBO* vboObject = new SimpleVbo(locations, GL_TRIANGLES);
   std::cout << "Done initializing VboObject." << std::endl;
   vboObject->initialize(vertices.data(), vertices.size(), vertexCount, colors, indices.data(), indices.size(), 3);
   vboObject->setName("Cone");
@@ -266,7 +266,7 @@ VboObject* CommandHandler::createCone(float height, float radius, float capRadiu
   return vboObject;
 }
 
-VboObject* CommandHandler::createTank(float turretDegrees, float gunDegrees, const float *color) {
+VBO* CommandHandler::createTank(float turretDegrees, float gunDegrees, const float *color) {
   TankPalette palette = TankPalette::fromHullColor(color[0], color[1], color[2]);
   Tank tank(turretDegrees * M_PI / 180.0f, gunDegrees * M_PI / 180.0f, palette);
   std::vector<float> vertices;
@@ -275,22 +275,24 @@ VboObject* CommandHandler::createTank(float turretDegrees, float gunDegrees, con
   int vertexCount = tank.generateMesh(vertices, indices, colors);
   std::cout << "Done generating tank with vertex count = " << vertexCount << std::endl;
 
-  VboObject* vboObject = new VboObject(locations, GL_TRIANGLES);
+  VBO* vboObject = new SimpleVbo(locations, GL_TRIANGLES);
   vboObject->initialize(vertices.data(), vertices.size(), vertexCount, colors.data(), indices.data(), indices.size(), 3);
   vboObject->setName("Tank");
   return vboObject;
 }
 
-VboObject* CommandHandler::createVehicle(const UsVehicleInfo &info, float turretDegrees, float gunDegrees) {
+VBO* CommandHandler::createVehicle(const UsVehicleInfo &info, float turretDegrees, float gunDegrees) {
   std::unique_ptr<ArmoredVehicle> vehicle =
       createUsVehicle(info.type, turretDegrees * M_PI / 180.0f, gunDegrees * M_PI / 180.0f);
   std::vector<float> vertices;
   std::vector<unsigned short> indices;
   std::vector<float> colors;
   int vertexCount = vehicle->generateMesh(vertices, indices, colors);
+#ifdef _DEBUG_
   std::cout << "Done generating " << info.displayName << " with vertex count = " << vertexCount << std::endl;
+#endif
 
-  VboObject* vboObject = new VboObject(locations, GL_TRIANGLES);
+  VBO* vboObject = new SimpleVbo(locations, GL_TRIANGLES);
   vboObject->initialize(vertices.data(), vertices.size(), vertexCount, colors.data(), indices.data(), indices.size(), 3);
   vboObject->setName(info.displayName);
   return vboObject;
@@ -322,7 +324,7 @@ bool CommandHandler::parseAngleArguments(const std::vector<nmath::Token*> &argum
 }
 
 int CommandHandler::createMesh(const vector<nmath::Token *> &tokens, 
-  const float *values, float epsilon, const float *color, std::vector<VboObject*> &results) {
+  const float *values, float epsilon, const float *color, std::vector<VBO*> &results) {
 
   errorCode = function.parse(tokens, &parser);
   if (errorCode != NMATH_NO_ERROR) {
@@ -360,7 +362,7 @@ int CommandHandler::createMesh(const vector<nmath::Token *> &tokens,
       colors[i * 4 + 3] = color[3];
     }
 
-    VboObject* vboObject = new VboObject(locations, GL_TRIANGLE_STRIP);
+    VBO* vboObject = new SimpleVbo(locations, GL_TRIANGLE_STRIP);
     vboObject->initialize(vertices, dataSize, vertexCount, colors, triangleTripIndices, indexLength, normalOffset);
     vboObject->setName("Surface");
     results.push_back(vboObject);

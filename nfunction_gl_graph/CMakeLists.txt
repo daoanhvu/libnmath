@@ -43,7 +43,9 @@ add_executable(${PROJECT_NAME}
     function_utils.cpp
     windows_helper.cpp
     shaders_utils.cpp
-    vbo_objects.cpp
+    vbo.cpp
+    simple_vbo.cpp
+    complex_vbo.cpp
     command_handler.cpp
     ${IMGUI_SOURCES}
 )
@@ -88,7 +90,9 @@ if (DEFINED TESTS)
 
   add_executable(
     nfunction_tests
-    vbo_objects.cpp
+    vbo.cpp
+    simple_vbo.cpp
+    complex_vbo.cpp
     function_utils.cpp
     shaders_utils.cpp
     windows_helper.cpp

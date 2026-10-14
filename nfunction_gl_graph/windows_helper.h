@@ -14,7 +14,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include "shaders_utils.h"
-#include "vbo_objects.h"
+#include "vbo.h"
 
 
 struct GLCoordinates {
@@ -40,7 +40,7 @@ void handleRotation(GLFWwindow* window, GLRotationParameters &rotationParams);
 GLCoordinates initCoordinates(ShaderVarLocation locations);
 void renderCoordinates(const GLCoordinates &axes, ShaderVarLocation locations, glm::mat4 model);
 void releaseCoordinates(GLCoordinates &axes);
-void renderMeshes(std::vector<VboObject*>& meshes, const ShaderVarLocation &locations, const glm::mat4 &model, 
+void renderMeshes(std::vector<VBO*>& meshes, const ShaderVarLocation &locations, const glm::mat4 &model, 
   int useLighting, const glm::vec3 &lightPos, const glm::vec3 &lightColor, const glm::vec4 &highlightColor);
 
 #endif
